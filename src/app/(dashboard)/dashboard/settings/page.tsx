@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -39,11 +39,12 @@ import {
   AlertTriangle,
   CheckCircle,
   Volume2,
+  Loader2,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { useNotifications, NotificationPreferences } from '@/contexts/notifications-context'
+import { useNotifications } from '@/contexts/notifications-context'
 
-export default function SettingsPage() {
+function SettingsContent() {
   const { theme, setTheme } = useTheme()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
@@ -606,5 +607,17 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <SettingsContent />
+    </Suspense>
   )
 }
