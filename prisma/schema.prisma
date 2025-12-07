@@ -1,0 +1,653 @@
+// Dash On Delivery - Database Schema
+// Dashboard completo para operações de Cash on Delivery
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== AUTENTICAÇÃO E USUÁRIOS ====================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          UserRole  @default(MEMBER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relações
+  accounts      Account[]
+  sessions      Session[]
+  workspaces    WorkspaceMember[]
+  tasks         Task[]
+  taskComments  TaskComment[]
+  activities    ActivityLog[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+enum UserRole {
+  ADMIN
+  OWNER
+  MANAGER
+  MEMBER
+  VIEWER
+}
+
+// ==================== WORKSPACE E EQUIPE ====================
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  logo        String?
+  currency    String   @default("BRL")
+  timezone    String   @default("America/Sao_Paulo")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relações
+  members        WorkspaceMember[]
+  partners       Partner[]
+  orders         Order[]
+  products       Product[]
+  trackingEvents TrackingEvent[]
+  campaigns      Campaign[]
+  tasks          Task[]
+  inventory      InventoryItem[]
+  financials     Financial[]
+  shopifyStores  ShopifyStore[]
+  countries      Country[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String          @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole   @default(MEMBER)
+  joinedAt    DateTime        @default(now())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MANAGER
+  MEMBER
+  VIEWER
+}
+
+// ==================== SÓCIOS E INVESTIDORES ====================
+
+model Partner {
+  id               String        @id @default(cuid())
+  workspaceId      String
+  name             String
+  email            String?
+  phone            String?
+  type             PartnerType
+  profitPercentage Float         // Porcentagem do lucro
+  investedAmount   Float?        // Valor investido (para investidores)
+  isActive         Boolean       @default(true)
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  workspace        Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  distributions    ProfitDistribution[]
+
+  @@map("partners")
+}
+
+enum PartnerType {
+  FOUNDER       // Sócio fundador
+  PARTNER       // Sócio operacional
+  INVESTOR      // Sócio investidor
+  SILENT        // Sócio silencioso
+}
+
+model ProfitDistribution {
+  id          String   @id @default(cuid())
+  partnerId   String
+  amount      Float
+  period      String   // Ex: "2024-01" para Janeiro 2024
+  status      DistributionStatus @default(PENDING)
+  paidAt      DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  partner     Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@map("profit_distributions")
+}
+
+enum DistributionStatus {
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+// ==================== PAÍSES E MOEDAS ====================
+
+model Country {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  code         String    // BR, US, PT, etc
+  name         String
+  currency     String    // BRL, USD, EUR
+  currencySymbol String  // R$, $, €
+  exchangeRate Float     @default(1) // Taxa de conversão para moeda base
+  isActive     Boolean   @default(true)
+  shippingCost Float     @default(0) // Custo médio de envio
+  deliveryDays Int       @default(7) // Dias médios de entrega
+
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  orders       Order[]
+
+  @@unique([workspaceId, code])
+  @@map("countries")
+}
+
+// ==================== PRODUTOS E ESTOQUE ====================
+
+model Product {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  shopifyId    String?   // ID no Shopify
+  sku          String
+  name         String
+  description  String?
+  costPrice    Float     // Preço de custo
+  salePrice    Float     // Preço de venda
+  weight       Float?    // Peso em gramas
+  isActive     Boolean   @default(true)
+  imageUrl     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  orderItems   OrderItem[]
+  inventory    InventoryItem[]
+
+  @@unique([workspaceId, sku])
+  @@map("products")
+}
+
+model InventoryItem {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  productId    String
+  quantity     Int       @default(0)
+  minQuantity  Int       @default(10) // Alerta de estoque baixo
+  location     String?   // Local do estoque
+  lastRestockAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  movements    InventoryMovement[]
+
+  @@unique([workspaceId, productId])
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id              String        @id @default(cuid())
+  inventoryItemId String
+  type            MovementType
+  quantity        Int
+  reason          String?
+  orderId         String?
+  createdAt       DateTime      @default(now())
+
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+
+  @@map("inventory_movements")
+}
+
+enum MovementType {
+  IN          // Entrada
+  OUT         // Saída
+  ADJUSTMENT  // Ajuste
+  RETURN      // Devolução
+}
+
+// ==================== PEDIDOS (COD) ====================
+
+model Order {
+  id                String      @id @default(cuid())
+  workspaceId       String
+  shopifyId         String?     // ID no Shopify
+  shopifyOrderNumber String?    // Número do pedido no Shopify
+  countryId         String?
+
+  // Cliente
+  customerName      String
+  customerEmail     String?
+  customerPhone     String?
+
+  // Endereço
+  shippingAddress   String?
+  shippingCity      String?
+  shippingState     String?
+  shippingZip       String?
+  shippingCountry   String?
+
+  // Valores
+  subtotal          Float
+  shippingCost      Float       @default(0)
+  discount          Float       @default(0)
+  total             Float
+  costOfGoods       Float       @default(0) // Custo dos produtos
+  profit            Float       @default(0) // Lucro do pedido
+
+  // Status COD
+  status            OrderStatus @default(PENDING)
+  paymentStatus     PaymentStatus @default(PENDING)
+  deliveryStatus    DeliveryStatus @default(PENDING)
+
+  // Tracking
+  trackingCode      String?
+  carrierName       String?
+
+  // Datas importantes
+  orderedAt         DateTime    @default(now())
+  shippedAt         DateTime?
+  deliveredAt       DateTime?
+  returnedAt        DateTime?
+  cancelledAt       DateTime?
+
+  // Tentativas de entrega (importante para COD)
+  deliveryAttempts  Int         @default(0)
+  lastAttemptAt     DateTime?
+  failureReason     String?
+
+  // Tracking Source
+  utmSource         String?
+  utmMedium         String?
+  utmCampaign       String?
+  utmContent        String?
+  utmTerm           String?
+  referrer          String?
+  landingPage       String?
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  workspace         Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  country           Country?    @relation(fields: [countryId], references: [id])
+  items             OrderItem[]
+  statusHistory     OrderStatusHistory[]
+  trackingEvents    TrackingEvent[]
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, orderedAt])
+  @@index([shopifyId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  productId   String?
+  name        String
+  sku         String?
+  quantity    Int
+  unitPrice   Float
+  totalPrice  Float
+  costPrice   Float   @default(0)
+
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id        String      @id @default(cuid())
+  orderId   String
+  status    OrderStatus
+  notes     String?
+  createdAt DateTime    @default(now())
+
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_status_history")
+}
+
+enum OrderStatus {
+  PENDING           // Aguardando processamento
+  CONFIRMED         // Confirmado
+  PROCESSING        // Em processamento
+  SHIPPED           // Enviado
+  OUT_FOR_DELIVERY  // Saiu para entrega
+  DELIVERED         // Entregue
+  RETURNED          // Devolvido
+  CANCELLED         // Cancelado
+  FAILED_DELIVERY   // Falha na entrega
+}
+
+enum PaymentStatus {
+  PENDING           // Aguardando pagamento (COD)
+  PAID              // Pago
+  REFUNDED          // Reembolsado
+  FAILED            // Falhou
+}
+
+enum DeliveryStatus {
+  PENDING           // Aguardando
+  IN_TRANSIT        // Em trânsito
+  OUT_FOR_DELIVERY  // Saiu para entrega
+  DELIVERED         // Entregue
+  RETURNED          // Devolvido
+  FAILED            // Falhou
+}
+
+// ==================== TRACKING E CAMPANHAS ====================
+
+model Campaign {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  name         String
+  platform     Platform
+  externalId   String?   // ID na plataforma (Facebook, Google, etc)
+  status       CampaignStatus @default(ACTIVE)
+  budget       Float?
+  spent        Float     @default(0)
+  startDate    DateTime?
+  endDate      DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  trackingEvents TrackingEvent[]
+
+  @@map("campaigns")
+}
+
+enum Platform {
+  FACEBOOK
+  INSTAGRAM
+  GOOGLE
+  TIKTOK
+  YOUTUBE
+  ORGANIC
+  DIRECT
+  EMAIL
+  OTHER
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+model TrackingEvent {
+  id           String      @id @default(cuid())
+  workspaceId  String
+  campaignId   String?
+  orderId      String?
+
+  // Identificadores
+  visitorId    String      // ID único do visitante
+  sessionId    String      // ID da sessão
+
+  // Evento
+  eventType    EventType
+  eventName    String?
+  eventValue   Float?
+
+  // UTM Parameters
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  utmContent   String?
+  utmTerm      String?
+
+  // Page info
+  pageUrl      String?
+  pageTitle    String?
+  referrer     String?
+
+  // Device info
+  userAgent    String?
+  deviceType   String?     // desktop, mobile, tablet
+  browser      String?
+  os           String?
+
+  // Location
+  ipAddress    String?
+  country      String?
+  city         String?
+
+  // Timestamps
+  timestamp    DateTime    @default(now())
+
+  workspace    Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  campaign     Campaign?   @relation(fields: [campaignId], references: [id])
+  order        Order?      @relation(fields: [orderId], references: [id])
+
+  @@index([workspaceId, timestamp])
+  @@index([visitorId])
+  @@index([sessionId])
+  @@map("tracking_events")
+}
+
+enum EventType {
+  PAGE_VIEW
+  CLICK
+  ADD_TO_CART
+  CHECKOUT_STARTED
+  PURCHASE
+  LEAD
+  CUSTOM
+}
+
+// ==================== TAREFAS E PENDÊNCIAS ====================
+
+model Task {
+  id           String      @id @default(cuid())
+  workspaceId  String
+  assigneeId   String?
+  title        String
+  description  String?
+  priority     TaskPriority @default(MEDIUM)
+  status       TaskStatus   @default(TODO)
+  dueDate      DateTime?
+  completedAt  DateTime?
+  category     TaskCategory @default(GENERAL)
+  relatedOrderId String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  workspace    Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assignee     User?       @relation(fields: [assigneeId], references: [id])
+  comments     TaskComment[]
+
+  @@index([workspaceId, status])
+  @@index([assigneeId])
+  @@map("tasks")
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("task_comments")
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+  CANCELLED
+}
+
+enum TaskCategory {
+  GENERAL
+  SHIPPING
+  INVENTORY
+  CUSTOMER
+  FINANCIAL
+  MARKETING
+}
+
+// ==================== FINANCEIRO ====================
+
+model Financial {
+  id           String          @id @default(cuid())
+  workspaceId  String
+  type         FinancialType
+  category     FinancialCategory
+  description  String
+  amount       Float
+  currency     String          @default("BRL")
+  date         DateTime
+  reference    String?         // Referência (número nota, etc)
+  relatedOrderId String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  workspace    Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, date])
+  @@index([workspaceId, type])
+  @@map("financials")
+}
+
+enum FinancialType {
+  INCOME      // Receita
+  EXPENSE     // Despesa
+}
+
+enum FinancialCategory {
+  // Receitas
+  SALES           // Vendas
+  REFUND          // Reembolsos (negativo)
+  OTHER_INCOME    // Outras receitas
+
+  // Despesas
+  PRODUCT_COST    // Custo de produtos
+  SHIPPING        // Frete
+  ADS             // Publicidade
+  PLATFORM_FEES   // Taxas de plataforma
+  TAXES           // Impostos
+  SALARY          // Salários
+  RENT            // Aluguel
+  UTILITIES       // Utilidades
+  SOFTWARE        // Software/Ferramentas
+  OTHER_EXPENSE   // Outras despesas
+}
+
+// ==================== INTEGRAÇÃO SHOPIFY ====================
+
+model ShopifyStore {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  storeDomain  String    // exemplo.myshopify.com
+  accessToken  String    // Token criptografado
+  isActive     Boolean   @default(true)
+  lastSyncAt   DateTime?
+  webhookSecret String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, storeDomain])
+  @@map("shopify_stores")
+}
+
+// ==================== LOG DE ATIVIDADES ====================
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  entity      String   // Ex: "order", "task", "product"
+  entityId    String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([userId])
+  @@map("activity_logs")
+}
