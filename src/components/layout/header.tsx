@@ -386,28 +386,38 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="gap-2 py-2 cursor-pointer rounded-lg mx-1">
-            <User className="h-4 w-4 text-muted-foreground" />
-            Meu Perfil
+          <DropdownMenuItem asChild className="gap-2 py-2 cursor-pointer rounded-lg mx-1">
+            <Link href="/dashboard/settings?tab=profile">
+              <User className="h-4 w-4 text-muted-foreground" />
+              Meu Perfil
+            </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem className="gap-2 py-2 cursor-pointer rounded-lg mx-1">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-            <span className="flex-1">Workspace</span>
-            <span className="text-xs text-muted-foreground">{workspaceName}</span>
+          <DropdownMenuItem asChild className="gap-2 py-2 cursor-pointer rounded-lg mx-1">
+            <Link href="/dashboard/settings?tab=company">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <span className="flex-1">Workspace</span>
+              <span className="text-xs text-muted-foreground">{workspaceName}</span>
+            </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem className="gap-2 py-2 cursor-pointer rounded-lg mx-1">
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-            Assinatura
-            <Badge variant="secondary" className="ml-auto h-5 text-[10px]">Pro</Badge>
+          <DropdownMenuItem asChild className="gap-2 py-2 cursor-pointer rounded-lg mx-1">
+            <Link href="/dashboard/settings?tab=integrations">
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              Assinatura
+              <Badge variant="secondary" className="ml-auto h-5 text-[10px]">Pro</Badge>
+            </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem className="gap-2 py-2 cursor-pointer rounded-lg mx-1">
-            <Settings className="h-4 w-4 text-muted-foreground" />
-            Configuracoes
+          <DropdownMenuItem asChild className="gap-2 py-2 cursor-pointer rounded-lg mx-1">
+            <Link href="/dashboard/settings">
+              <Settings className="h-4 w-4 text-muted-foreground" />
+              Configuracoes
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="gap-2 py-2 cursor-pointer rounded-lg mx-1 text-destructive focus:text-destructive">
-            <LogOut className="h-4 w-4" />
-            Sair da conta
+          <DropdownMenuItem asChild className="gap-2 py-2 cursor-pointer rounded-lg mx-1 text-destructive focus:text-destructive">
+            <Link href="/login">
+              <LogOut className="h-4 w-4" />
+              Sair da conta
+            </Link>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
