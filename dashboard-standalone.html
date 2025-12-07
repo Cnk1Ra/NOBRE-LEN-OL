@@ -1873,6 +1873,519 @@
       font-size: 14px;
       color: var(--muted-foreground);
     }
+
+    /* ========== Section Views ========== */
+    .section-view {
+      display: none;
+    }
+
+    .section-view.active {
+      display: block;
+    }
+
+    /* ========== Campaign Styles ========== */
+    .campaign-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .campaign-card:hover {
+      border-color: var(--muted-foreground);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .campaign-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .campaign-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .campaign-platform {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .campaign-platform.facebook { background: #1877f2; }
+    .campaign-platform.instagram { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+    .campaign-platform.google { background: #ea4335; }
+    .campaign-platform.tiktok { background: #000000; }
+
+    .campaign-name {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .campaign-id {
+      font-size: 12px;
+      color: var(--muted-foreground);
+    }
+
+    .campaign-status {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .campaign-status.active {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--success);
+    }
+
+    .campaign-status.paused {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--warning);
+    }
+
+    .campaign-status.ended {
+      background: rgba(113, 113, 122, 0.1);
+      color: var(--muted-foreground);
+    }
+
+    .campaign-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .campaign-metric {
+      text-align: center;
+      padding: 12px;
+      background: var(--muted);
+      border-radius: 10px;
+    }
+
+    .campaign-metric-value {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .campaign-metric-label {
+      font-size: 11px;
+      color: var(--muted-foreground);
+      text-transform: uppercase;
+    }
+
+    /* ========== Inventory Styles ========== */
+    .inventory-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      transition: all 0.3s;
+    }
+
+    .inventory-item:hover {
+      border-color: var(--muted-foreground);
+      box-shadow: var(--shadow);
+    }
+
+    .inventory-item.low-stock {
+      border-left: 3px solid var(--destructive);
+    }
+
+    .inventory-item.medium-stock {
+      border-left: 3px solid var(--warning);
+    }
+
+    .inventory-item.good-stock {
+      border-left: 3px solid var(--success);
+    }
+
+    .inventory-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .inventory-image {
+      width: 56px;
+      height: 56px;
+      border-radius: 10px;
+      background: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted-foreground);
+    }
+
+    .inventory-name {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .inventory-sku {
+      font-size: 12px;
+      color: var(--muted-foreground);
+    }
+
+    .inventory-stats {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .inventory-stat {
+      text-align: center;
+    }
+
+    .inventory-stat-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .inventory-stat-label {
+      font-size: 11px;
+      color: var(--muted-foreground);
+    }
+
+    /* ========== Partner Styles ========== */
+    .partner-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .partner-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .partner-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .partner-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .partner-name {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .partner-location {
+      font-size: 12px;
+      color: var(--muted-foreground);
+    }
+
+    .partner-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .partner-stat {
+      text-align: center;
+      padding: 12px;
+      background: var(--muted);
+      border-radius: 10px;
+    }
+
+    /* ========== Settings Styles ========== */
+    .settings-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      margin-bottom: 20px;
+    }
+
+    .settings-section-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .settings-section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .settings-section-desc {
+      font-size: 13px;
+      color: var(--muted-foreground);
+    }
+
+    .settings-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .settings-item:last-child {
+      border-bottom: none;
+    }
+
+    .settings-item-info {
+      flex: 1;
+    }
+
+    .settings-item-label {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .settings-item-desc {
+      font-size: 12px;
+      color: var(--muted-foreground);
+    }
+
+    .settings-toggle {
+      width: 48px;
+      height: 26px;
+      border-radius: 13px;
+      background: var(--muted);
+      position: relative;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .settings-toggle.active {
+      background: var(--primary);
+    }
+
+    .settings-toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      transition: all 0.3s;
+    }
+
+    .settings-toggle.active::after {
+      left: 25px;
+    }
+
+    /* ========== Financial Styles ========== */
+    .financial-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .financial-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .financial-row:last-child {
+      border-bottom: none;
+    }
+
+    .financial-label {
+      color: var(--muted-foreground);
+      font-size: 14px;
+    }
+
+    .financial-value {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .financial-value.positive {
+      color: var(--success);
+    }
+
+    .financial-value.negative {
+      color: var(--destructive);
+    }
+
+    /* ========== Pending Items ========== */
+    .pending-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .pending-item:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow);
+    }
+
+    .pending-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pending-content {
+      flex: 1;
+    }
+
+    .pending-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .pending-desc {
+      font-size: 13px;
+      color: var(--muted-foreground);
+    }
+
+    .pending-action {
+      padding: 8px 16px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .pending-action:hover {
+      background: #4f46e5;
+    }
+
+    /* ========== Tracking Styles ========== */
+    .tracking-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .tracking-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .tracking-code {
+      font-family: monospace;
+      padding: 4px 8px;
+      background: var(--muted);
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .tracking-timeline {
+      position: relative;
+      padding-left: 32px;
+    }
+
+    .tracking-timeline::before {
+      content: '';
+      position: absolute;
+      left: 11px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+
+    .tracking-step {
+      position: relative;
+      padding-bottom: 24px;
+    }
+
+    .tracking-step:last-child {
+      padding-bottom: 0;
+    }
+
+    .tracking-step-dot {
+      position: absolute;
+      left: -32px;
+      top: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--card);
+      border: 2px solid var(--border);
+    }
+
+    .tracking-step-dot.completed {
+      background: var(--success);
+      border-color: var(--success);
+      color: white;
+    }
+
+    .tracking-step-dot.current {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .tracking-step-content {
+      padding-top: 2px;
+    }
+
+    .tracking-step-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .tracking-step-time {
+      font-size: 12px;
+      color: var(--muted-foreground);
+    }
   </style>
 </head>
 <body>
@@ -1886,49 +2399,61 @@
 
       <nav class="nav-section">
         <div class="nav-label">Principal</div>
-        <a href="#" class="nav-item active">
+        <a href="#" class="nav-item active" data-view="dashboard">
           <span class="nav-icon">
             <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           </span>
           Dashboard
         </a>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item" data-view="orders">
           <span class="nav-icon">
             <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
           </span>
           Pedidos
         </a>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item" data-view="tracking">
           <span class="nav-icon">
             <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </span>
           Rastreamento
         </a>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item" data-view="financial">
           <span class="nav-icon">
             <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           </span>
           Financeiro
         </a>
+        <a href="#" class="nav-item" data-view="pending">
+          <span class="nav-icon">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </span>
+          Pendências
+        </a>
       </nav>
 
       <nav class="nav-section">
         <div class="nav-label">Gerenciar</div>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item" data-view="campaigns">
+          <span class="nav-icon">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </span>
+          Campanhas
+        </a>
+        <a href="#" class="nav-item" data-view="partners">
           <span class="nav-icon">
             <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </span>
           Parceiros
         </a>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item" data-view="inventory">
           <span class="nav-icon">
             <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
           </span>
           Estoque
         </a>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item" data-view="tasks">
           <span class="nav-icon">
-            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           </span>
           Tarefas
         </a>
@@ -1936,11 +2461,17 @@
 
       <nav class="nav-section">
         <div class="nav-label">Integrações</div>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item" data-view="shopify">
           <span class="nav-icon">
             <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
           </span>
           Shopify
+        </a>
+        <a href="#" class="nav-item" data-view="settings">
+          <span class="nav-icon">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </span>
+          Configurações
         </a>
       </nav>
 
@@ -2112,9 +2643,10 @@
         </div>
       </header>
 
-      <!-- Dashboard -->
-      <div class="dashboard">
-        <div class="dashboard-header">
+      <!-- Dashboard View -->
+      <div class="section-view active" id="view-dashboard">
+        <div class="dashboard">
+          <div class="dashboard-header">
           <h1>
             Dashboard
             <span class="live-badge">
@@ -2774,6 +3306,1204 @@
             </div>
           </div>
         </div>
+        </div>
+      </div>
+
+      <!-- Orders View -->
+      <div class="section-view" id="view-orders">
+        <div class="dashboard">
+          <div class="dashboard-header">
+            <h1>Pedidos</h1>
+            <p>Gerencie todos os pedidos COD</p>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card" onclick="showToast('info', 'Pedidos Pendentes', 'Mostrando 42 pedidos aguardando processamento')">
+              <div class="stat-header">
+                <span class="stat-label">Pendentes</span>
+                <div class="stat-icon warning">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">42</div>
+              <span class="stat-change" style="color: var(--warning);">Aguardando processamento</span>
+            </div>
+
+            <div class="stat-card" onclick="showToast('info', 'Em Trânsito', 'Mostrando 89 pedidos em transporte')">
+              <div class="stat-header">
+                <span class="stat-label">Em Trânsito</span>
+                <div class="stat-icon info">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">89</div>
+              <span class="stat-change up">+5 novos hoje</span>
+            </div>
+
+            <div class="stat-card" onclick="showToast('success', 'Entregues Hoje', '23 pedidos entregues com sucesso!')">
+              <div class="stat-header">
+                <span class="stat-label">Entregues Hoje</span>
+                <div class="stat-icon success">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">23</div>
+              <span class="stat-change up">+15.3% vs ontem</span>
+            </div>
+
+            <div class="stat-card" onclick="showToast('error', 'Devoluções', '5 pedidos devolvidos - verificar motivos')">
+              <div class="stat-header">
+                <span class="stat-label">Devoluções</span>
+                <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--destructive);">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">5</div>
+              <span class="stat-change down">Cliente ausente</span>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top: 24px;">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon primary">
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                </div>
+                <div>
+                  <div class="card-title">Todos os Pedidos</div>
+                  <div class="card-subtitle">Clique para ver detalhes</div>
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="showToast('info', 'Novo Pedido', 'Abrindo formulário de novo pedido...')">
+                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Novo Pedido
+              </button>
+            </div>
+            <div class="card-content">
+              <div class="order-item" onclick="openOrderModal('A7B2C3D4', 'Maria Costa', 'R$ 347,90', 'Pendente', 'São Paulo, SP')">
+                <div class="order-left">
+                  <div class="order-avatar">MC</div>
+                  <div>
+                    <div class="order-name">Maria Costa 🇧🇷</div>
+                    <div class="order-id"><code>#A7B2C3D4</code><span>•</span><span>há 5 min</span></div>
+                  </div>
+                </div>
+                <div class="order-right">
+                  <div class="order-value">
+                    <div class="order-total">R$ 347,90</div>
+                    <div class="order-payment paid">Pago</div>
+                  </div>
+                  <span class="card-badge badge-warning">Pendente</span>
+                </div>
+              </div>
+              <div class="order-item" onclick="openOrderModal('E5F6G7H8', 'João Silva', 'R$ 589,00', 'Enviado', 'Rio de Janeiro, RJ')">
+                <div class="order-left">
+                  <div class="order-avatar">JS</div>
+                  <div>
+                    <div class="order-name">João Silva 🇧🇷</div>
+                    <div class="order-id"><code>#E5F6G7H8</code><span>•</span><span>há 12 min</span></div>
+                  </div>
+                </div>
+                <div class="order-right">
+                  <div class="order-value">
+                    <div class="order-total">R$ 589,00</div>
+                    <div class="order-payment paid">Pago</div>
+                  </div>
+                  <span class="card-badge badge-info">Enviado</span>
+                </div>
+              </div>
+              <div class="order-item" onclick="openOrderModal('I9J0K1L2', 'Ana Ferreira', '€ 127,50', 'Confirmado', 'Lisboa, Portugal')">
+                <div class="order-left">
+                  <div class="order-avatar">AF</div>
+                  <div>
+                    <div class="order-name">Ana Ferreira 🇵🇹</div>
+                    <div class="order-id"><code>#I9J0K1L2</code><span>•</span><span>há 28 min</span></div>
+                  </div>
+                </div>
+                <div class="order-right">
+                  <div class="order-value">
+                    <div class="order-total">€ 127,50</div>
+                    <div class="order-payment pending">Aguardando</div>
+                  </div>
+                  <span class="card-badge badge-info">Confirmado</span>
+                </div>
+              </div>
+              <div class="order-item" onclick="openOrderModal('M3N4O5P6', 'Pedro Mendes', 'Kz 89.500', 'Entregue', 'Luanda, Angola')">
+                <div class="order-left">
+                  <div class="order-avatar">PM</div>
+                  <div>
+                    <div class="order-name">Pedro Mendes 🇦🇴</div>
+                    <div class="order-id"><code>#M3N4O5P6</code><span>•</span><span>há 45 min</span></div>
+                  </div>
+                </div>
+                <div class="order-right">
+                  <div class="order-value">
+                    <div class="order-total">Kz 89.500</div>
+                    <div class="order-payment paid">Pago</div>
+                  </div>
+                  <span class="card-badge badge-success">Entregue</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tracking View -->
+      <div class="section-view" id="view-tracking">
+        <div class="dashboard">
+          <div class="dashboard-header">
+            <h1>Rastreamento</h1>
+            <p>Acompanhe todos os envios em tempo real</p>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon info">
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <div>
+                  <div class="card-title">Rastrear Envio</div>
+                  <div class="card-subtitle">Digite o código de rastreio</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-content">
+              <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+                <input type="text" class="form-input" placeholder="Ex: BR123456789BR" style="flex: 1;">
+                <button class="btn btn-primary" onclick="showToast('info', 'Rastreando', 'Buscando informações do envio...')">Rastrear</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="tracking-card" onclick="showToast('info', 'Pedido #A7B2C3D4', 'Abrindo detalhes do rastreamento...')">
+            <div class="tracking-header">
+              <div>
+                <div style="font-weight: 600; margin-bottom: 4px;">Pedido #A7B2C3D4 - Maria Costa</div>
+                <div class="tracking-code">BR987654321BR</div>
+              </div>
+              <span class="card-badge badge-info">Em Trânsito</span>
+            </div>
+            <div class="tracking-timeline">
+              <div class="tracking-step">
+                <div class="tracking-step-dot completed">
+                  <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="tracking-step-content">
+                  <div class="tracking-step-title">Pedido Confirmado</div>
+                  <div class="tracking-step-time">05/12/2024 - 14:30</div>
+                </div>
+              </div>
+              <div class="tracking-step">
+                <div class="tracking-step-dot completed">
+                  <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="tracking-step-content">
+                  <div class="tracking-step-title">Coletado pela Transportadora</div>
+                  <div class="tracking-step-time">05/12/2024 - 18:45</div>
+                </div>
+              </div>
+              <div class="tracking-step">
+                <div class="tracking-step-dot current">
+                  <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/></svg>
+                </div>
+                <div class="tracking-step-content">
+                  <div class="tracking-step-title">Em Trânsito - CD São Paulo</div>
+                  <div class="tracking-step-time">06/12/2024 - 08:20</div>
+                </div>
+              </div>
+              <div class="tracking-step">
+                <div class="tracking-step-dot"></div>
+                <div class="tracking-step-content">
+                  <div class="tracking-step-title">Saiu para Entrega</div>
+                  <div class="tracking-step-time">Previsão: 07/12/2024</div>
+                </div>
+              </div>
+              <div class="tracking-step">
+                <div class="tracking-step-dot"></div>
+                <div class="tracking-step-content">
+                  <div class="tracking-step-title">Entregue</div>
+                  <div class="tracking-step-time">-</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tracking-card" onclick="showToast('success', 'Pedido #E5F6G7H8', 'Pedido entregue com sucesso!')">
+            <div class="tracking-header">
+              <div>
+                <div style="font-weight: 600; margin-bottom: 4px;">Pedido #E5F6G7H8 - João Silva</div>
+                <div class="tracking-code">BR123456789BR</div>
+              </div>
+              <span class="card-badge badge-success">Entregue</span>
+            </div>
+            <div class="tracking-timeline">
+              <div class="tracking-step">
+                <div class="tracking-step-dot completed">
+                  <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="tracking-step-content">
+                  <div class="tracking-step-title">Entregue ao Destinatário</div>
+                  <div class="tracking-step-time">06/12/2024 - 14:30</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Financial View -->
+      <div class="section-view" id="view-financial">
+        <div class="dashboard">
+          <div class="dashboard-header">
+            <h1>Financeiro</h1>
+            <p>Controle financeiro completo do seu negócio</p>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card" onclick="showToast('success', 'Receita Total', 'R$ 285.430,00 este mês')">
+              <div class="stat-header">
+                <span class="stat-label">Receita Total</span>
+                <div class="stat-icon success">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">R$ 285.430</div>
+              <span class="stat-change up">+18.5% vs mês anterior</span>
+            </div>
+
+            <div class="stat-card" onclick="showToast('warning', 'Custos', 'R$ 192.950,00 em custos este mês')">
+              <div class="stat-header">
+                <span class="stat-label">Custos Totais</span>
+                <div class="stat-icon warning">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">R$ 192.950</div>
+              <span class="stat-change">Produto + Frete + Ads</span>
+            </div>
+
+            <div class="stat-card" onclick="showToast('success', 'Lucro Líquido', 'R$ 92.480,00 de lucro!')">
+              <div class="stat-header">
+                <span class="stat-label">Lucro Líquido</span>
+                <div class="stat-icon primary">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                </div>
+              </div>
+              <div class="stat-value" style="color: var(--success);">R$ 92.480</div>
+              <span class="stat-change up">32.4% de margem</span>
+            </div>
+
+            <div class="stat-card" onclick="showToast('info', 'A Receber', 'R$ 45.890,00 em COD a receber')">
+              <div class="stat-header">
+                <span class="stat-label">COD a Receber</span>
+                <div class="stat-icon info">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">R$ 45.890</div>
+              <span class="stat-change">127 pedidos pendentes</span>
+            </div>
+          </div>
+
+          <div class="cards-grid" style="margin-top: 24px;">
+            <div class="financial-card">
+              <h3 style="margin-bottom: 20px; font-size: 16px;">Resumo do Mês</h3>
+              <div class="financial-row">
+                <span class="financial-label">Vendas Brutas</span>
+                <span class="financial-value">R$ 285.430,00</span>
+              </div>
+              <div class="financial-row">
+                <span class="financial-label">(-) Custo dos Produtos</span>
+                <span class="financial-value negative">-R$ 85.630,00</span>
+              </div>
+              <div class="financial-row">
+                <span class="financial-label">(-) Custo de Frete</span>
+                <span class="financial-value negative">-R$ 24.570,00</span>
+              </div>
+              <div class="financial-row">
+                <span class="financial-label">(-) Investimento em Ads</span>
+                <span class="financial-value negative">-R$ 82.750,00</span>
+              </div>
+              <div class="financial-row" style="background: var(--muted); margin: 12px -24px; padding: 16px 24px;">
+                <span class="financial-label" style="font-weight: 600; color: var(--foreground);">Lucro Líquido</span>
+                <span class="financial-value positive" style="font-size: 20px;">R$ 92.480,00</span>
+              </div>
+            </div>
+
+            <div class="financial-card">
+              <h3 style="margin-bottom: 20px; font-size: 16px;">Pagamentos Parceiros</h3>
+              <div class="financial-row">
+                <span class="financial-label">Loja São Paulo (40%)</span>
+                <span class="financial-value">R$ 36.992,00</span>
+              </div>
+              <div class="financial-row">
+                <span class="financial-label">Loja Rio (35%)</span>
+                <span class="financial-value">R$ 32.368,00</span>
+              </div>
+              <div class="financial-row">
+                <span class="financial-label">Loja Angola (25%)</span>
+                <span class="financial-value">R$ 23.120,00</span>
+              </div>
+              <div style="margin-top: 16px;">
+                <button class="btn btn-primary" style="width: 100%;" onclick="showToast('success', 'Pagamentos', 'Processando pagamentos dos parceiros...')">
+                  <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  Processar Pagamentos
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending View -->
+      <div class="section-view" id="view-pending">
+        <div class="dashboard">
+          <div class="dashboard-header">
+            <h1>Pendências</h1>
+            <p>Ações que precisam da sua atenção</p>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--destructive);">
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div>
+                  <div class="card-title">Urgentes</div>
+                  <div class="card-subtitle">Requer ação imediata</div>
+                </div>
+              </div>
+              <span class="card-badge badge-danger">3 itens</span>
+            </div>
+            <div class="card-content">
+              <div class="pending-item" onclick="showToast('warning', 'Estoque Baixo', 'Abrindo página de estoque...')">
+                <div class="pending-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--destructive);">
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                </div>
+                <div class="pending-content">
+                  <div class="pending-title">Estoque Crítico - Kit Premium</div>
+                  <div class="pending-desc">Apenas 12 unidades restantes. Reposição necessária.</div>
+                </div>
+                <button class="pending-action">Resolver</button>
+              </div>
+
+              <div class="pending-item" onclick="showToast('error', 'Devolução', 'Abrindo pedido devolvido...')">
+                <div class="pending-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--destructive);">
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                </div>
+                <div class="pending-content">
+                  <div class="pending-title">Pedido #Q7R8S9T0 Devolvido</div>
+                  <div class="pending-desc">Cliente ausente. Verificar nova tentativa de entrega.</div>
+                </div>
+                <button class="pending-action">Resolver</button>
+              </div>
+
+              <div class="pending-item" onclick="showToast('warning', 'Cliente Reclamou', 'Abrindo ticket de suporte...')">
+                <div class="pending-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--destructive);">
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </div>
+                <div class="pending-content">
+                  <div class="pending-title">Reclamação - Pedido #A7B2C3D4</div>
+                  <div class="pending-desc">Cliente reclamou sobre atraso na entrega.</div>
+                </div>
+                <button class="pending-action">Resolver</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top: 24px;">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon warning">
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div>
+                  <div class="card-title">Pendentes</div>
+                  <div class="card-subtitle">Aguardando processamento</div>
+                </div>
+              </div>
+              <span class="card-badge badge-warning">5 itens</span>
+            </div>
+            <div class="card-content">
+              <div class="pending-item" onclick="showToast('info', 'Pagamento', 'Processando pagamento do parceiro...')">
+                <div class="pending-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <div class="pending-content">
+                  <div class="pending-title">Pagamento Parceiro - Loja SP</div>
+                  <div class="pending-desc">R$ 4.580,00 a pagar. Vencimento amanhã.</div>
+                </div>
+                <button class="pending-action">Pagar</button>
+              </div>
+
+              <div class="pending-item" onclick="showToast('info', 'Tracking', 'Atualizando informações de rastreio...')">
+                <div class="pending-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <div class="pending-content">
+                  <div class="pending-title">Atualizar Tracking - 15 Pedidos</div>
+                  <div class="pending-desc">Pedidos sem atualização há 24h.</div>
+                </div>
+                <button class="pending-action">Atualizar</button>
+              </div>
+
+              <div class="pending-item" onclick="showToast('info', 'Nota Fiscal', 'Gerando notas fiscais...')">
+                <div class="pending-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div class="pending-content">
+                  <div class="pending-title">Emitir Notas Fiscais</div>
+                  <div class="pending-desc">42 pedidos aguardando NF.</div>
+                </div>
+                <button class="pending-action">Emitir</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Campaigns View -->
+      <div class="section-view" id="view-campaigns">
+        <div class="dashboard">
+          <div class="dashboard-header">
+            <h1>Campanhas</h1>
+            <p>Gerencie suas campanhas de tráfego pago</p>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Investimento Total</span>
+                <div class="stat-icon warning">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">R$ 82.750</div>
+              <span class="stat-change">Este mês</span>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Receita Gerada</span>
+                <div class="stat-icon success">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+                </div>
+              </div>
+              <div class="stat-value" style="color: var(--success);">R$ 285.430</div>
+              <span class="stat-change up">ROAS 3.45x</span>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Campanhas Ativas</span>
+                <div class="stat-icon primary">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">8</div>
+              <span class="stat-change">4 plataformas</span>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">CPL Médio</span>
+                <div class="stat-icon info">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">R$ 12,50</div>
+              <span class="stat-change down">-8.2% vs semana passada</span>
+            </div>
+          </div>
+
+          <div style="margin-top: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 style="font-size: 18px; font-weight: 600;">Campanhas Ativas</h3>
+              <button class="btn btn-primary" onclick="openCampaignModal()">
+                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nova Campanha
+              </button>
+            </div>
+
+            <div class="campaign-card" onclick="showToast('info', 'Meta Ads', 'Abrindo detalhes da campanha...')">
+              <div class="campaign-header">
+                <div class="campaign-info">
+                  <div class="campaign-platform facebook">f</div>
+                  <div>
+                    <div class="campaign-name">Kit Premium - Conversão BR</div>
+                    <div class="campaign-id">ID: 23851234567890</div>
+                  </div>
+                </div>
+                <span class="campaign-status active">Ativa</span>
+              </div>
+              <div class="campaign-metrics">
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value">R$ 24.500</div>
+                  <div class="campaign-metric-label">Investido</div>
+                </div>
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value">R$ 98.200</div>
+                  <div class="campaign-metric-label">Receita</div>
+                </div>
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value" style="color: var(--success);">4.01x</div>
+                  <div class="campaign-metric-label">ROAS</div>
+                </div>
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value">245</div>
+                  <div class="campaign-metric-label">Conversões</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="campaign-card" onclick="showToast('info', 'Instagram Ads', 'Abrindo detalhes da campanha...')">
+              <div class="campaign-header">
+                <div class="campaign-info">
+                  <div class="campaign-platform instagram">IG</div>
+                  <div>
+                    <div class="campaign-name">Stories - Promoção Flash</div>
+                    <div class="campaign-id">ID: 23851234567891</div>
+                  </div>
+                </div>
+                <span class="campaign-status active">Ativa</span>
+              </div>
+              <div class="campaign-metrics">
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value">R$ 18.200</div>
+                  <div class="campaign-metric-label">Investido</div>
+                </div>
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value">R$ 72.400</div>
+                  <div class="campaign-metric-label">Receita</div>
+                </div>
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value" style="color: var(--success);">3.98x</div>
+                  <div class="campaign-metric-label">ROAS</div>
+                </div>
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value">189</div>
+                  <div class="campaign-metric-label">Conversões</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="campaign-card" onclick="showToast('info', 'Google Ads', 'Abrindo detalhes da campanha...')">
+              <div class="campaign-header">
+                <div class="campaign-info">
+                  <div class="campaign-platform google">G</div>
+                  <div>
+                    <div class="campaign-name">Search - Kit Premium</div>
+                    <div class="campaign-id">ID: 9876543210</div>
+                  </div>
+                </div>
+                <span class="campaign-status paused">Pausada</span>
+              </div>
+              <div class="campaign-metrics">
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value">R$ 15.800</div>
+                  <div class="campaign-metric-label">Investido</div>
+                </div>
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value">R$ 38.200</div>
+                  <div class="campaign-metric-label">Receita</div>
+                </div>
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value" style="color: var(--warning);">2.42x</div>
+                  <div class="campaign-metric-label">ROAS</div>
+                </div>
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value">45</div>
+                  <div class="campaign-metric-label">Conversões</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="campaign-card" onclick="showToast('info', 'TikTok Ads', 'Abrindo detalhes da campanha...')">
+              <div class="campaign-header">
+                <div class="campaign-info">
+                  <div class="campaign-platform tiktok">TT</div>
+                  <div>
+                    <div class="campaign-name">Viral - Kit Premium Gen Z</div>
+                    <div class="campaign-id">ID: TT123456789</div>
+                  </div>
+                </div>
+                <span class="campaign-status active">Ativa</span>
+              </div>
+              <div class="campaign-metrics">
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value">R$ 24.250</div>
+                  <div class="campaign-metric-label">Investido</div>
+                </div>
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value">R$ 76.630</div>
+                  <div class="campaign-metric-label">Receita</div>
+                </div>
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value" style="color: var(--success);">3.16x</div>
+                  <div class="campaign-metric-label">ROAS</div>
+                </div>
+                <div class="campaign-metric">
+                  <div class="campaign-metric-value">168</div>
+                  <div class="campaign-metric-label">Conversões</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Partners View -->
+      <div class="section-view" id="view-partners">
+        <div class="dashboard">
+          <div class="dashboard-header">
+            <h1>Parceiros</h1>
+            <p>Gerencie parceiros e divisão de lucros</p>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Parceiros Ativos</span>
+                <div class="stat-icon primary">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">3</div>
+              <span class="stat-change">Brasil, Angola, Portugal</span>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Total a Pagar</span>
+                <div class="stat-icon warning">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">R$ 92.480</div>
+              <span class="stat-change">Este mês</span>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Vendas Parceiros</span>
+                <div class="stat-icon success">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">847</div>
+              <span class="stat-change up">+12.5% vs mês anterior</span>
+            </div>
+          </div>
+
+          <div style="margin-top: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 style="font-size: 18px; font-weight: 600;">Parceiros</h3>
+              <button class="btn btn-primary" onclick="showToast('info', 'Novo Parceiro', 'Abrindo formulário de cadastro...')">
+                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Novo Parceiro
+              </button>
+            </div>
+
+            <div class="partner-card">
+              <div class="partner-header">
+                <div class="partner-info">
+                  <div class="partner-avatar">SP</div>
+                  <div>
+                    <div class="partner-name">Loja São Paulo</div>
+                    <div class="partner-location">🇧🇷 São Paulo, Brasil</div>
+                  </div>
+                </div>
+                <span class="card-badge badge-success">40% lucro</span>
+              </div>
+              <div class="partner-stats">
+                <div class="partner-stat">
+                  <div class="campaign-metric-value">425</div>
+                  <div class="campaign-metric-label">Vendas</div>
+                </div>
+                <div class="partner-stat">
+                  <div class="campaign-metric-value">R$ 142.890</div>
+                  <div class="campaign-metric-label">Faturamento</div>
+                </div>
+                <div class="partner-stat">
+                  <div class="campaign-metric-value" style="color: var(--success);">R$ 36.992</div>
+                  <div class="campaign-metric-label">A Pagar</div>
+                </div>
+              </div>
+              <div style="margin-top: 16px; display: flex; gap: 12px;">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="showToast('info', 'Detalhes', 'Abrindo detalhes do parceiro...')">Ver Detalhes</button>
+                <button class="btn btn-primary" style="flex: 1;" onclick="showToast('success', 'Pagamento', 'Processando pagamento...')">Pagar</button>
+              </div>
+            </div>
+
+            <div class="partner-card">
+              <div class="partner-header">
+                <div class="partner-info">
+                  <div class="partner-avatar" style="background: linear-gradient(135deg, #22c55e, #10b981);">RJ</div>
+                  <div>
+                    <div class="partner-name">Loja Rio de Janeiro</div>
+                    <div class="partner-location">🇧🇷 Rio de Janeiro, Brasil</div>
+                  </div>
+                </div>
+                <span class="card-badge badge-info">35% lucro</span>
+              </div>
+              <div class="partner-stats">
+                <div class="partner-stat">
+                  <div class="campaign-metric-value">287</div>
+                  <div class="campaign-metric-label">Vendas</div>
+                </div>
+                <div class="partner-stat">
+                  <div class="campaign-metric-value">R$ 98.540</div>
+                  <div class="campaign-metric-label">Faturamento</div>
+                </div>
+                <div class="partner-stat">
+                  <div class="campaign-metric-value" style="color: var(--success);">R$ 32.368</div>
+                  <div class="campaign-metric-label">A Pagar</div>
+                </div>
+              </div>
+              <div style="margin-top: 16px; display: flex; gap: 12px;">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="showToast('info', 'Detalhes', 'Abrindo detalhes do parceiro...')">Ver Detalhes</button>
+                <button class="btn btn-primary" style="flex: 1;" onclick="showToast('success', 'Pagamento', 'Processando pagamento...')">Pagar</button>
+              </div>
+            </div>
+
+            <div class="partner-card">
+              <div class="partner-header">
+                <div class="partner-info">
+                  <div class="partner-avatar" style="background: linear-gradient(135deg, #f59e0b, #d97706);">AO</div>
+                  <div>
+                    <div class="partner-name">Loja Luanda</div>
+                    <div class="partner-location">🇦🇴 Luanda, Angola</div>
+                  </div>
+                </div>
+                <span class="card-badge badge-warning">25% lucro</span>
+              </div>
+              <div class="partner-stats">
+                <div class="partner-stat">
+                  <div class="campaign-metric-value">135</div>
+                  <div class="campaign-metric-label">Vendas</div>
+                </div>
+                <div class="partner-stat">
+                  <div class="campaign-metric-value">Kz 8.9M</div>
+                  <div class="campaign-metric-label">Faturamento</div>
+                </div>
+                <div class="partner-stat">
+                  <div class="campaign-metric-value" style="color: var(--success);">R$ 23.120</div>
+                  <div class="campaign-metric-label">A Pagar</div>
+                </div>
+              </div>
+              <div style="margin-top: 16px; display: flex; gap: 12px;">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="showToast('info', 'Detalhes', 'Abrindo detalhes do parceiro...')">Ver Detalhes</button>
+                <button class="btn btn-primary" style="flex: 1;" onclick="showToast('success', 'Pagamento', 'Processando pagamento...')">Pagar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inventory View -->
+      <div class="section-view" id="view-inventory">
+        <div class="dashboard">
+          <div class="dashboard-header">
+            <h1>Estoque</h1>
+            <p>Controle de produtos e inventário</p>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Total Produtos</span>
+                <div class="stat-icon primary">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">12</div>
+              <span class="stat-change">SKUs ativos</span>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Em Estoque</span>
+                <div class="stat-icon success">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">1.847</div>
+              <span class="stat-change up">Unidades disponíveis</span>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Estoque Baixo</span>
+                <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--destructive);">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+              </div>
+              <div class="stat-value" style="color: var(--destructive);">3</div>
+              <span class="stat-change">Produtos em alerta</span>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Valor em Estoque</span>
+                <div class="stat-icon info">
+                  <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+              </div>
+              <div class="stat-value">R$ 156.780</div>
+              <span class="stat-change">Custo total</span>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top: 24px;">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon primary">
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                </div>
+                <div>
+                  <div class="card-title">Produtos</div>
+                  <div class="card-subtitle">Gerenciar inventário</div>
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="showToast('info', 'Novo Produto', 'Abrindo formulário de cadastro...')">
+                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Novo Produto
+              </button>
+            </div>
+            <div class="card-content">
+              <div class="inventory-item low-stock" onclick="showToast('warning', 'Kit Premium', 'Estoque crítico! Apenas 12 unidades.')">
+                <div class="inventory-info">
+                  <div class="inventory-image">
+                    <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                  </div>
+                  <div>
+                    <div class="inventory-name">Kit Premium Completo</div>
+                    <div class="inventory-sku">SKU: KIT-PREM-001</div>
+                  </div>
+                </div>
+                <div class="inventory-stats">
+                  <div class="inventory-stat">
+                    <div class="inventory-stat-value" style="color: var(--destructive);">12</div>
+                    <div class="inventory-stat-label">Em Estoque</div>
+                  </div>
+                  <div class="inventory-stat">
+                    <div class="inventory-stat-value">R$ 89,90</div>
+                    <div class="inventory-stat-label">Custo</div>
+                  </div>
+                  <div class="inventory-stat">
+                    <div class="inventory-stat-value">R$ 297,00</div>
+                    <div class="inventory-stat-label">Preço</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="inventory-item medium-stock" onclick="showToast('warning', 'Kit Básico', 'Estoque médio - 45 unidades.')">
+                <div class="inventory-info">
+                  <div class="inventory-image">
+                    <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                  </div>
+                  <div>
+                    <div class="inventory-name">Kit Básico</div>
+                    <div class="inventory-sku">SKU: KIT-BAS-001</div>
+                  </div>
+                </div>
+                <div class="inventory-stats">
+                  <div class="inventory-stat">
+                    <div class="inventory-stat-value" style="color: var(--warning);">45</div>
+                    <div class="inventory-stat-label">Em Estoque</div>
+                  </div>
+                  <div class="inventory-stat">
+                    <div class="inventory-stat-value">R$ 45,00</div>
+                    <div class="inventory-stat-label">Custo</div>
+                  </div>
+                  <div class="inventory-stat">
+                    <div class="inventory-stat-value">R$ 147,00</div>
+                    <div class="inventory-stat-label">Preço</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="inventory-item good-stock" onclick="showToast('success', 'Kit Avançado', 'Estoque bom - 230 unidades.')">
+                <div class="inventory-info">
+                  <div class="inventory-image">
+                    <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                  </div>
+                  <div>
+                    <div class="inventory-name">Kit Avançado</div>
+                    <div class="inventory-sku">SKU: KIT-ADV-001</div>
+                  </div>
+                </div>
+                <div class="inventory-stats">
+                  <div class="inventory-stat">
+                    <div class="inventory-stat-value" style="color: var(--success);">230</div>
+                    <div class="inventory-stat-label">Em Estoque</div>
+                  </div>
+                  <div class="inventory-stat">
+                    <div class="inventory-stat-value">R$ 67,00</div>
+                    <div class="inventory-stat-label">Custo</div>
+                  </div>
+                  <div class="inventory-stat">
+                    <div class="inventory-stat-value">R$ 197,00</div>
+                    <div class="inventory-stat-label">Preço</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="inventory-item good-stock" onclick="showToast('success', 'Acessório Extra', 'Estoque bom - 560 unidades.')">
+                <div class="inventory-info">
+                  <div class="inventory-image">
+                    <svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                  </div>
+                  <div>
+                    <div class="inventory-name">Acessório Extra</div>
+                    <div class="inventory-sku">SKU: ACC-EXT-001</div>
+                  </div>
+                </div>
+                <div class="inventory-stats">
+                  <div class="inventory-stat">
+                    <div class="inventory-stat-value" style="color: var(--success);">560</div>
+                    <div class="inventory-stat-label">Em Estoque</div>
+                  </div>
+                  <div class="inventory-stat">
+                    <div class="inventory-stat-value">R$ 15,00</div>
+                    <div class="inventory-stat-label">Custo</div>
+                  </div>
+                  <div class="inventory-stat">
+                    <div class="inventory-stat-value">R$ 47,00</div>
+                    <div class="inventory-stat-label">Preço</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasks View -->
+      <div class="section-view" id="view-tasks">
+        <div class="dashboard">
+          <div class="dashboard-header">
+            <h1>Tarefas</h1>
+            <p>Gerencie suas tarefas e pendências</p>
+          </div>
+          <!-- Tasks content will be dynamically shown or redirect to tasks section -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon warning">
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                </div>
+                <div>
+                  <div class="card-title">Todas as Tarefas</div>
+                  <div class="card-subtitle">Visualização completa</div>
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="openNewTaskModal()">
+                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nova Tarefa
+              </button>
+            </div>
+            <div class="card-content">
+              <p style="color: var(--muted-foreground); text-align: center; padding: 40px;">
+                As tarefas estão disponíveis na seção de tarefas do Dashboard principal.
+                <br><br>
+                <button class="btn btn-primary" onclick="switchView('dashboard')">Ir para Dashboard</button>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shopify View -->
+      <div class="section-view" id="view-shopify">
+        <div class="dashboard">
+          <div class="dashboard-header">
+            <h1>Shopify</h1>
+            <p>Integração com sua loja Shopify</p>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon" style="background: rgba(150, 191, 72, 0.1); color: #96bf48;">
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                </div>
+                <div>
+                  <div class="card-title">Conectar Shopify</div>
+                  <div class="card-subtitle">Sincronize pedidos automaticamente</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-content" style="text-align: center; padding: 40px;">
+              <div style="width: 80px; height: 80px; border-radius: 20px; background: rgba(150, 191, 72, 0.1); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                <svg style="width: 40px; height: 40px; color: #96bf48;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+              </div>
+              <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Conecte sua Loja Shopify</h3>
+              <p style="color: var(--muted-foreground); margin-bottom: 24px; max-width: 400px; margin-left: auto; margin-right: auto;">
+                Importe pedidos automaticamente, sincronize estoque e gerencie tudo em um só lugar.
+              </p>
+              <button class="btn btn-primary" onclick="showToast('info', 'Shopify', 'Abrindo configuração de integração...')" style="background: #96bf48;">
+                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                Conectar Shopify
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings View -->
+      <div class="section-view" id="view-settings">
+        <div class="dashboard">
+          <div class="dashboard-header">
+            <h1>Configurações</h1>
+            <p>Gerencie as configurações do sistema</p>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-section-header">
+              <div class="settings-section-title">Notificações</div>
+              <div class="settings-section-desc">Configure como você recebe alertas</div>
+            </div>
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <div class="settings-item-label">Notificações por Email</div>
+                <div class="settings-item-desc">Receba atualizações de pedidos por email</div>
+              </div>
+              <div class="settings-toggle active" onclick="this.classList.toggle('active'); showToast('success', 'Configuração', 'Preferência atualizada!')"></div>
+            </div>
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <div class="settings-item-label">Notificações Push</div>
+                <div class="settings-item-desc">Alertas em tempo real no navegador</div>
+              </div>
+              <div class="settings-toggle active" onclick="this.classList.toggle('active'); showToast('success', 'Configuração', 'Preferência atualizada!')"></div>
+            </div>
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <div class="settings-item-label">Alertas de Estoque</div>
+                <div class="settings-item-desc">Aviso quando estoque estiver baixo</div>
+              </div>
+              <div class="settings-toggle active" onclick="this.classList.toggle('active'); showToast('success', 'Configuração', 'Preferência atualizada!')"></div>
+            </div>
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <div class="settings-item-label">Resumo Diário</div>
+                <div class="settings-item-desc">Email com resumo das vendas do dia</div>
+              </div>
+              <div class="settings-toggle" onclick="this.classList.toggle('active'); showToast('success', 'Configuração', 'Preferência atualizada!')"></div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-section-header">
+              <div class="settings-section-title">Aparência</div>
+              <div class="settings-section-desc">Personalize a interface</div>
+            </div>
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <div class="settings-item-label">Tema Escuro</div>
+                <div class="settings-item-desc">Alternar entre tema claro e escuro</div>
+              </div>
+              <div class="settings-toggle" id="settingsThemeToggle" onclick="toggleThemeFromSettings()"></div>
+            </div>
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <div class="settings-item-label">Sidebar Compacta</div>
+                <div class="settings-item-desc">Reduzir tamanho da barra lateral</div>
+              </div>
+              <div class="settings-toggle" onclick="this.classList.toggle('active'); showToast('success', 'Configuração', 'Preferência atualizada!')"></div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-section-header">
+              <div class="settings-section-title">Moedas e Região</div>
+              <div class="settings-section-desc">Configure moedas e localização</div>
+            </div>
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <div class="settings-item-label">Moeda Principal</div>
+                <div class="settings-item-desc">Moeda padrão para exibição</div>
+              </div>
+              <select class="form-select" style="width: auto;" onchange="showToast('success', 'Moeda', 'Moeda alterada para ' + this.value)">
+                <option value="BRL">🇧🇷 BRL (R$)</option>
+                <option value="EUR">🇪🇺 EUR (€)</option>
+                <option value="USD">🇺🇸 USD ($)</option>
+                <option value="AOA">🇦🇴 AOA (Kz)</option>
+              </select>
+            </div>
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <div class="settings-item-label">Fuso Horário</div>
+                <div class="settings-item-desc">Horário para relatórios</div>
+              </div>
+              <select class="form-select" style="width: auto;" onchange="showToast('success', 'Fuso', 'Fuso horário atualizado!')">
+                <option value="America/Sao_Paulo">São Paulo (GMT-3)</option>
+                <option value="Europe/Lisbon">Lisboa (GMT+0)</option>
+                <option value="Africa/Luanda">Luanda (GMT+1)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-section-header">
+              <div class="settings-section-title">Integrações</div>
+              <div class="settings-section-desc">Conecte serviços externos</div>
+            </div>
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <div class="settings-item-label">Meta Ads (Facebook/Instagram)</div>
+                <div class="settings-item-desc">Sincronizar dados de campanhas</div>
+              </div>
+              <button class="btn btn-secondary" onclick="showToast('info', 'Meta Ads', 'Abrindo configuração do Meta...')">Configurar</button>
+            </div>
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <div class="settings-item-label">Google Ads</div>
+                <div class="settings-item-desc">Importar dados de campanhas Google</div>
+              </div>
+              <button class="btn btn-secondary" onclick="showToast('info', 'Google Ads', 'Abrindo configuração do Google...')">Configurar</button>
+            </div>
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <div class="settings-item-label">TikTok Ads</div>
+                <div class="settings-item-desc">Conectar conta TikTok Business</div>
+              </div>
+              <button class="btn btn-secondary" onclick="showToast('info', 'TikTok Ads', 'Abrindo configuração do TikTok...')">Configurar</button>
+            </div>
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <div class="settings-item-label">Correios/17Track</div>
+                <div class="settings-item-desc">Rastreamento automático de envios</div>
+              </div>
+              <button class="btn btn-secondary" onclick="showToast('info', 'Rastreamento', 'Abrindo configuração de rastreamento...')">Configurar</button>
+            </div>
+          </div>
+
+          <div class="settings-section" style="border-color: var(--destructive);">
+            <div class="settings-section-header">
+              <div class="settings-section-title" style="color: var(--destructive);">Zona de Perigo</div>
+              <div class="settings-section-desc">Ações irreversíveis</div>
+            </div>
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <div class="settings-item-label">Exportar Dados</div>
+                <div class="settings-item-desc">Baixar todos os seus dados</div>
+              </div>
+              <button class="btn btn-secondary" onclick="showToast('info', 'Exportar', 'Preparando exportação de dados...')">Exportar</button>
+            </div>
+            <div class="settings-item">
+              <div class="settings-item-info">
+                <div class="settings-item-label">Excluir Conta</div>
+                <div class="settings-item-desc">Remover permanentemente sua conta</div>
+              </div>
+              <button class="btn btn-danger" onclick="showToast('error', 'Atenção', 'Esta ação é irreversível!')">Excluir</button>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -3198,36 +4928,72 @@
       showToast('success', 'Upgrade Iniciado', 'Redirecionando para a página de pagamento...');
     }
 
-    // ==================== SIDEBAR NAVIGATION ====================
-    const navItemsAll = document.querySelectorAll('.nav-item');
-    const sections = {
-      'Dashboard': 'dashboard',
-      'Pedidos': 'orders',
-      'Rastreamento': 'tracking',
-      'Financeiro': 'financial',
-      'Parceiros': 'partners',
-      'Estoque': 'inventory',
-      'Tarefas': 'tasks',
-      'Shopify': 'shopify'
-    };
+    // ==================== SIDEBAR NAVIGATION & VIEW SWITCHING ====================
+    function switchView(viewName) {
+      // Hide all views
+      document.querySelectorAll('.section-view').forEach(view => {
+        view.classList.remove('active');
+      });
 
-    navItemsAll.forEach(item => {
-      item.addEventListener('click', function(e) {
-        e.preventDefault();
-        const itemText = this.textContent.trim();
+      // Show the selected view
+      const targetView = document.getElementById('view-' + viewName);
+      if (targetView) {
+        targetView.classList.add('active');
+      }
 
-        navItemsAll.forEach(i => i.classList.remove('active'));
-        this.classList.add('active');
-
-        // Close mobile sidebar
-        sidebar.classList.remove('open');
-
-        // Show toast for non-dashboard sections
-        if (itemText !== 'Dashboard') {
-          showToast('info', itemText, `Abrindo seção de ${itemText}...`);
+      // Update active nav item
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.view === viewName) {
+          item.classList.add('active');
         }
       });
+
+      // Close mobile sidebar
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar) {
+        sidebar.classList.remove('open');
+      }
+
+      // Update settings theme toggle state
+      updateSettingsThemeToggle();
+    }
+
+    // Initialize navigation click handlers
+    document.querySelectorAll('.nav-item[data-view]').forEach(item => {
+      item.addEventListener('click', function(e) {
+        e.preventDefault();
+        const viewName = this.dataset.view;
+        switchView(viewName);
+      });
     });
+
+    // Campaign modal function
+    function openCampaignModal() {
+      showToast('info', 'Nova Campanha', 'Abrindo formulário de nova campanha...');
+    }
+
+    // Theme toggle from settings
+    function toggleThemeFromSettings() {
+      html.classList.toggle('dark');
+      localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+      updateSettingsThemeToggle();
+      showToast('success', 'Tema', html.classList.contains('dark') ? 'Tema escuro ativado' : 'Tema claro ativado');
+    }
+
+    function updateSettingsThemeToggle() {
+      const settingsToggle = document.getElementById('settingsThemeToggle');
+      if (settingsToggle) {
+        if (html.classList.contains('dark')) {
+          settingsToggle.classList.add('active');
+        } else {
+          settingsToggle.classList.remove('active');
+        }
+      }
+    }
+
+    // Initialize settings theme toggle on load
+    updateSettingsThemeToggle();
   </script>
 
   <!-- ==================== MODALS HTML ==================== -->
