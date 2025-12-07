@@ -148,38 +148,30 @@ const MILESTONES = [
 ]
 
 export default function GoalsPage() {
-  const { selectedCountry, isAllSelected, countries, getCountryData } = useCountry()
+  const { countries, getCountryData } = useCountry()
 
   const activeCountries = countries.filter(c => c.active)
 
-  // Get current revenue based on selected country
-  const currentRevenue = useMemo(() => {
-    if (isAllSelected) {
-      return activeCountries.reduce((sum, c) => sum + getCountryData(c.code).revenue, 0)
-    }
-    return selectedCountry ? getCountryData(selectedCountry.code).revenue : 0
-  }, [isAllSelected, selectedCountry, activeCountries, getCountryData])
+  // Get TOTAL account revenue (all countries combined) - for milestone/goals tracking
+  const totalAccountRevenue = useMemo(() => {
+    return activeCountries.reduce((sum, c) => sum + getCountryData(c.code).revenue, 0)
+  }, [activeCountries, getCountryData])
 
-  // Get currency symbol based on selected country
-  const currencySymbol = useMemo(() => {
-    if (isAllSelected) return 'R$'
-    return selectedCountry?.currencySymbol || 'R$'
-  }, [isAllSelected, selectedCountry])
-
+  // Always use R$ for account-wide milestones
   const formatCurrency = (value: number) => {
-    if (value >= 1000000) return `${currencySymbol} ${(value / 1000000).toFixed(1)}M`
-    if (value >= 1000) return `${currencySymbol} ${(value / 1000).toFixed(0)}K`
-    return `${currencySymbol} ${value.toFixed(0)}`
+    if (value >= 1000000) return `R$ ${(value / 1000000).toFixed(1)}M`
+    if (value >= 1000) return `R$ ${(value / 1000).toFixed(0)}K`
+    return `R$ ${value.toFixed(0)}`
   }
 
-  // Calcula o milestone atual e progresso
+  // Calcula o milestone atual e progresso based on TOTAL account revenue
   const currentProgress = useMemo(() => {
     let prevValue = 0
     for (let i = 0; i < MILESTONES.length; i++) {
       const milestone = MILESTONES[i]
-      if (currentRevenue < milestone.value) {
-        const progress = ((currentRevenue - prevValue) / (milestone.value - prevValue)) * 100
-        const remaining = milestone.value - currentRevenue
+      if (totalAccountRevenue < milestone.value) {
+        const progress = ((totalAccountRevenue - prevValue) / (milestone.value - prevValue)) * 100
+        const remaining = milestone.value - totalAccountRevenue
         return {
           currentMilestoneIndex: i,
           nextMilestone: milestone,
@@ -199,7 +191,7 @@ export default function GoalsPage() {
       remaining: 0,
       completedMilestones: MILESTONES.length,
     }
-  }, [currentRevenue])
+  }, [totalAccountRevenue])
 
   return (
     <div className="space-y-6">
@@ -208,14 +200,12 @@ export default function GoalsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Metas de Faturamento</h1>
           <p className="text-muted-foreground">
-            Acompanhe seu progresso e desbloqueie recompensas
+            Faturamento total da conta (todos os países)
           </p>
         </div>
-        {!isAllSelected && selectedCountry && (
-          <Badge variant="outline" className="text-lg px-4 py-2">
-            {selectedCountry.flag} {selectedCountry.name} ({currencySymbol})
-          </Badge>
-        )}
+        <Badge variant="outline" className="text-lg px-4 py-2">
+          🌍 {activeCountries.length} países ativos
+        </Badge>
       </div>
 
       {/* Current Progress Card */}
@@ -240,7 +230,7 @@ export default function GoalsPage() {
         <CardContent className="space-y-6">
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-4xl font-bold">{formatCurrency(currentRevenue)}</p>
+              <p className="text-4xl font-bold">{formatCurrency(totalAccountRevenue)}</p>
               <p className="text-muted-foreground">
                 Falta {formatCurrency(currentProgress.remaining)} para {currentProgress.nextMilestone.label}
               </p>
@@ -318,7 +308,7 @@ export default function GoalsPage() {
                 <TrendingUp className="h-5 w-5 text-green-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatCurrency(currentRevenue)}</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalAccountRevenue)}</p>
                 <p className="text-xs text-muted-foreground">Faturamento Total</p>
               </div>
             </div>
@@ -363,7 +353,7 @@ export default function GoalsPage() {
         <CardContent>
           <div className="space-y-4">
             {MILESTONES.map((milestone, index) => {
-              const isCompleted = currentRevenue >= milestone.value
+              const isCompleted = totalAccountRevenue >= milestone.value
               const isCurrent = index === currentProgress.currentMilestoneIndex
               const isLocked = index > currentProgress.currentMilestoneIndex
               const Icon = milestone.icon

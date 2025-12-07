@@ -104,33 +104,24 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
     setMounted(true)
   }, [])
 
-  // Get current country revenue - uses selected country or sum of all active countries
-  const currentRevenue = useMemo(() => {
-    if (isAllSelected) {
-      return activeCountries.reduce((sum, c) => sum + getCountryData(c.code).revenue, 0)
-    }
-    return selectedCountry ? getCountryData(selectedCountry.code).revenue : 0
-  }, [isAllSelected, selectedCountry, activeCountries, getCountryData])
+  // Get TOTAL account revenue (all countries combined) - for milestone/goals tracking
+  const totalAccountRevenue = useMemo(() => {
+    return activeCountries.reduce((sum, c) => sum + getCountryData(c.code).revenue, 0)
+  }, [activeCountries, getCountryData])
 
-  // Get currency symbol based on selected country
-  const currencySymbol = useMemo(() => {
-    if (isAllSelected) return 'R$' // Default to BRL when all countries selected
-    return selectedCountry?.currencySymbol || 'R$'
-  }, [isAllSelected, selectedCountry])
-
-  // Calcula progresso do milestone based on current revenue
+  // Calcula progresso do milestone based on TOTAL account revenue (always R$ for consistency)
   const milestoneData = useMemo(() => {
     let prevValue = 0
     for (let i = 0; i < MILESTONES.length; i++) {
       const milestone = MILESTONES[i]
-      if (currentRevenue < milestone.value) {
-        const progress = ((currentRevenue - prevValue) / (milestone.value - prevValue)) * 100
+      if (totalAccountRevenue < milestone.value) {
+        const progress = ((totalAccountRevenue - prevValue) / (milestone.value - prevValue)) * 100
         return { nextMilestone: milestone, progress, prevValue }
       }
       prevValue = milestone.value
     }
     return { nextMilestone: MILESTONES[MILESTONES.length - 1], progress: 100, prevValue: 0 }
-  }, [currentRevenue])
+  }, [totalAccountRevenue])
 
   const handlePeriodChange = (value: string) => {
     setPeriod(value as DateFilterPeriod)
@@ -225,7 +216,7 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
           milestoneData.progress >= 75 ? "text-yellow-500" : "text-muted-foreground"
         )} />
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium">{formatCompactCurrency(currentRevenue, currencySymbol)}</span>
+          <span className="text-xs font-medium">{formatCompactCurrency(totalAccountRevenue, 'R$')}</span>
           <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
             <div
               className={cn(
