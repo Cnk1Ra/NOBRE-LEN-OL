@@ -49,18 +49,18 @@ const initialCountries: Country[] = [
   { code: 'US', name: 'Estados Unidos', flag: '🇺🇸', currency: 'USD', currencySymbol: '$', timezone: 'America/New_York', active: false },
 ]
 
-// Dados mock por pais
+// Dados mock por pais - valores devem corresponder ao dashboard
 const countryDataMap: Record<string, CountryData> = {
   BR: {
-    revenue: 850000,        // Faturamento do mês atual
-    totalRevenue: 4250000,  // Faturamento total histórico (desde início)
-    profit: 289000,
-    orders: 2870,
+    revenue: 850000,         // Faturamento do mês atual
+    totalRevenue: 10200000,  // Faturamento total histórico (R$ 10.20M conforme dashboard)
+    profit: 3470000,         // R$ 3.47M
+    orders: 34440,
     avgTicket: 296.17,
     deliveryRate: 78.5,
     returnRate: 12.3,
     roas: 3.72,
-    visitors: 85000,
+    visitors: 1020000,
   },
   PT: {
     revenue: 420000,
