@@ -40,7 +40,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { useDateFilter, DateFilterPeriod } from '@/contexts/date-filter-context'
 import { useNotifications } from '@/contexts/notifications-context'
-import { Package, Truck, AlertTriangle, CheckCircle, Info, X } from 'lucide-react'
+import { useCountry } from '@/contexts/country-context'
+import { Package, Truck, AlertTriangle, CheckCircle, Info, X, Globe2, Check } from 'lucide-react'
 import Link from 'next/link'
 
 interface HeaderProps {
@@ -97,7 +98,10 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
   const { theme, setTheme, resolvedTheme } = useTheme()
   const { period, setPeriod, refresh, isRefreshing } = useDateFilter()
   const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification } = useNotifications()
+  const { countries, selectedCountry, selectCountry, selectAll, isAllSelected } = useCountry()
   const [mounted, setMounted] = useState(false)
+
+  const activeCountries = countries.filter(c => c.active)
 
   useEffect(() => {
     setMounted(true)
@@ -140,18 +144,65 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
         </button>
       </div>
 
-      {/* AI Assistant Badge */}
-      <Button
-        variant="outline"
-        size="sm"
-        className="hidden lg:flex gap-2 h-9 rounded-xl border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/50"
-      >
-        <Sparkles className="h-3.5 w-3.5" />
-        <span className="text-xs font-medium">AI Insights</span>
-        <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-primary/10 text-primary border-0">
-          Novo
-        </Badge>
-      </Button>
+      {/* Country Selector */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 gap-2 rounded-xl border-border/60 bg-muted/30 hover:bg-muted/50"
+          >
+            {isAllSelected ? (
+              <>
+                <Globe2 className="h-4 w-4" />
+                <span className="text-sm">Todos</span>
+              </>
+            ) : (
+              <>
+                <span className="text-lg leading-none">{selectedCountry?.flag}</span>
+                <span className="text-sm hidden sm:inline">{selectedCountry?.code}</span>
+              </>
+            )}
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56 rounded-xl">
+          <DropdownMenuLabel className="text-xs text-muted-foreground">
+            Selecionar Pais
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer rounded-lg"
+            onClick={selectAll}
+          >
+            <Globe2 className="h-4 w-4" />
+            <span className="flex-1">Todos os Paises</span>
+            {isAllSelected && <Check className="h-4 w-4 text-primary" />}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {activeCountries.map((country) => (
+            <DropdownMenuItem
+              key={country.code}
+              className="gap-2 cursor-pointer rounded-lg"
+              onClick={() => selectCountry(country.code)}
+            >
+              <span className="text-lg">{country.flag}</span>
+              <span className="flex-1">{country.name}</span>
+              <span className="text-xs text-muted-foreground">{country.currency}</span>
+              {selectedCountry?.code === country.code && (
+                <Check className="h-4 w-4 text-primary" />
+              )}
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild className="gap-2 cursor-pointer rounded-lg text-muted-foreground">
+            <Link href="/dashboard/countries">
+              <Settings className="h-4 w-4" />
+              Gerenciar Paises
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Compact Revenue Progress Bar */}
       <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/30 border border-border/40">

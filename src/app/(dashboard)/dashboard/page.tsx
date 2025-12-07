@@ -7,6 +7,7 @@ import { RevenueChart } from '@/components/dashboard/revenue-chart'
 import { TrafficSources } from '@/components/dashboard/traffic-sources'
 import { RecentOrders } from '@/components/dashboard/recent-orders'
 import { useDateFilter } from '@/contexts/date-filter-context'
+import { useCountry } from '@/contexts/country-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -284,12 +285,39 @@ function addRandomVariation(data: typeof mockDataByPeriod.month, seed: number) {
 export default function DashboardPage() {
   // Usa o contexto global de filtro de data
   const { period, refreshKey, isRefreshing } = useDateFilter()
+  const { selectedCountry, isAllSelected, getCountryData } = useCountry()
 
-  // Obtem dados baseados no periodo selecionado (com variacao no refresh)
+  // Obtem dados baseados no periodo e pais selecionado
   const currentData = useMemo(() => {
-    const baseData = mockDataByPeriod[period] || mockDataByPeriod.month
+    const countryCode = isAllSelected ? 'ALL' : (selectedCountry?.code || 'ALL')
+    const countryData = getCountryData(countryCode)
+
+    // Aplica multiplicador baseado no periodo
+    const periodMultipliers: Record<string, number> = {
+      today: 0.035,
+      yesterday: 0.04,
+      week: 0.25,
+      month: 1,
+      last_month: 0.95,
+      max: 12,
+      custom: 0.5,
+    }
+
+    const multiplier = periodMultipliers[period] || 1
+    const baseData = {
+      ...mockDataByPeriod[period],
+      revenue: Math.round(countryData.revenue * multiplier),
+      profit: Math.round(countryData.profit * multiplier),
+      orders: Math.round(countryData.orders * multiplier),
+      avgTicket: countryData.avgTicket,
+      deliveryRate: countryData.deliveryRate,
+      returnRate: countryData.returnRate,
+      roas: countryData.roas,
+      visitors: Math.round(countryData.visitors * multiplier),
+    }
+
     return addRandomVariation(baseData, refreshKey)
-  }, [period, refreshKey])
+  }, [period, refreshKey, selectedCountry, isAllSelected, getCountryData])
 
   // Obtem dados do periodo anterior para calcular variacao
   const previousData = useMemo(() => {
@@ -313,14 +341,16 @@ export default function DashboardPage() {
     visitors: calculateChange(currentData.visitors, previousData.visitors),
   }), [currentData, previousData])
 
+  const currencySymbol = selectedCountry?.currencySymbol || 'R$'
+
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
-      return `R$ ${(value / 1000000).toFixed(2)}M`
+      return `${currencySymbol} ${(value / 1000000).toFixed(2)}M`
     }
     if (value >= 1000) {
-      return `R$ ${(value / 1000).toFixed(1)}K`
+      return `${currencySymbol} ${(value / 1000).toFixed(1)}K`
     }
-    return `R$ ${value.toFixed(2)}`
+    return `${currencySymbol} ${value.toFixed(2)}`
   }
 
   return (
@@ -340,6 +370,12 @@ export default function DashboardPage() {
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            {selectedCountry && (
+              <Badge variant="secondary" className="gap-1.5 text-sm">
+                <span>{selectedCountry.flag}</span>
+                {selectedCountry.name}
+              </Badge>
+            )}
             <Badge variant="outline" className="gap-1 border-success/30 bg-success/10 text-success">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
@@ -349,7 +385,10 @@ export default function DashboardPage() {
             </Badge>
           </div>
           <p className="text-muted-foreground">
-            Visao geral das suas operacoes de Cash on Delivery
+            {isAllSelected
+              ? 'Visao geral de todos os paises'
+              : `Operacoes de Cash on Delivery em ${selectedCountry?.name}`
+            }
           </p>
         </div>
 
@@ -397,7 +436,7 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Ticket Medio"
-          value={`R$ ${currentData.avgTicket.toFixed(2)}`}
+          value={`${currencySymbol} ${currentData.avgTicket.toFixed(2)}`}
           change={changes.avgTicket}
           icon={Target}
           color="accent"

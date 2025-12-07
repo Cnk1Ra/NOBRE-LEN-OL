@@ -127,9 +127,9 @@ const operationalNavItems = [
 
 const integrationNavItems = [
   {
-    title: 'Shopify',
-    href: '/dashboard/integrations/shopify',
-    icon: Store,
+    title: 'Integrações',
+    href: '/dashboard/integrations',
+    icon: Zap,
     color: 'text-lime-500',
   },
   {

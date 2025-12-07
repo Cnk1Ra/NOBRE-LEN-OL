@@ -1,115 +1,60 @@
 'use client'
 
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import {
   Plus,
-  Globe,
   DollarSign,
   Package,
-  Truck,
   Settings,
   TrendingUp,
-  Flag,
+  Globe2,
+  ArrowLeft,
 } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { useCountry } from '@/contexts/country-context'
+import Link from 'next/link'
 
-interface Country {
-  code: string
-  name: string
-  currency: string
-  currencySymbol: string
-  flag: string
-  active: boolean
-  orders: number
-  revenue: number
-  deliveryRate: number
-  avgShipping: number
-  carriers: string[]
+// Carriers data per country
+const carriersMap: Record<string, string[]> = {
+  BR: ['Correios', 'Jadlog', 'Total Express', 'Loggi'],
+  PT: ['CTT', 'DPD', 'GLS', 'UPS'],
+  AO: ['Correios Angola', 'DHL', 'Fedex'],
+  MZ: ['Correios Mocambique', 'DHL'],
+  CV: ['Correios Cabo Verde', 'DHL'],
+  ES: ['Correos', 'SEUR', 'MRW', 'GLS'],
+  US: ['USPS', 'FedEx', 'UPS', 'DHL'],
 }
 
-const mockCountries: Country[] = [
-  {
-    code: 'BR',
-    name: 'Brasil',
-    currency: 'BRL',
-    currencySymbol: 'R$',
-    flag: '🇧🇷',
-    active: true,
-    orders: 1250,
-    revenue: 425000,
-    deliveryRate: 78.5,
-    avgShipping: 15,
-    carriers: ['Correios', 'Jadlog', 'Total Express'],
-  },
-  {
-    code: 'PT',
-    name: 'Portugal',
-    currency: 'EUR',
-    currencySymbol: '€',
-    flag: '🇵🇹',
-    active: true,
-    orders: 340,
-    revenue: 85000,
-    deliveryRate: 92.3,
-    avgShipping: 8,
-    carriers: ['CTT', 'DHL'],
-  },
-  {
-    code: 'AO',
-    name: 'Angola',
-    currency: 'AOA',
-    currencySymbol: 'Kz',
-    flag: '🇦🇴',
-    active: true,
-    orders: 180,
-    revenue: 3500000,
-    deliveryRate: 65.8,
-    avgShipping: 2500,
-    carriers: ['ENSA', 'DHL'],
-  },
-  {
-    code: 'US',
-    name: 'Estados Unidos',
-    currency: 'USD',
-    currencySymbol: '$',
-    flag: '🇺🇸',
-    active: false,
-    orders: 0,
-    revenue: 0,
-    deliveryRate: 0,
-    avgShipping: 12,
-    carriers: ['USPS', 'FedEx', 'UPS'],
-  },
-  {
-    code: 'ES',
-    name: 'Espanha',
-    currency: 'EUR',
-    currencySymbol: '€',
-    flag: '🇪🇸',
-    active: false,
-    orders: 0,
-    revenue: 0,
-    deliveryRate: 0,
-    avgShipping: 7,
-    carriers: ['Correos', 'SEUR'],
-  },
-]
+// Average shipping cost per country (mock)
+const avgShippingMap: Record<string, number> = {
+  BR: 25.90,
+  PT: 8.50,
+  AO: 45.00,
+  MZ: 38.00,
+  CV: 42.00,
+  ES: 7.90,
+  US: 12.50,
+}
 
 export default function CountriesPage() {
-  const [countries, setCountries] = useState(mockCountries)
-
-  const toggleCountry = (code: string) => {
-    setCountries(countries.map(c =>
-      c.code === code ? { ...c, active: !c.active } : c
-    ))
-  }
+  const { countries, toggleCountryActive, getCountryData } = useCountry()
 
   const activeCountries = countries.filter(c => c.active)
-  const totalOrders = activeCountries.reduce((sum, c) => sum + c.orders, 0)
+  const inactiveCountries = countries.filter(c => !c.active)
+
+  const totalRevenue = activeCountries.reduce((sum, c) => sum + getCountryData(c.code).revenue, 0)
+  const totalOrders = activeCountries.reduce((sum, c) => sum + getCountryData(c.code).orders, 0)
+  const avgDeliveryRate = activeCountries.length > 0
+    ? activeCountries.reduce((sum, c) => sum + getCountryData(c.code).deliveryRate, 0) / activeCountries.length
+    : 0
+
+  const formatCurrencyValue = (value: number, symbol: string) => {
+    if (value >= 1000000) return symbol + ' ' + (value / 1000000).toFixed(1) + 'M'
+    if (value >= 1000) return symbol + ' ' + (value / 1000).toFixed(0) + 'K'
+    return symbol + ' ' + value.toFixed(0)
+  }
 
   return (
     <div className="space-y-6">
@@ -133,7 +78,7 @@ export default function CountriesPage() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Globe className="h-5 w-5 text-primary" />
+                <Globe2 className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{activeCountries.length}</p>
@@ -162,7 +107,7 @@ export default function CountriesPage() {
                 <TrendingUp className="h-5 w-5 text-green-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">78.9%</p>
+                <p className="text-2xl font-bold">{avgDeliveryRate.toFixed(1)}%</p>
                 <p className="text-xs text-muted-foreground">Taxa Media Entrega</p>
               </div>
             </div>
@@ -175,7 +120,7 @@ export default function CountriesPage() {
                 <DollarSign className="h-5 w-5 text-purple-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">4</p>
+                <p className="text-2xl font-bold">{new Set(activeCountries.map(c => c.currency)).size}</p>
                 <p className="text-xs text-muted-foreground">Moedas</p>
               </div>
             </div>
@@ -200,54 +145,61 @@ export default function CountriesPage() {
                 </div>
                 <Switch
                   checked={country.active}
-                  onCheckedChange={() => toggleCountry(country.code)}
+                  onCheckedChange={() => toggleCountryActive(country.code)}
                 />
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {country.active ? (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Pedidos</p>
-                      <p className="text-lg font-bold">{country.orders.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Receita</p>
-                      <p className="text-lg font-bold">
-                        {formatCurrency(country.revenue, country.currency)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Taxa Entrega</p>
-                      <p className={`text-lg font-bold ${country.deliveryRate >= 75 ? 'text-green-500' : country.deliveryRate >= 50 ? 'text-yellow-500' : 'text-red-500'}`}>
-                        {country.deliveryRate}%
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Frete Medio</p>
-                      <p className="text-lg font-bold">
-                        {formatCurrency(country.avgShipping, country.currency)}
-                      </p>
-                    </div>
-                  </div>
+                (() => {
+                  const countryData = getCountryData(country.code)
+                  const carriers = carriersMap[country.code] || []
+                  const avgShipping = avgShippingMap[country.code] || 0
+                  return (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Pedidos</p>
+                          <p className="text-lg font-bold">{countryData.orders.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Receita</p>
+                          <p className="text-lg font-bold">
+                            {formatCurrencyValue(countryData.revenue, country.currencySymbol)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Taxa Entrega</p>
+                          <p className={`text-lg font-bold ${countryData.deliveryRate >= 75 ? 'text-green-500' : countryData.deliveryRate >= 50 ? 'text-yellow-500' : 'text-red-500'}`}>
+                            {countryData.deliveryRate}%
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Frete Medio</p>
+                          <p className="text-lg font-bold">
+                            {country.currencySymbol} {avgShipping.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
 
-                  <div className="pt-3 border-t">
-                    <p className="text-xs text-muted-foreground mb-2">Transportadoras</p>
-                    <div className="flex flex-wrap gap-1">
-                      {country.carriers.map((carrier) => (
-                        <Badge key={carrier} variant="secondary" className="text-xs">
-                          {carrier}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
+                      <div className="pt-3 border-t">
+                        <p className="text-xs text-muted-foreground mb-2">Transportadoras</p>
+                        <div className="flex flex-wrap gap-1">
+                          {carriers.map((carrier) => (
+                            <Badge key={carrier} variant="secondary" className="text-xs">
+                              {carrier}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
 
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Configurar
-                  </Button>
-                </>
+                      <Button variant="outline" size="sm" className="w-full">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Configurar
+                      </Button>
+                    </>
+                  )
+                })()
               ) : (
                 <div className="py-4 text-center">
                   <p className="text-sm text-muted-foreground mb-3">
@@ -256,7 +208,7 @@ export default function CountriesPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => toggleCountry(country.code)}
+                    onClick={() => toggleCountryActive(country.code)}
                   >
                     Ativar Pais
                   </Button>
