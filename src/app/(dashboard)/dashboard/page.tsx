@@ -6,7 +6,6 @@ import { DeliveryStats } from '@/components/dashboard/delivery-stats'
 import { RevenueChart } from '@/components/dashboard/revenue-chart'
 import { TrafficSources } from '@/components/dashboard/traffic-sources'
 import { RecentOrders } from '@/components/dashboard/recent-orders'
-import { RevenueMilestone } from '@/components/dashboard/revenue-milestone'
 import { useDateFilter } from '@/contexts/date-filter-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -308,12 +307,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Revenue Milestone Progress Bar */}
-      <RevenueMilestone
-        currentRevenue={mockDataByPeriod.max.revenue}
-        currency="BRL"
-      />
-
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">

@@ -23,7 +23,6 @@ import {
   Moon,
   Sun,
   Search,
-  Calendar,
   RefreshCw,
   Command,
   Sparkles,
@@ -34,13 +33,12 @@ import {
   Building2,
   CreditCard,
   Infinity,
+  Trophy,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { useDateFilter, DateFilterPeriod } from '@/contexts/date-filter-context'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 
 interface HeaderProps {
   workspaceName?: string
@@ -56,14 +54,45 @@ const periodLabels: Record<DateFilterPeriod, string> = {
   max: 'MAXIMO',
 }
 
+// Milestones para barra compacta
+const MILESTONES = [
+  { value: 100000, label: '100K', color: 'from-blue-500 to-cyan-500' },
+  { value: 1000000, label: '1M', color: 'from-green-500 to-emerald-500' },
+  { value: 2000000, label: '2M', color: 'from-teal-500 to-green-500' },
+  { value: 3000000, label: '3M', color: 'from-purple-500 to-pink-500' },
+  { value: 4000000, label: '4M', color: 'from-orange-500 to-amber-500' },
+  { value: 5000000, label: '5M', color: 'from-red-500 to-pink-500' },
+  { value: 10000000, label: '10M', color: 'from-yellow-500 to-orange-500' },
+  { value: 25000000, label: '25M', color: 'from-indigo-500 to-purple-500' },
+  { value: 50000000, label: '50M', color: 'from-pink-500 to-rose-500' },
+  { value: 100000000, label: '100M', color: 'from-amber-400 to-yellow-500' },
+]
+
+// Mock total revenue - em producao viria do contexto/API
+const TOTAL_REVENUE = 1850000
+
 export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
   const { theme, setTheme, resolvedTheme } = useTheme()
-  const { period, setPeriod, dateRange } = useDateFilter()
+  const { period, setPeriod } = useDateFilter()
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
+  }, [])
+
+  // Calcula progresso do milestone
+  const milestoneData = useMemo(() => {
+    let prevValue = 0
+    for (let i = 0; i < MILESTONES.length; i++) {
+      const milestone = MILESTONES[i]
+      if (TOTAL_REVENUE < milestone.value) {
+        const progress = ((TOTAL_REVENUE - prevValue) / (milestone.value - prevValue)) * 100
+        return { nextMilestone: milestone, progress, prevValue }
+      }
+      prevValue = milestone.value
+    }
+    return { nextMilestone: MILESTONES[MILESTONES.length - 1], progress: 100, prevValue: 0 }
   }, [])
 
   const handleRefresh = () => {
@@ -75,11 +104,10 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
     setPeriod(value as DateFilterPeriod)
   }
 
-  const formatDateRange = () => {
-    if (period === 'today') return 'Hoje'
-    if (period === 'yesterday') return 'Ontem'
-    if (period === 'max') return `Desde ${format(dateRange.from, "dd/MM/yy", { locale: ptBR })}`
-    return `${format(dateRange.from, "dd/MM", { locale: ptBR })} - ${format(dateRange.to, "dd/MM", { locale: ptBR })}`
+  const formatCompactCurrency = (value: number) => {
+    if (value >= 1000000) return `R$${(value / 1000000).toFixed(1)}M`
+    if (value >= 1000) return `R$${(value / 1000).toFixed(0)}K`
+    return `R$${value}`
   }
 
   return (
@@ -108,17 +136,36 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
         </Badge>
       </Button>
 
+      {/* Compact Revenue Progress Bar */}
+      <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/30 border border-border/40">
+        <Trophy className={cn(
+          "h-4 w-4",
+          milestoneData.progress >= 75 ? "text-yellow-500" : "text-muted-foreground"
+        )} />
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium">{formatCompactCurrency(TOTAL_REVENUE)}</span>
+          <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full bg-gradient-to-r transition-all duration-500",
+                milestoneData.nextMilestone.color
+              )}
+              style={{ width: `${Math.min(milestoneData.progress, 100)}%` }}
+            />
+          </div>
+          <span className="text-xs text-muted-foreground">{milestoneData.nextMilestone.label}</span>
+        </div>
+      </div>
+
       {/* Date Range Selector - Connected to Context */}
       <Select value={period} onValueChange={handlePeriodChange}>
         <SelectTrigger className={cn(
-          "w-[160px] h-9 rounded-xl border-border/60 bg-muted/30 hover:bg-muted/50 transition-colors",
+          "w-[140px] h-9 rounded-xl border-border/60 bg-muted/30 hover:bg-muted/50 transition-colors",
           period === 'max' && "bg-gradient-to-r from-purple-600/10 to-pink-600/10 border-purple-500/30"
         )}>
           {period === 'max' ? (
             <Infinity className="h-3.5 w-3.5 mr-2 text-purple-500" />
-          ) : (
-            <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-          )}
+          ) : null}
           <SelectValue>
             <span className={cn("text-sm", period === 'max' && "font-bold text-purple-500")}>
               {periodLabels[period]}
@@ -139,12 +186,6 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
           </SelectItem>
         </SelectContent>
       </Select>
-
-      {/* Date Range Display */}
-      <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/50 text-xs text-muted-foreground">
-        <Calendar className="h-3 w-3" />
-        <span>{formatDateRange()}</span>
-      </div>
 
       {/* Action buttons */}
       <div className="flex items-center gap-1">
