@@ -207,7 +207,7 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
       {/* Compact Revenue Progress Bar - Clickable */}
       <Link
         href="/dashboard/goals"
-        className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/30 border border-border/40 hover:bg-muted/50 hover:border-border/60 transition-all cursor-pointer"
+        className="flex items-center gap-2 px-2 md:px-3 py-1.5 rounded-xl bg-muted/30 border border-border/40 hover:bg-muted/50 hover:border-border/60 transition-all cursor-pointer"
       >
         <Trophy className={cn(
           "h-4 w-4",
