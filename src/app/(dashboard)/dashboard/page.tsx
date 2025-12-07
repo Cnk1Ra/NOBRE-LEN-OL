@@ -21,6 +21,7 @@ import {
   ArrowRight,
   Sparkles,
   Zap,
+  Loader2,
 } from 'lucide-react'
 
 // Dados mock por periodo - em producao viriam do banco de dados
@@ -264,14 +265,31 @@ function calculateChange(current: number, previous: number): number {
   return ((current - previous) / previous) * 100
 }
 
+// Funcao para gerar variacao aleatoria nos dados (simula refresh)
+function addRandomVariation(data: typeof mockDataByPeriod.month, seed: number) {
+  const variation = (value: number, percent: number = 5) => {
+    const random = Math.sin(seed * value) * 0.5 + 0.5 // Deterministic random based on seed
+    const change = value * (percent / 100) * (random * 2 - 1)
+    return Math.round(value + change)
+  }
+  return {
+    ...data,
+    revenue: variation(data.revenue, 3),
+    profit: variation(data.profit, 3),
+    orders: variation(data.orders, 2),
+    visitors: variation(data.visitors, 4),
+  }
+}
+
 export default function DashboardPage() {
   // Usa o contexto global de filtro de data
-  const { period } = useDateFilter()
+  const { period, refreshKey, isRefreshing } = useDateFilter()
 
-  // Obtem dados baseados no periodo selecionado
+  // Obtem dados baseados no periodo selecionado (com variacao no refresh)
   const currentData = useMemo(() => {
-    return mockDataByPeriod[period] || mockDataByPeriod.month
-  }, [period])
+    const baseData = mockDataByPeriod[period] || mockDataByPeriod.month
+    return addRandomVariation(baseData, refreshKey)
+  }, [period, refreshKey])
 
   // Obtem dados do periodo anterior para calcular variacao
   const previousData = useMemo(() => {
@@ -306,7 +324,17 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in relative">
+      {/* Loading Overlay */}
+      {isRefreshing && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-2xl">
+          <div className="flex items-center gap-3 px-6 py-3 rounded-xl bg-card border shadow-lg">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <span className="text-sm font-medium">Atualizando dados...</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">

@@ -73,8 +73,7 @@ const TOTAL_REVENUE = 1850000
 
 export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
   const { theme, setTheme, resolvedTheme } = useTheme()
-  const { period, setPeriod } = useDateFilter()
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  const { period, setPeriod, refresh, isRefreshing } = useDateFilter()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -94,11 +93,6 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
     }
     return { nextMilestone: MILESTONES[MILESTONES.length - 1], progress: 100, prevValue: 0 }
   }, [])
-
-  const handleRefresh = () => {
-    setIsRefreshing(true)
-    setTimeout(() => setIsRefreshing(false), 1000)
-  }
 
   const handlePeriodChange = (value: string) => {
     setPeriod(value as DateFilterPeriod)
@@ -194,7 +188,8 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
           variant="ghost"
           size="icon"
           className="h-9 w-9 rounded-xl"
-          onClick={handleRefresh}
+          onClick={refresh}
+          disabled={isRefreshing}
         >
           <RefreshCw className={cn(
             'h-4 w-4 transition-transform duration-500',

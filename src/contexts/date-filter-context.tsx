@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useState, ReactNode, useCallback } from 'react'
 import { startOfDay, endOfDay, startOfWeek, startOfMonth, endOfMonth, subDays, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -17,6 +17,9 @@ interface DateFilterContextType {
   setPeriod: (period: DateFilterPeriod) => void
   setCustomRange: (range: DateRange) => void
   startDate: Date
+  refreshKey: number
+  refresh: () => void
+  isRefreshing: boolean
 }
 
 const DateFilterContext = createContext<DateFilterContextType | undefined>(undefined)
@@ -51,6 +54,8 @@ function getDateRangeForPeriod(period: DateFilterPeriod, customRange?: DateRange
 export function DateFilterProvider({ children }: { children: ReactNode }) {
   const [period, setPeriodState] = useState<DateFilterPeriod>('month')
   const [customRange, setCustomRangeState] = useState<DateRange | undefined>(undefined)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const dateRange = getDateRangeForPeriod(period, customRange)
 
@@ -63,6 +68,15 @@ export function DateFilterProvider({ children }: { children: ReactNode }) {
     setPeriodState('custom')
   }
 
+  const refresh = useCallback(() => {
+    setIsRefreshing(true)
+    // Simula delay de carregamento
+    setTimeout(() => {
+      setRefreshKey(prev => prev + 1)
+      setIsRefreshing(false)
+    }, 800)
+  }, [])
+
   return (
     <DateFilterContext.Provider
       value={{
@@ -71,6 +85,9 @@ export function DateFilterProvider({ children }: { children: ReactNode }) {
         setPeriod,
         setCustomRange,
         startDate: DATA_START_DATE,
+        refreshKey,
+        refresh,
+        isRefreshing,
       }}
     >
       {children}
