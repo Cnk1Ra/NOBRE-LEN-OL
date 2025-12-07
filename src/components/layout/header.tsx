@@ -72,9 +72,6 @@ const MILESTONES = [
   { value: 100000000, label: '100M', color: 'from-amber-400 to-yellow-500' },
 ]
 
-// Mock total revenue - em producao viria do contexto/API
-const TOTAL_REVENUE = 1850000
-
 // Icone baseado no tipo de notificacao
 const notificationIcons = {
   order: Package,
@@ -98,7 +95,7 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
   const { theme, setTheme, resolvedTheme } = useTheme()
   const { period, setPeriod, refresh, isRefreshing } = useDateFilter()
   const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification } = useNotifications()
-  const { countries, selectedCountry, selectCountry, selectAll, isAllSelected } = useCountry()
+  const { countries, selectedCountry, selectCountry, selectAll, isAllSelected, getCountryData } = useCountry()
   const [mounted, setMounted] = useState(false)
 
   const activeCountries = countries.filter(c => c.active)
@@ -107,28 +104,42 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
     setMounted(true)
   }, [])
 
-  // Calcula progresso do milestone
+  // Get current country revenue - uses selected country or sum of all active countries
+  const currentRevenue = useMemo(() => {
+    if (isAllSelected) {
+      return activeCountries.reduce((sum, c) => sum + getCountryData(c.code).revenue, 0)
+    }
+    return selectedCountry ? getCountryData(selectedCountry.code).revenue : 0
+  }, [isAllSelected, selectedCountry, activeCountries, getCountryData])
+
+  // Get currency symbol based on selected country
+  const currencySymbol = useMemo(() => {
+    if (isAllSelected) return 'R$' // Default to BRL when all countries selected
+    return selectedCountry?.currencySymbol || 'R$'
+  }, [isAllSelected, selectedCountry])
+
+  // Calcula progresso do milestone based on current revenue
   const milestoneData = useMemo(() => {
     let prevValue = 0
     for (let i = 0; i < MILESTONES.length; i++) {
       const milestone = MILESTONES[i]
-      if (TOTAL_REVENUE < milestone.value) {
-        const progress = ((TOTAL_REVENUE - prevValue) / (milestone.value - prevValue)) * 100
+      if (currentRevenue < milestone.value) {
+        const progress = ((currentRevenue - prevValue) / (milestone.value - prevValue)) * 100
         return { nextMilestone: milestone, progress, prevValue }
       }
       prevValue = milestone.value
     }
     return { nextMilestone: MILESTONES[MILESTONES.length - 1], progress: 100, prevValue: 0 }
-  }, [])
+  }, [currentRevenue])
 
   const handlePeriodChange = (value: string) => {
     setPeriod(value as DateFilterPeriod)
   }
 
-  const formatCompactCurrency = (value: number) => {
-    if (value >= 1000000) return `R$${(value / 1000000).toFixed(1)}M`
-    if (value >= 1000) return `R$${(value / 1000).toFixed(0)}K`
-    return `R$${value}`
+  const formatCompactCurrency = (value: number, symbol: string) => {
+    if (value >= 1000000) return `${symbol}${(value / 1000000).toFixed(1)}M`
+    if (value >= 1000) return `${symbol}${(value / 1000).toFixed(0)}K`
+    return `${symbol}${value}`
   }
 
   return (
@@ -214,7 +225,7 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
           milestoneData.progress >= 75 ? "text-yellow-500" : "text-muted-foreground"
         )} />
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium">{formatCompactCurrency(TOTAL_REVENUE)}</span>
+          <span className="text-xs font-medium">{formatCompactCurrency(currentRevenue, currencySymbol)}</span>
           <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
             <div
               className={cn(
