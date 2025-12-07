@@ -104,24 +104,42 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
     setMounted(true)
   }, [])
 
-  // Get TOTAL account revenue (all countries combined) - for milestone/goals tracking
-  const totalAccountRevenue = useMemo(() => {
-    return activeCountries.reduce((sum, c) => sum + getCountryData(c.code).revenue, 0)
-  }, [activeCountries, getCountryData])
+  // Get revenue for selected country (or primary country when "All" selected)
+  const { currentRevenue, currencySymbol } = useMemo(() => {
+    if (isAllSelected) {
+      // When "All" selected, show the primary country (Brazil) or highest revenue country
+      const primaryCountry = activeCountries.find(c => c.code === 'BR') || activeCountries[0]
+      if (primaryCountry) {
+        return {
+          currentRevenue: getCountryData(primaryCountry.code).revenue,
+          currencySymbol: primaryCountry.currencySymbol
+        }
+      }
+      return { currentRevenue: 0, currencySymbol: 'R$' }
+    }
+    // When specific country selected, show that country's data
+    if (selectedCountry) {
+      return {
+        currentRevenue: getCountryData(selectedCountry.code).revenue,
+        currencySymbol: selectedCountry.currencySymbol
+      }
+    }
+    return { currentRevenue: 0, currencySymbol: 'R$' }
+  }, [isAllSelected, selectedCountry, activeCountries, getCountryData])
 
-  // Calcula progresso do milestone based on TOTAL account revenue (always R$ for consistency)
+  // Calcula progresso do milestone for selected country
   const milestoneData = useMemo(() => {
     let prevValue = 0
     for (let i = 0; i < MILESTONES.length; i++) {
       const milestone = MILESTONES[i]
-      if (totalAccountRevenue < milestone.value) {
-        const progress = ((totalAccountRevenue - prevValue) / (milestone.value - prevValue)) * 100
+      if (currentRevenue < milestone.value) {
+        const progress = ((currentRevenue - prevValue) / (milestone.value - prevValue)) * 100
         return { nextMilestone: milestone, progress, prevValue }
       }
       prevValue = milestone.value
     }
     return { nextMilestone: MILESTONES[MILESTONES.length - 1], progress: 100, prevValue: 0 }
-  }, [totalAccountRevenue])
+  }, [currentRevenue])
 
   const handlePeriodChange = (value: string) => {
     setPeriod(value as DateFilterPeriod)
@@ -216,7 +234,7 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
           milestoneData.progress >= 75 ? "text-yellow-500" : "text-muted-foreground"
         )} />
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium">{formatCompactCurrency(totalAccountRevenue, 'R$')}</span>
+          <span className="text-xs font-medium">{formatCompactCurrency(currentRevenue, currencySymbol)}</span>
           <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
             <div
               className={cn(

@@ -147,51 +147,68 @@ const MILESTONES = [
   },
 ]
 
+// Helper to calculate milestone progress for a given revenue
+const calculateMilestoneProgress = (revenue: number) => {
+  let prevValue = 0
+  for (let i = 0; i < MILESTONES.length; i++) {
+    const milestone = MILESTONES[i]
+    if (revenue < milestone.value) {
+      const progress = ((revenue - prevValue) / (milestone.value - prevValue)) * 100
+      const remaining = milestone.value - revenue
+      return {
+        currentMilestoneIndex: i,
+        nextMilestone: milestone,
+        progress,
+        prevValue,
+        remaining,
+        completedMilestones: i,
+      }
+    }
+    prevValue = milestone.value
+  }
+  return {
+    currentMilestoneIndex: MILESTONES.length - 1,
+    nextMilestone: MILESTONES[MILESTONES.length - 1],
+    progress: 100,
+    prevValue: 0,
+    remaining: 0,
+    completedMilestones: MILESTONES.length,
+  }
+}
+
 export default function GoalsPage() {
-  const { countries, getCountryData } = useCountry()
+  const { countries, getCountryData, selectedCountry, isAllSelected } = useCountry()
 
   const activeCountries = countries.filter(c => c.active)
 
-  // Get TOTAL account revenue (all countries combined) - for milestone/goals tracking
-  const totalAccountRevenue = useMemo(() => {
-    return activeCountries.reduce((sum, c) => sum + getCountryData(c.code).revenue, 0)
+  // Get country progress data for each active country
+  const countryProgressData = useMemo(() => {
+    return activeCountries.map(country => {
+      const data = getCountryData(country.code)
+      const progress = calculateMilestoneProgress(data.revenue)
+      return {
+        country,
+        revenue: data.revenue,
+        ...progress
+      }
+    }).sort((a, b) => b.revenue - a.revenue) // Sort by revenue descending
   }, [activeCountries, getCountryData])
 
-  // Always use R$ for account-wide milestones
-  const formatCurrency = (value: number) => {
-    if (value >= 1000000) return `R$ ${(value / 1000000).toFixed(1)}M`
-    if (value >= 1000) return `R$ ${(value / 1000).toFixed(0)}K`
-    return `R$ ${value.toFixed(0)}`
-  }
+  // Get selected country progress or primary country
+  const currentCountryProgress = useMemo(() => {
+    if (!isAllSelected && selectedCountry) {
+      const found = countryProgressData.find(c => c.country.code === selectedCountry.code)
+      if (found) return found
+    }
+    // Default to highest revenue country
+    return countryProgressData[0] || null
+  }, [isAllSelected, selectedCountry, countryProgressData])
 
-  // Calcula o milestone atual e progresso based on TOTAL account revenue
-  const currentProgress = useMemo(() => {
-    let prevValue = 0
-    for (let i = 0; i < MILESTONES.length; i++) {
-      const milestone = MILESTONES[i]
-      if (totalAccountRevenue < milestone.value) {
-        const progress = ((totalAccountRevenue - prevValue) / (milestone.value - prevValue)) * 100
-        const remaining = milestone.value - totalAccountRevenue
-        return {
-          currentMilestoneIndex: i,
-          nextMilestone: milestone,
-          progress,
-          prevValue,
-          remaining,
-          completedMilestones: i,
-        }
-      }
-      prevValue = milestone.value
-    }
-    return {
-      currentMilestoneIndex: MILESTONES.length - 1,
-      nextMilestone: MILESTONES[MILESTONES.length - 1],
-      progress: 100,
-      prevValue: 0,
-      remaining: 0,
-      completedMilestones: MILESTONES.length,
-    }
-  }, [totalAccountRevenue])
+  const formatCurrency = (value: number, symbol: string) => {
+    if (value >= 1000000) return `${symbol} ${(value / 1000000).toFixed(1)}M`
+    if (value >= 1000) return `${symbol} ${(value / 1000).toFixed(0)}K`
+    return `${symbol} ${value.toFixed(0)}`
+  }
 
   return (
     <div className="space-y-6">
@@ -200,7 +217,7 @@ export default function GoalsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Metas de Faturamento</h1>
           <p className="text-muted-foreground">
-            Faturamento total da conta (todos os países)
+            Acompanhe o progresso de cada país
           </p>
         </div>
         <Badge variant="outline" className="text-lg px-4 py-2">
@@ -208,139 +225,127 @@ export default function GoalsPage() {
         </Badge>
       </div>
 
-      {/* Current Progress Card */}
-      <Card className="overflow-hidden">
-        <div className={cn(
-          "h-2 bg-gradient-to-r",
-          currentProgress.nextMilestone.color
-        )} />
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl">Progresso Atual</CardTitle>
-              <CardDescription>
-                Faturamento total acumulado
-              </CardDescription>
-            </div>
-            <Badge variant="outline" className={cn("text-lg px-4 py-2", currentProgress.nextMilestone.textColor)}>
-              {currentProgress.completedMilestones} / {MILESTONES.length} metas
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-4xl font-bold">{formatCurrency(totalAccountRevenue)}</p>
-              <p className="text-muted-foreground">
-                Falta {formatCurrency(currentProgress.remaining)} para {currentProgress.nextMilestone.label}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold text-primary">{currentProgress.progress.toFixed(1)}%</p>
-              <p className="text-sm text-muted-foreground">do proximo marco</p>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>{formatCurrency(currentProgress.prevValue)}</span>
-              <span className="font-medium">{currentProgress.nextMilestone.label}</span>
-            </div>
-            <div className="h-4 rounded-full bg-muted overflow-hidden">
-              <div
-                className={cn(
-                  "h-full rounded-full bg-gradient-to-r transition-all duration-500",
-                  currentProgress.nextMilestone.color
-                )}
-                style={{ width: `${Math.min(currentProgress.progress, 100)}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Next milestone preview */}
-          <div className={cn(
-            "p-4 rounded-xl border",
-            currentProgress.nextMilestone.bgColor
-          )}>
-            <div className="flex items-center gap-4">
-              <div className={cn(
-                "h-12 w-12 rounded-xl flex items-center justify-center",
-                currentProgress.nextMilestone.bgColor
-              )}>
-                {(() => {
-                  const Icon = currentProgress.nextMilestone.icon
-                  return <Icon className={cn("h-6 w-6", currentProgress.nextMilestone.textColor)} />
-                })()}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold">{currentProgress.nextMilestone.title}</h3>
-                <p className="text-sm text-muted-foreground">{currentProgress.nextMilestone.description}</p>
-              </div>
-              <div className="text-right">
-                <Badge className={cn("bg-gradient-to-r text-white", currentProgress.nextMilestone.color)}>
-                  {currentProgress.nextMilestone.reward}
+      {/* Progress Cards for Each Country */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {countryProgressData.map(({ country, revenue, nextMilestone, progress, remaining, completedMilestones }) => (
+          <Card key={country.code} className="overflow-hidden">
+            <div className={cn("h-2 bg-gradient-to-r", nextMilestone.color)} />
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{country.flag}</span>
+                  <div>
+                    <CardTitle className="text-lg">{country.name}</CardTitle>
+                    <CardDescription>{country.currency}</CardDescription>
+                  </div>
+                </div>
+                <Badge variant="outline" className={cn("text-sm", nextMilestone.textColor)}>
+                  {completedMilestones}/{MILESTONES.length}
                 </Badge>
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-3xl font-bold">{formatCurrency(revenue, country.currencySymbol)}</p>
+                <p className="text-sm text-muted-foreground">
+                  Falta {formatCurrency(remaining, country.currencySymbol)} → {nextMilestone.label}
+                </p>
+              </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Trophy className="h-5 w-5 text-primary" />
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{progress.toFixed(1)}%</span>
+                  <span>{nextMilestone.label}</span>
+                </div>
+                <div className="h-3 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={cn("h-full rounded-full bg-gradient-to-r transition-all duration-500", nextMilestone.color)}
+                    style={{ width: `${Math.min(progress, 100)}%` }}
+                  />
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold">{currentProgress.completedMilestones}</p>
-                <p className="text-xs text-muted-foreground">Metas Alcancadas</p>
+
+              <div className={cn("p-3 rounded-lg", nextMilestone.bgColor)}>
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const Icon = nextMilestone.icon
+                    return <Icon className={cn("h-5 w-5", nextMilestone.textColor)} />
+                  })()}
+                  <div>
+                    <p className="text-sm font-medium">{nextMilestone.title}</p>
+                    <p className="text-xs text-muted-foreground">{nextMilestone.reward}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-green-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{formatCurrency(totalAccountRevenue)}</p>
-                <p className="text-xs text-muted-foreground">Faturamento Total</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                <Target className="h-5 w-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{currentProgress.nextMilestone.label}</p>
-                <p className="text-xs text-muted-foreground">Proxima Meta</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-                <Zap className="h-5 w-5 text-purple-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{formatCurrency(currentProgress.remaining)}</p>
-                <p className="text-xs text-muted-foreground">Faltam</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
+
+      {/* Stats Cards - Summary */}
+      {currentCountryProgress && (
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Trophy className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{activeCountries.length}</p>
+                  <p className="text-xs text-muted-foreground">Países Ativos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {formatCurrency(
+                      countryProgressData.reduce((sum, c) => sum + c.revenue, 0),
+                      'R$'
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Total Geral</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                  <Target className="h-5 w-5 text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {countryProgressData.reduce((sum, c) => sum + c.completedMilestones, 0)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Metas Totais</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                  <span className="text-lg">{currentCountryProgress.country.flag}</span>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{currentCountryProgress.country.name}</p>
+                  <p className="text-xs text-muted-foreground">Maior Faturamento</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* All Milestones */}
       <Card>
@@ -352,10 +357,14 @@ export default function GoalsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {MILESTONES.map((milestone, index) => {
-              const isCompleted = totalAccountRevenue >= milestone.value
-              const isCurrent = index === currentProgress.currentMilestoneIndex
-              const isLocked = index > currentProgress.currentMilestoneIndex
+            {MILESTONES.map((milestone) => {
+              // Find countries that have completed this milestone
+              const countriesCompleted = countryProgressData.filter(c => c.revenue >= milestone.value)
+              const countriesInProgress = countryProgressData.filter(
+                c => c.revenue < milestone.value && c.nextMilestone.value === milestone.value
+              )
+              const hasAnyCompleted = countriesCompleted.length > 0
+              const hasAnyInProgress = countriesInProgress.length > 0
               const Icon = milestone.icon
 
               return (
@@ -363,19 +372,19 @@ export default function GoalsPage() {
                   key={milestone.value}
                   className={cn(
                     "p-4 rounded-xl border transition-all",
-                    isCompleted && "bg-green-500/5 border-green-500/30",
-                    isCurrent && cn(milestone.bgColor, "border-2"),
-                    isLocked && "opacity-60"
+                    hasAnyCompleted && "bg-green-500/5 border-green-500/30",
+                    hasAnyInProgress && !hasAnyCompleted && cn(milestone.bgColor, "border-2"),
+                    !hasAnyCompleted && !hasAnyInProgress && "opacity-60"
                   )}
                 >
                   <div className="flex items-start gap-4">
                     <div className={cn(
                       "h-12 w-12 rounded-xl flex items-center justify-center shrink-0",
-                      isCompleted ? "bg-green-500/10" : milestone.bgColor
+                      hasAnyCompleted ? "bg-green-500/10" : milestone.bgColor
                     )}>
-                      {isCompleted ? (
+                      {hasAnyCompleted ? (
                         <Check className="h-6 w-6 text-green-500" />
-                      ) : isLocked ? (
+                      ) : !hasAnyInProgress ? (
                         <Lock className="h-6 w-6 text-muted-foreground" />
                       ) : (
                         <Icon className={cn("h-6 w-6", milestone.textColor)} />
@@ -386,28 +395,38 @@ export default function GoalsPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold">{milestone.title}</h3>
                         <Badge variant="outline" className={cn(
-                          isCompleted && "bg-green-500/10 text-green-500 border-green-500/30"
+                          hasAnyCompleted && "bg-green-500/10 text-green-500 border-green-500/30"
                         )}>
                           {milestone.label}
                         </Badge>
-                        {isCompleted && (
-                          <Badge variant="success">Concluido</Badge>
-                        )}
-                        {isCurrent && (
-                          <Badge className={cn("bg-gradient-to-r text-white", milestone.color)}>
-                            Em Progresso
-                          </Badge>
-                        )}
                       </div>
                       <p className="text-sm text-muted-foreground mb-3">{milestone.description}</p>
 
-                      {/* Progress bar for current milestone */}
-                      {isCurrent && (
+                      {/* Countries that completed this milestone */}
+                      {hasAnyCompleted && (
                         <div className="mb-3">
-                          <Progress value={currentProgress.progress} className="h-2" />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {currentProgress.progress.toFixed(1)}% concluido
-                          </p>
+                          <p className="text-xs text-muted-foreground mb-1">Países que alcançaram:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {countriesCompleted.map(c => (
+                              <Badge key={c.country.code} variant="success" className="text-xs">
+                                {c.country.flag} {c.country.code}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Countries in progress for this milestone */}
+                      {hasAnyInProgress && (
+                        <div className="mb-3">
+                          <p className="text-xs text-muted-foreground mb-1">Em progresso:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {countriesInProgress.map(c => (
+                              <Badge key={c.country.code} variant="outline" className="text-xs">
+                                {c.country.flag} {c.country.code} ({c.progress.toFixed(0)}%)
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
                       )}
 
@@ -422,7 +441,7 @@ export default function GoalsPage() {
                     </div>
 
                     <div className="text-right shrink-0">
-                      <p className="font-bold">{formatCurrency(milestone.value)}</p>
+                      <p className="font-bold">{formatCurrency(milestone.value, 'R$')}</p>
                       <p className="text-xs text-muted-foreground">{milestone.reward}</p>
                     </div>
                   </div>
