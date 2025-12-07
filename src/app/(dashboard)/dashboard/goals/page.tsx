@@ -181,17 +181,18 @@ export default function GoalsPage() {
 
   const activeCountries = countries.filter(c => c.active)
 
-  // Get country progress data for each active country
+  // Get country progress data for each active country (using TOTAL revenue for milestones)
   const countryProgressData = useMemo(() => {
     return activeCountries.map(country => {
       const data = getCountryData(country.code)
-      const progress = calculateMilestoneProgress(data.revenue)
+      const progress = calculateMilestoneProgress(data.totalRevenue) // Usa faturamento total histórico
       return {
         country,
-        revenue: data.revenue,
+        totalRevenue: data.totalRevenue,  // Faturamento total histórico
+        monthlyRevenue: data.revenue,      // Faturamento do mês
         ...progress
       }
-    }).sort((a, b) => b.revenue - a.revenue) // Sort by revenue descending
+    }).sort((a, b) => b.totalRevenue - a.totalRevenue) // Sort by total revenue descending
   }, [activeCountries, getCountryData])
 
   // Get selected country progress or primary country
@@ -227,7 +228,7 @@ export default function GoalsPage() {
 
       {/* Progress Cards for Each Country */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {countryProgressData.map(({ country, revenue, nextMilestone, progress, remaining, completedMilestones }) => (
+        {countryProgressData.map(({ country, totalRevenue, monthlyRevenue, nextMilestone, progress, remaining, completedMilestones }) => (
           <Card key={country.code} className="overflow-hidden">
             <div className={cn("h-2 bg-gradient-to-r", nextMilestone.color)} />
             <CardHeader className="pb-2">
@@ -246,7 +247,10 @@ export default function GoalsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-3xl font-bold">{formatCurrency(revenue, country.currencySymbol)}</p>
+                <p className="text-3xl font-bold">{formatCurrency(totalRevenue, country.currencySymbol)}</p>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Este mês: {formatCurrency(monthlyRevenue, country.currencySymbol)}
+                </p>
                 <p className="text-sm text-muted-foreground">
                   Falta {formatCurrency(remaining, country.currencySymbol)} → {nextMilestone.label}
                 </p>
@@ -307,11 +311,11 @@ export default function GoalsPage() {
                 <div>
                   <p className="text-2xl font-bold">
                     {formatCurrency(
-                      countryProgressData.reduce((sum, c) => sum + c.revenue, 0),
+                      countryProgressData.reduce((sum, c) => sum + c.totalRevenue, 0),
                       'R$'
                     )}
                   </p>
-                  <p className="text-xs text-muted-foreground">Total Geral</p>
+                  <p className="text-xs text-muted-foreground">Total Histórico</p>
                 </div>
               </div>
             </CardContent>
@@ -358,10 +362,10 @@ export default function GoalsPage() {
         <CardContent>
           <div className="space-y-4">
             {MILESTONES.map((milestone) => {
-              // Find countries that have completed this milestone
-              const countriesCompleted = countryProgressData.filter(c => c.revenue >= milestone.value)
+              // Find countries that have completed this milestone (using totalRevenue)
+              const countriesCompleted = countryProgressData.filter(c => c.totalRevenue >= milestone.value)
               const countriesInProgress = countryProgressData.filter(
-                c => c.revenue < milestone.value && c.nextMilestone.value === milestone.value
+                c => c.totalRevenue < milestone.value && c.nextMilestone.value === milestone.value
               )
               const hasAnyCompleted = countriesCompleted.length > 0
               const hasAnyInProgress = countriesInProgress.length > 0

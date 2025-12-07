@@ -13,7 +13,8 @@ export interface Country {
 }
 
 export interface CountryData {
-  revenue: number
+  revenue: number        // Faturamento do período atual (mês)
+  totalRevenue: number   // Faturamento total histórico (desde o início)
   profit: number
   orders: number
   avgTicket: number
@@ -51,7 +52,8 @@ const initialCountries: Country[] = [
 // Dados mock por pais
 const countryDataMap: Record<string, CountryData> = {
   BR: {
-    revenue: 850000,
+    revenue: 850000,        // Faturamento do mês atual
+    totalRevenue: 4250000,  // Faturamento total histórico (desde início)
     profit: 289000,
     orders: 2870,
     avgTicket: 296.17,
@@ -62,6 +64,7 @@ const countryDataMap: Record<string, CountryData> = {
   },
   PT: {
     revenue: 420000,
+    totalRevenue: 1680000,  // ~4 meses de operação
     profit: 147000,
     orders: 1420,
     avgTicket: 295.77,
@@ -72,6 +75,7 @@ const countryDataMap: Record<string, CountryData> = {
   },
   AO: {
     revenue: 380000,
+    totalRevenue: 950000,   // ~2.5 meses de operação
     profit: 133000,
     orders: 1280,
     avgTicket: 296.88,
@@ -82,6 +86,7 @@ const countryDataMap: Record<string, CountryData> = {
   },
   MZ: {
     revenue: 120000,
+    totalRevenue: 240000,   // ~2 meses de operação
     profit: 42000,
     orders: 405,
     avgTicket: 296.30,
@@ -92,6 +97,7 @@ const countryDataMap: Record<string, CountryData> = {
   },
   CV: {
     revenue: 45000,
+    totalRevenue: 90000,    // ~2 meses de operação
     profit: 15750,
     orders: 152,
     avgTicket: 296.05,
@@ -102,6 +108,7 @@ const countryDataMap: Record<string, CountryData> = {
   },
   ES: {
     revenue: 280000,
+    totalRevenue: 840000,   // ~3 meses de operação
     profit: 98000,
     orders: 945,
     avgTicket: 296.30,
@@ -112,6 +119,7 @@ const countryDataMap: Record<string, CountryData> = {
   },
   US: {
     revenue: 520000,
+    totalRevenue: 2080000,  // ~4 meses de operação
     profit: 182000,
     orders: 1755,
     avgTicket: 296.30,
@@ -122,6 +130,7 @@ const countryDataMap: Record<string, CountryData> = {
   },
   ALL: {
     revenue: 1850000,
+    totalRevenue: 10130000, // Soma de todos os países
     profit: 628000,
     orders: 6250,
     avgTicket: 296.00,

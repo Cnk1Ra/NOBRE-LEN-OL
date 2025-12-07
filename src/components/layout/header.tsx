@@ -104,23 +104,23 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
     setMounted(true)
   }, [])
 
-  // Get revenue for selected country (or primary country when "All" selected)
+  // Get TOTAL revenue (histórico) for selected country - for milestone progress
   const { currentRevenue, currencySymbol } = useMemo(() => {
     if (isAllSelected) {
       // When "All" selected, show the primary country (Brazil) or highest revenue country
       const primaryCountry = activeCountries.find(c => c.code === 'BR') || activeCountries[0]
       if (primaryCountry) {
         return {
-          currentRevenue: getCountryData(primaryCountry.code).revenue,
+          currentRevenue: getCountryData(primaryCountry.code).totalRevenue,
           currencySymbol: primaryCountry.currencySymbol
         }
       }
       return { currentRevenue: 0, currencySymbol: 'R$' }
     }
-    // When specific country selected, show that country's data
+    // When specific country selected, show that country's TOTAL revenue
     if (selectedCountry) {
       return {
-        currentRevenue: getCountryData(selectedCountry.code).revenue,
+        currentRevenue: getCountryData(selectedCountry.code).totalRevenue,
         currencySymbol: selectedCountry.currencySymbol
       }
     }
