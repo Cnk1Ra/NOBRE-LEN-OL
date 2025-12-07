@@ -33,28 +33,32 @@ import {
   LogOut,
   Building2,
   CreditCard,
+  Infinity,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
+import { useDateFilter, DateFilterPeriod } from '@/contexts/date-filter-context'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 interface HeaderProps {
   workspaceName?: string
 }
 
-const dateRangeLabels: Record<string, string> = {
+const periodLabels: Record<DateFilterPeriod, string> = {
   today: 'Hoje',
   yesterday: 'Ontem',
-  '7days': '7 dias',
-  '30days': '30 dias',
-  thisMonth: 'Este mês',
-  lastMonth: 'Mês passado',
+  week: 'Esta Semana',
+  month: 'Este Mes',
+  last_month: 'Mes Passado',
   custom: 'Personalizado',
+  max: 'MAXIMO',
 }
 
 export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
   const { theme, setTheme, resolvedTheme } = useTheme()
-  const [dateRange, setDateRange] = useState('7days')
+  const { period, setPeriod, dateRange } = useDateFilter()
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -65,6 +69,17 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
   const handleRefresh = () => {
     setIsRefreshing(true)
     setTimeout(() => setIsRefreshing(false), 1000)
+  }
+
+  const handlePeriodChange = (value: string) => {
+    setPeriod(value as DateFilterPeriod)
+  }
+
+  const formatDateRange = () => {
+    if (period === 'today') return 'Hoje'
+    if (period === 'yesterday') return 'Ontem'
+    if (period === 'max') return `Desde ${format(dateRange.from, "dd/MM/yy", { locale: ptBR })}`
+    return `${format(dateRange.from, "dd/MM", { locale: ptBR })} - ${format(dateRange.to, "dd/MM", { locale: ptBR })}`
   }
 
   return (
@@ -93,24 +108,43 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
         </Badge>
       </Button>
 
-      {/* Date Range Selector */}
-      <Select value={dateRange} onValueChange={setDateRange}>
-        <SelectTrigger className="w-[150px] h-9 rounded-xl border-border/60 bg-muted/30 hover:bg-muted/50 transition-colors">
-          <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+      {/* Date Range Selector - Connected to Context */}
+      <Select value={period} onValueChange={handlePeriodChange}>
+        <SelectTrigger className={cn(
+          "w-[160px] h-9 rounded-xl border-border/60 bg-muted/30 hover:bg-muted/50 transition-colors",
+          period === 'max' && "bg-gradient-to-r from-purple-600/10 to-pink-600/10 border-purple-500/30"
+        )}>
+          {period === 'max' ? (
+            <Infinity className="h-3.5 w-3.5 mr-2 text-purple-500" />
+          ) : (
+            <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+          )}
           <SelectValue>
-            <span className="text-sm">{dateRangeLabels[dateRange]}</span>
+            <span className={cn("text-sm", period === 'max' && "font-bold text-purple-500")}>
+              {periodLabels[period]}
+            </span>
           </SelectValue>
         </SelectTrigger>
         <SelectContent align="end" className="rounded-xl">
           <SelectItem value="today" className="rounded-lg">Hoje</SelectItem>
           <SelectItem value="yesterday" className="rounded-lg">Ontem</SelectItem>
-          <SelectItem value="7days" className="rounded-lg">Últimos 7 dias</SelectItem>
-          <SelectItem value="30days" className="rounded-lg">Últimos 30 dias</SelectItem>
-          <SelectItem value="thisMonth" className="rounded-lg">Este mês</SelectItem>
-          <SelectItem value="lastMonth" className="rounded-lg">Mês passado</SelectItem>
-          <SelectItem value="custom" className="rounded-lg">Personalizado</SelectItem>
+          <SelectItem value="week" className="rounded-lg">Esta Semana</SelectItem>
+          <SelectItem value="month" className="rounded-lg">Este Mes</SelectItem>
+          <SelectItem value="last_month" className="rounded-lg">Mes Passado</SelectItem>
+          <SelectItem value="max" className="rounded-lg">
+            <div className="flex items-center gap-2">
+              <Infinity className="h-3.5 w-3.5 text-purple-500" />
+              <span className="font-bold text-purple-500">MAXIMO</span>
+            </div>
+          </SelectItem>
         </SelectContent>
       </Select>
+
+      {/* Date Range Display */}
+      <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/50 text-xs text-muted-foreground">
+        <Calendar className="h-3 w-3" />
+        <span>{formatDateRange()}</span>
+      </div>
 
       {/* Action buttons */}
       <div className="flex items-center gap-1">
@@ -142,7 +176,7 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80 rounded-xl p-0">
             <div className="flex items-center justify-between px-4 py-3 border-b">
-              <span className="font-semibold">Notificações</span>
+              <span className="font-semibold">Notificacoes</span>
               <Button variant="ghost" size="sm" className="h-7 text-xs text-primary">
                 Marcar todas como lidas
               </Button>
@@ -151,7 +185,7 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
               {[
                 { title: 'Novo pedido recebido', desc: 'Pedido #4521 - R$ 289,90', time: '2 min', unread: true },
                 { title: 'Entrega confirmada', desc: 'Pedido #4518 foi entregue', time: '15 min', unread: true },
-                { title: 'Estoque baixo', desc: 'Sérum Vitamina C - 8 unidades', time: '1h', unread: true },
+                { title: 'Estoque baixo', desc: 'Serum Vitamina C - 8 unidades', time: '1h', unread: true },
               ].map((notif, i) => (
                 <div
                   key={i}
@@ -174,7 +208,7 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
             </div>
             <div className="p-2 border-t">
               <Button variant="ghost" className="w-full h-8 text-xs rounded-lg">
-                Ver todas as notificações
+                Ver todas as notificacoes
               </Button>
             </div>
           </DropdownMenuContent>
@@ -219,7 +253,7 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
               </AvatarFallback>
             </Avatar>
             <div className="hidden md:flex flex-col items-start">
-              <span className="text-sm font-medium leading-tight">João Dev</span>
+              <span className="text-sm font-medium leading-tight">Joao Dev</span>
             </div>
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           </Button>
@@ -234,7 +268,7 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
-                <p className="text-sm font-semibold">João Dev</p>
+                <p className="text-sm font-semibold">Joao Dev</p>
                 <p className="text-xs text-muted-foreground">joao@email.com</p>
               </div>
             </div>
@@ -256,7 +290,7 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
           </DropdownMenuItem>
           <DropdownMenuItem className="gap-2 py-2 cursor-pointer rounded-lg mx-1">
             <Settings className="h-4 w-4 text-muted-foreground" />
-            Configurações
+            Configuracoes
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="gap-2 py-2 cursor-pointer rounded-lg mx-1 text-destructive focus:text-destructive">

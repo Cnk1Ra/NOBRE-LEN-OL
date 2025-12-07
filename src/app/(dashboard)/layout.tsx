@@ -1,5 +1,8 @@
+'use client'
+
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
+import { DateFilterProvider } from '@/contexts/date-filter-context'
 
 export default function DashboardLayout({
   children,
@@ -7,14 +10,16 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
-          {children}
-        </main>
+    <DateFilterProvider>
+      <div className="flex h-screen overflow-hidden">
+        <Sidebar />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </DateFilterProvider>
   )
 }

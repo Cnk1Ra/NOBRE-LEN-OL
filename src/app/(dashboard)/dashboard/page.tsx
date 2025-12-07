@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { DeliveryStats } from '@/components/dashboard/delivery-stats'
 import { RevenueChart } from '@/components/dashboard/revenue-chart'
 import { TrafficSources } from '@/components/dashboard/traffic-sources'
 import { RecentOrders } from '@/components/dashboard/recent-orders'
 import { RevenueMilestone } from '@/components/dashboard/revenue-milestone'
-import { DateFilter, DateFilterPeriod, DateRange, getDateRangeForPeriod } from '@/components/dashboard/date-filter'
+import { useDateFilter } from '@/contexts/date-filter-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,9 +23,6 @@ import {
   Sparkles,
   Zap,
 } from 'lucide-react'
-
-// Data de inicio da coleta de dados (quando o sistema comecou)
-const DATA_START_DATE = new Date('2024-01-15')
 
 // Dados mock por periodo - em producao viriam do banco de dados
 const mockDataByPeriod = {
@@ -269,10 +266,8 @@ function calculateChange(current: number, previous: number): number {
 }
 
 export default function DashboardPage() {
-  const [period, setPeriod] = useState<DateFilterPeriod>('month')
-  const [dateRange, setDateRange] = useState<DateRange>(() =>
-    getDateRangeForPeriod('month', DATA_START_DATE)
-  )
+  // Usa o contexto global de filtro de data
+  const { period } = useDateFilter()
 
   // Obtem dados baseados no periodo selecionado
   const currentData = useMemo(() => {
@@ -296,15 +291,10 @@ export default function DashboardPage() {
     orders: calculateChange(currentData.orders, previousData.orders),
     avgTicket: calculateChange(currentData.avgTicket, previousData.avgTicket),
     deliveryRate: currentData.deliveryRate - previousData.deliveryRate,
-    returnRate: previousData.returnRate - currentData.returnRate, // Inverso pois menor e melhor
+    returnRate: previousData.returnRate - currentData.returnRate,
     roas: calculateChange(currentData.roas, previousData.roas),
     visitors: calculateChange(currentData.visitors, previousData.visitors),
   }), [currentData, previousData])
-
-  const handlePeriodChange = (newPeriod: DateFilterPeriod, range: DateRange) => {
-    setPeriod(newPeriod)
-    setDateRange(range)
-  }
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
@@ -324,8 +314,8 @@ export default function DashboardPage() {
         currency="BRL"
       />
 
-      {/* Header with Date Filter */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      {/* Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
@@ -342,30 +332,23 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Date Filter */}
-        <DateFilter
-          period={period}
-          onPeriodChange={handlePeriodChange}
-          startDate={DATA_START_DATE}
-        />
-      </div>
-
-      {/* AI Insights Banner */}
-      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/20">
-        <div className="flex items-center gap-2 text-primary">
-          <Sparkles className="h-4 w-4" />
-          <span className="text-sm font-medium">Insight:</span>
+        {/* AI Insights Banner */}
+        <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/20">
+          <div className="flex items-center gap-2 text-primary">
+            <Sparkles className="h-4 w-4" />
+            <span className="text-sm font-medium">Insight:</span>
+          </div>
+          <span className="text-sm text-muted-foreground">
+            {period === 'max'
+              ? `Total acumulado: ${formatCurrency(currentData.revenue)} com ${currentData.orders.toLocaleString()} pedidos!`
+              : `Variacao: ${changes.revenue >= 0 ? '+' : ''}${changes.revenue.toFixed(1)}% vs periodo anterior`
+            }
+          </span>
+          <Button variant="ghost" size="sm" className="h-7 text-xs text-primary hover:text-primary hidden sm:flex">
+            Ver mais
+            <ArrowRight className="ml-1 h-3 w-3" />
+          </Button>
         </div>
-        <span className="text-sm text-muted-foreground flex-1">
-          {period === 'max'
-            ? `Desde o inicio, voce faturou ${formatCurrency(currentData.revenue)} com ${currentData.orders.toLocaleString()} pedidos!`
-            : `Suas vendas ${changes.revenue >= 0 ? 'cresceram' : 'cairam'} ${Math.abs(changes.revenue).toFixed(1)}% em relacao ao periodo anterior`
-          }
-        </span>
-        <Button variant="ghost" size="sm" className="h-7 text-xs text-primary hover:text-primary hidden sm:flex">
-          Ver mais
-          <ArrowRight className="ml-1 h-3 w-3" />
-        </Button>
       </div>
 
       {/* Main Stats Grid */}
