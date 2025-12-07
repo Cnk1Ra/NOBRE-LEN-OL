@@ -39,6 +39,8 @@ import { useTheme } from 'next-themes'
 import { useState, useEffect, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { useDateFilter, DateFilterPeriod } from '@/contexts/date-filter-context'
+import { useNotifications } from '@/contexts/notifications-context'
+import { Package, Truck, AlertTriangle, CheckCircle, Info, X } from 'lucide-react'
 
 interface HeaderProps {
   workspaceName?: string
@@ -71,9 +73,29 @@ const MILESTONES = [
 // Mock total revenue - em producao viria do contexto/API
 const TOTAL_REVENUE = 1850000
 
+// Icone baseado no tipo de notificacao
+const notificationIcons = {
+  order: Package,
+  delivery: Truck,
+  stock: AlertTriangle,
+  success: CheckCircle,
+  warning: AlertTriangle,
+  system: Info,
+}
+
+const notificationColors = {
+  order: 'text-blue-500 bg-blue-500/10',
+  delivery: 'text-green-500 bg-green-500/10',
+  stock: 'text-orange-500 bg-orange-500/10',
+  success: 'text-emerald-500 bg-emerald-500/10',
+  warning: 'text-yellow-500 bg-yellow-500/10',
+  system: 'text-purple-500 bg-purple-500/10',
+}
+
 export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
   const { theme, setTheme, resolvedTheme } = useTheme()
   const { period, setPeriod, refresh, isRefreshing } = useDateFilter()
+  const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification } = useNotifications()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -202,51 +224,102 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl relative">
               <Bell className="h-4 w-4" />
-              <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
-                <span className="relative inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground">
-                  3
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
+                  <span className="relative inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
                 </span>
-              </span>
+              )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80 rounded-xl p-0">
+          <DropdownMenuContent align="end" className="w-96 rounded-xl p-0">
             <div className="flex items-center justify-between px-4 py-3 border-b">
-              <span className="font-semibold">Notificacoes</span>
-              <Button variant="ghost" size="sm" className="h-7 text-xs text-primary">
-                Marcar todas como lidas
-              </Button>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">Notificacoes</span>
+                {unreadCount > 0 && (
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                    {unreadCount} novas
+                  </Badge>
+                )}
+              </div>
+              {unreadCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-primary hover:text-primary"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    markAllAsRead()
+                  }}
+                >
+                  Marcar todas como lidas
+                </Button>
+              )}
             </div>
             <div className="max-h-80 overflow-y-auto">
-              {[
-                { title: 'Novo pedido recebido', desc: 'Pedido #4521 - R$ 289,90', time: '2 min', unread: true },
-                { title: 'Entrega confirmada', desc: 'Pedido #4518 foi entregue', time: '15 min', unread: true },
-                { title: 'Estoque baixo', desc: 'Serum Vitamina C - 8 unidades', time: '1h', unread: true },
-              ].map((notif, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    'flex gap-3 px-4 py-3 hover:bg-muted/50 cursor-pointer border-b border-border/40 last:border-0',
-                    notif.unread && 'bg-primary/5'
-                  )}
-                >
-                  <div className={cn(
-                    'w-2 h-2 rounded-full mt-2 shrink-0',
-                    notif.unread ? 'bg-primary' : 'bg-transparent'
-                  )} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{notif.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{notif.desc}</p>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground shrink-0">{notif.time}</span>
+              {notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                  <Bell className="h-10 w-10 mb-2 opacity-20" />
+                  <p className="text-sm">Nenhuma notificacao</p>
                 </div>
-              ))}
+              ) : (
+                notifications.map((notif) => {
+                  const IconComponent = notificationIcons[notif.type] || Info
+                  const colorClass = notificationColors[notif.type] || notificationColors.system
+
+                  return (
+                    <div
+                      key={notif.id}
+                      className={cn(
+                        'group flex gap-3 px-4 py-3 hover:bg-muted/50 cursor-pointer border-b border-border/40 last:border-0 transition-colors',
+                        notif.unread && 'bg-primary/5'
+                      )}
+                      onClick={() => markAsRead(notif.id)}
+                    >
+                      <div className={cn(
+                        'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                        colorClass
+                      )}>
+                        <IconComponent className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className={cn(
+                            "text-sm truncate",
+                            notif.unread ? "font-semibold" : "font-medium"
+                          )}>
+                            {notif.title}
+                          </p>
+                          <button
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              removeNotification(notif.id)
+                            }}
+                          >
+                            <X className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{notif.description}</p>
+                        <p className="text-[10px] text-muted-foreground/70 mt-1">{notif.time}</p>
+                      </div>
+                      {notif.unread && (
+                        <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1" />
+                      )}
+                    </div>
+                  )
+                })
+              )}
             </div>
-            <div className="p-2 border-t">
-              <Button variant="ghost" className="w-full h-8 text-xs rounded-lg">
-                Ver todas as notificacoes
-              </Button>
-            </div>
+            {notifications.length > 0 && (
+              <div className="p-2 border-t">
+                <Button variant="ghost" className="w-full h-8 text-xs rounded-lg">
+                  Ver todas as notificacoes
+                </Button>
+              </div>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
 
