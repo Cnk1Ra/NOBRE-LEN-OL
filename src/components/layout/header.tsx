@@ -41,6 +41,7 @@ import { cn } from '@/lib/utils'
 import { useDateFilter, DateFilterPeriod } from '@/contexts/date-filter-context'
 import { useNotifications } from '@/contexts/notifications-context'
 import { Package, Truck, AlertTriangle, CheckCircle, Info, X } from 'lucide-react'
+import Link from 'next/link'
 
 interface HeaderProps {
   workspaceName?: string
@@ -315,9 +316,11 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
             </div>
             {notifications.length > 0 && (
               <div className="p-2 border-t">
-                <Button variant="ghost" className="w-full h-8 text-xs rounded-lg">
-                  Ver todas as notificacoes
-                </Button>
+                <Link href="/dashboard/notifications">
+                  <Button variant="ghost" className="w-full h-8 text-xs rounded-lg">
+                    Ver todas as notificacoes
+                  </Button>
+                </Link>
               </div>
             )}
           </DropdownMenuContent>

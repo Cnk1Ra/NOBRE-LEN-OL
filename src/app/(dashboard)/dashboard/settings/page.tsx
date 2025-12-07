@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,21 +34,28 @@ import {
   ExternalLink,
   Key,
   Webhook,
+  Package,
+  Truck,
+  AlertTriangle,
+  CheckCircle,
+  Volume2,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
+import { useNotifications, NotificationPreferences } from '@/contexts/notifications-context'
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
-  const [notifications, setNotifications] = useState({
-    email: true,
-    push: true,
-    sms: false,
-    orderUpdates: true,
-    deliveryAlerts: true,
-    paymentAlerts: true,
-    weeklyReport: true,
-    marketingEmails: false,
-  })
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState('profile')
+  const { preferences, updatePreference } = useNotifications()
+
+  // Handle URL parameter for tab selection
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab && ['profile', 'company', 'notifications', 'appearance', 'integrations', 'security'].includes(tab)) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
 
   return (
     <div className="space-y-6">
@@ -59,7 +67,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
           <TabsTrigger value="profile">Perfil</TabsTrigger>
           <TabsTrigger value="company">Empresa</TabsTrigger>
@@ -202,89 +210,172 @@ export default function SettingsPage() {
 
         {/* Notifications Tab */}
         <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Preferencias de Notificacao
-              </CardTitle>
-              <CardDescription>
-                Escolha como deseja receber notificacoes
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h4 className="font-medium">Canais de Notificacao</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Mail className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">Email</p>
-                        <p className="text-sm text-muted-foreground">Receber por email</p>
-                      </div>
+          <div className="space-y-6">
+            {/* Notification Channels */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Canais de Notificacao
+                </CardTitle>
+                <CardDescription>
+                  Escolha como deseja receber notificacoes
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                      <Mail className="h-5 w-5" />
                     </div>
-                    <Switch
-                      checked={notifications.email}
-                      onCheckedChange={(checked) => setNotifications({...notifications, email: checked})}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Bell className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">Push</p>
-                        <p className="text-sm text-muted-foreground">Notificacoes no navegador</p>
-                      </div>
+                    <div>
+                      <p className="font-medium">Email</p>
+                      <p className="text-sm text-muted-foreground">Receber notificacoes por email</p>
                     </div>
-                    <Switch
-                      checked={notifications.push}
-                      onCheckedChange={(checked) => setNotifications({...notifications, push: checked})}
-                    />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Smartphone className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">SMS</p>
-                        <p className="text-sm text-muted-foreground">Mensagens de texto</p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={notifications.sms}
-                      onCheckedChange={(checked) => setNotifications({...notifications, sms: checked})}
-                    />
-                  </div>
+                  <Switch
+                    checked={preferences.email}
+                    onCheckedChange={(checked) => updatePreference('email', checked)}
+                  />
                 </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h4 className="font-medium">Tipos de Notificacao</h4>
-                <div className="space-y-4">
-                  {[
-                    { key: 'orderUpdates', label: 'Atualizacoes de Pedidos', desc: 'Novos pedidos e mudancas de status' },
-                    { key: 'deliveryAlerts', label: 'Alertas de Entrega', desc: 'Problemas e confirmacoes de entrega' },
-                    { key: 'paymentAlerts', label: 'Alertas de Pagamento', desc: 'Pagamentos recebidos e pendentes' },
-                    { key: 'weeklyReport', label: 'Relatorio Semanal', desc: 'Resumo de desempenho toda segunda' },
-                    { key: 'marketingEmails', label: 'Emails de Marketing', desc: 'Novidades e promocoes' },
-                  ].map((item) => (
-                    <div key={item.key} className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{item.label}</p>
-                        <p className="text-sm text-muted-foreground">{item.desc}</p>
-                      </div>
-                      <Switch
-                        checked={notifications[item.key as keyof typeof notifications]}
-                        onCheckedChange={(checked) => setNotifications({...notifications, [item.key]: checked})}
-                      />
+                <div className="flex items-center justify-between p-4 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500">
+                      <Bell className="h-5 w-5" />
                     </div>
-                  ))}
+                    <div>
+                      <p className="font-medium">Push</p>
+                      <p className="text-sm text-muted-foreground">Notificacoes no navegador</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.push}
+                    onCheckedChange={(checked) => updatePreference('push', checked)}
+                  />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="flex items-center justify-between p-4 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10 text-green-500">
+                      <Volume2 className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Som</p>
+                      <p className="text-sm text-muted-foreground">Tocar som ao receber notificacao</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.sound}
+                    onCheckedChange={(checked) => updatePreference('sound', checked)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Notification Types */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5" />
+                  Tipos de Notificacao
+                </CardTitle>
+                <CardDescription>
+                  Ative ou desative tipos especificos de notificacoes
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                      <Package className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Pedidos</p>
+                      <p className="text-sm text-muted-foreground">Novos pedidos e atualizacoes</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.order}
+                    onCheckedChange={(checked) => updatePreference('order', checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10 text-green-500">
+                      <Truck className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Entregas</p>
+                      <p className="text-sm text-muted-foreground">Atualizacoes de entrega e rastreamento</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.delivery}
+                    onCheckedChange={(checked) => updatePreference('delivery', checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500">
+                      <AlertTriangle className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Estoque</p>
+                      <p className="text-sm text-muted-foreground">Alertas de estoque baixo</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.stock}
+                    onCheckedChange={(checked) => updatePreference('stock', checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                      <CheckCircle className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Sucesso</p>
+                      <p className="text-sm text-muted-foreground">Metas atingidas e conquistas</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.success}
+                    onCheckedChange={(checked) => updatePreference('success', checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-500/10 text-yellow-500">
+                      <AlertTriangle className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Alertas</p>
+                      <p className="text-sm text-muted-foreground">Avisos e problemas importantes</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.warning}
+                    onCheckedChange={(checked) => updatePreference('warning', checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500">
+                      <Globe className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Sistema</p>
+                      <p className="text-sm text-muted-foreground">Atualizacoes e novidades do sistema</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.system}
+                    onCheckedChange={(checked) => updatePreference('system', checked)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Appearance Tab */}

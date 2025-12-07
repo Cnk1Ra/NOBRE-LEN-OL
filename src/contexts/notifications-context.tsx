@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useState, ReactNode, useCallback } from 'react'
 
+export type NotificationType = 'order' | 'delivery' | 'stock' | 'system' | 'success' | 'warning'
+
 export interface Notification {
   id: string
   title: string
@@ -9,7 +11,19 @@ export interface Notification {
   time: string
   timestamp: Date
   unread: boolean
-  type: 'order' | 'delivery' | 'stock' | 'system' | 'success' | 'warning'
+  type: NotificationType
+}
+
+export interface NotificationPreferences {
+  order: boolean
+  delivery: boolean
+  stock: boolean
+  system: boolean
+  success: boolean
+  warning: boolean
+  sound: boolean
+  email: boolean
+  push: boolean
 }
 
 interface NotificationsContextType {
@@ -20,6 +34,8 @@ interface NotificationsContextType {
   removeNotification: (id: string) => void
   clearAll: () => void
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'unread'>) => void
+  preferences: NotificationPreferences
+  updatePreference: (key: keyof NotificationPreferences, value: boolean) => void
 }
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined)
@@ -73,10 +89,27 @@ const initialNotifications: Notification[] = [
   },
 ]
 
+const defaultPreferences: NotificationPreferences = {
+  order: true,
+  delivery: true,
+  stock: true,
+  system: true,
+  success: true,
+  warning: true,
+  sound: true,
+  email: false,
+  push: true,
+}
+
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications)
+  const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences)
 
   const unreadCount = notifications.filter(n => n.unread).length
+
+  const updatePreference = useCallback((key: keyof NotificationPreferences, value: boolean) => {
+    setPreferences(prev => ({ ...prev, [key]: value }))
+  }, [])
 
   const markAsRead = useCallback((id: string) => {
     setNotifications(prev =>
@@ -119,6 +152,8 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         removeNotification,
         clearAll,
         addNotification,
+        preferences,
+        updatePreference,
       }}
     >
       {children}
