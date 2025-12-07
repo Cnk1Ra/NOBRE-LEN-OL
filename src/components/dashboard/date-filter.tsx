@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -194,8 +196,8 @@ export function DateFilter({
       </div>
 
       {/* Custom date picker */}
-      <Popover open={isCustomOpen} onOpenChange={setIsCustomOpen}>
-        <PopoverTrigger asChild>
+      <Dialog open={isCustomOpen} onOpenChange={setIsCustomOpen}>
+        <DialogTrigger asChild>
           <Button
             variant={period === 'custom' ? 'default' : 'outline'}
             size="sm"
@@ -207,24 +209,26 @@ export function DateFilter({
             <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
             Personalizado
           </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80" align="end">
-          <div className="space-y-4">
-            <h4 className="font-medium text-sm">Selecione o periodo</h4>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Selecione o periodo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
             <div className="grid gap-3">
               <div className="space-y-2">
-                <Label htmlFor="from" className="text-xs">Data inicial</Label>
+                <Label htmlFor="from" className="text-sm">Data inicial</Label>
                 <Input
                   id="from"
                   type="date"
                   value={customFrom}
                   onChange={(e) => setCustomFrom(e.target.value)}
                   max={format(new Date(), 'yyyy-MM-dd')}
-                  className="h-9"
+                  className="h-10"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="to" className="text-xs">Data final</Label>
+                <Label htmlFor="to" className="text-sm">Data final</Label>
                 <Input
                   id="to"
                   type="date"
@@ -232,30 +236,28 @@ export function DateFilter({
                   onChange={(e) => setCustomTo(e.target.value)}
                   max={format(new Date(), 'yyyy-MM-dd')}
                   min={customFrom}
-                  className="h-9"
+                  className="h-10"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-2">
               <Button
                 variant="outline"
-                size="sm"
                 onClick={() => setIsCustomOpen(false)}
               >
                 Cancelar
               </Button>
               <Button
-                size="sm"
                 onClick={handleCustomApply}
                 disabled={!customFrom || !customTo}
               >
-                <Check className="h-3.5 w-3.5 mr-1.5" />
+                <Check className="h-4 w-4 mr-2" />
                 Aplicar
               </Button>
             </div>
           </div>
-        </PopoverContent>
-      </Popover>
+        </DialogContent>
+      </Dialog>
 
       {/* MAX button */}
       <Button
