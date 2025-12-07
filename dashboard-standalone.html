@@ -940,6 +940,208 @@
       width: 24px;
       height: 24px;
     }
+
+    /* ========== Task Styles ========== */
+    .task-filter {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted-foreground);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .task-filter:hover {
+      border-color: var(--muted-foreground);
+      color: var(--foreground);
+    }
+
+    .task-filter.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .tasks-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--card);
+      transition: all 0.3s;
+    }
+
+    .task-item:hover {
+      border-color: var(--muted-foreground);
+      box-shadow: var(--shadow);
+    }
+
+    .task-item.urgent {
+      border-left: 3px solid var(--destructive);
+    }
+
+    .task-item.pending {
+      border-left: 3px solid var(--warning);
+    }
+
+    .task-item.completed {
+      border-left: 3px solid var(--success);
+      opacity: 0.7;
+    }
+
+    .task-item.completed .task-title {
+      text-decoration: line-through;
+      color: var(--muted-foreground);
+    }
+
+    .task-checkbox {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .task-checkbox input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .task-checkbox label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .task-checkbox label:hover {
+      border-color: var(--primary);
+    }
+
+    .task-checkbox input:checked + label {
+      background: var(--success);
+      border-color: var(--success);
+    }
+
+    .task-checkbox input:checked + label::after {
+      content: '✓';
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .task-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .task-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .task-title {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .task-priority {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .task-priority.urgent {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--destructive);
+    }
+
+    .task-priority.pending {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--warning);
+    }
+
+    .task-priority.completed {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--success);
+    }
+
+    .task-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .task-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--muted-foreground);
+    }
+
+    .task-tag {
+      padding: 2px 8px;
+      background: var(--muted);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .task-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .task-action-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--muted-foreground);
+    }
+
+    .task-action-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    @media (max-width: 768px) {
+      .task-item {
+        flex-direction: column;
+        gap: 12px;
+      }
+      .task-actions {
+        align-self: flex-end;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1511,6 +1713,201 @@
             </div>
           </div>
         </div>
+
+        <!-- Tasks Section -->
+        <div class="card" style="margin-top: 24px;">
+          <div class="card-header">
+            <div class="card-title-group">
+              <div class="card-icon" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(168, 85, 247, 0.2)); color: #8b5cf6;">
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              </div>
+              <div>
+                <div class="card-title">Tarefas do Dia</div>
+                <div class="card-subtitle">Pendências e ações necessárias</div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span class="card-badge badge-warning">
+                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                8 pendentes
+              </span>
+              <button style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nova Tarefa
+              </button>
+            </div>
+          </div>
+          <div class="card-content">
+            <!-- Task Categories -->
+            <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+              <button class="task-filter active" onclick="filterTasks('all')">Todas (12)</button>
+              <button class="task-filter" onclick="filterTasks('urgent')">Urgentes (3)</button>
+              <button class="task-filter" onclick="filterTasks('pending')">Pendentes (5)</button>
+              <button class="task-filter" onclick="filterTasks('completed')">Concluídas (4)</button>
+            </div>
+
+            <!-- Tasks List -->
+            <div class="tasks-list">
+              <!-- Urgent Task -->
+              <div class="task-item urgent">
+                <div class="task-checkbox">
+                  <input type="checkbox" id="task1">
+                  <label for="task1"></label>
+                </div>
+                <div class="task-content">
+                  <div class="task-header">
+                    <span class="task-title">Reenviar pedido #A7B2C3D4 - Cliente reclamou</span>
+                    <span class="task-priority urgent">Urgente</span>
+                  </div>
+                  <div class="task-meta">
+                    <span><svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Vence hoje</span>
+                    <span><svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> João Silva</span>
+                    <span class="task-tag">Suporte</span>
+                  </div>
+                </div>
+                <div class="task-actions">
+                  <button class="task-action-btn" title="Editar">
+                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Urgent Task 2 -->
+              <div class="task-item urgent">
+                <div class="task-checkbox">
+                  <input type="checkbox" id="task2">
+                  <label for="task2"></label>
+                </div>
+                <div class="task-content">
+                  <div class="task-header">
+                    <span class="task-title">Verificar estoque do produto "Kit Premium" - Baixo</span>
+                    <span class="task-priority urgent">Urgente</span>
+                  </div>
+                  <div class="task-meta">
+                    <span><svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Vence hoje</span>
+                    <span><svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> 12 unidades</span>
+                    <span class="task-tag">Estoque</span>
+                  </div>
+                </div>
+                <div class="task-actions">
+                  <button class="task-action-btn" title="Editar">
+                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Pending Task -->
+              <div class="task-item pending">
+                <div class="task-checkbox">
+                  <input type="checkbox" id="task3">
+                  <label for="task3"></label>
+                </div>
+                <div class="task-content">
+                  <div class="task-header">
+                    <span class="task-title">Processar pagamento parceiro - Loja São Paulo</span>
+                    <span class="task-priority pending">Pendente</span>
+                  </div>
+                  <div class="task-meta">
+                    <span><svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Amanhã</span>
+                    <span><svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> R$ 4.580,00</span>
+                    <span class="task-tag">Financeiro</span>
+                  </div>
+                </div>
+                <div class="task-actions">
+                  <button class="task-action-btn" title="Editar">
+                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Pending Task 2 -->
+              <div class="task-item pending">
+                <div class="task-checkbox">
+                  <input type="checkbox" id="task4">
+                  <label for="task4"></label>
+                </div>
+                <div class="task-content">
+                  <div class="task-header">
+                    <span class="task-title">Atualizar tracking de 15 pedidos em trânsito</span>
+                    <span class="task-priority pending">Pendente</span>
+                  </div>
+                  <div class="task-meta">
+                    <span><svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Em 2 dias</span>
+                    <span><svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/></svg> 15 pedidos</span>
+                    <span class="task-tag">Logística</span>
+                  </div>
+                </div>
+                <div class="task-actions">
+                  <button class="task-action-btn" title="Editar">
+                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Completed Task -->
+              <div class="task-item completed">
+                <div class="task-checkbox">
+                  <input type="checkbox" id="task5" checked>
+                  <label for="task5"></label>
+                </div>
+                <div class="task-content">
+                  <div class="task-header">
+                    <span class="task-title">Enviar relatório semanal para investidores</span>
+                    <span class="task-priority completed">Concluída</span>
+                  </div>
+                  <div class="task-meta">
+                    <span><svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Concluída hoje</span>
+                    <span class="task-tag">Relatórios</span>
+                  </div>
+                </div>
+                <div class="task-actions">
+                  <button class="task-action-btn" title="Ver">
+                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Completed Task 2 -->
+              <div class="task-item completed">
+                <div class="task-checkbox">
+                  <input type="checkbox" id="task6" checked>
+                  <label for="task6"></label>
+                </div>
+                <div class="task-content">
+                  <div class="task-header">
+                    <span class="task-title">Contatar transportadora sobre atraso em MG</span>
+                    <span class="task-priority completed">Concluída</span>
+                  </div>
+                  <div class="task-meta">
+                    <span><svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Concluída ontem</span>
+                    <span class="task-tag">Logística</span>
+                  </div>
+                </div>
+                <div class="task-actions">
+                  <button class="task-action-btn" title="Ver">
+                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Task Summary -->
+            <div class="summary-footer" style="margin-top: 24px;">
+              <div class="summary-item">
+                <div class="summary-label">Urgentes</div>
+                <div class="summary-value" style="color: var(--destructive);">3</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Pendentes</div>
+                <div class="summary-value" style="color: var(--warning);">5</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Concluídas Hoje</div>
+                <div class="summary-value success">4</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -1627,6 +2024,37 @@
         e.preventDefault();
         navItems.forEach(i => i.classList.remove('active'));
         item.classList.add('active');
+      });
+    });
+
+    // Task Filters
+    function filterTasks(filter) {
+      const filters = document.querySelectorAll('.task-filter');
+      filters.forEach(f => f.classList.remove('active'));
+      event.target.classList.add('active');
+
+      const tasks = document.querySelectorAll('.task-item');
+      tasks.forEach(task => {
+        if (filter === 'all') {
+          task.style.display = 'flex';
+        } else if (task.classList.contains(filter)) {
+          task.style.display = 'flex';
+        } else {
+          task.style.display = 'none';
+        }
+      });
+    }
+
+    // Task Checkbox Toggle
+    document.querySelectorAll('.task-checkbox input').forEach(checkbox => {
+      checkbox.addEventListener('change', function() {
+        const taskItem = this.closest('.task-item');
+        if (this.checked) {
+          taskItem.classList.remove('urgent', 'pending');
+          taskItem.classList.add('completed');
+          taskItem.querySelector('.task-priority').className = 'task-priority completed';
+          taskItem.querySelector('.task-priority').textContent = 'Concluída';
+        }
       });
     });
   </script>
