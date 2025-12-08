@@ -64,14 +64,14 @@ const countryDataMap: Record<string, CountryData> = {
   },
   PT: {
     revenue: 420000,
-    totalRevenue: 1680000,  // ~4 meses de operação
-    profit: 147000,
-    orders: 1420,
+    totalRevenue: 5040000,  // € 5.04M conforme dashboard
+    profit: 1760000,        // € 1.76M
+    orders: 17040,
     avgTicket: 295.77,
     deliveryRate: 85.2,
     returnRate: 8.5,
     roas: 4.15,
-    visitors: 42000,
+    visitors: 504000,
   },
   AO: {
     revenue: 380000,
