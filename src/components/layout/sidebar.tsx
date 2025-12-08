@@ -12,6 +12,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import {
   LayoutDashboard,
   ShoppingCart,
   TrendingUp,
@@ -29,9 +34,16 @@ import {
   Store,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Zap,
   HelpCircle,
   LogOut,
+  Shield,
+  Warehouse,
+  CreditCard,
+  FileCheck,
+  ClipboardList,
+  GitCompare,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -140,6 +152,45 @@ const integrationNavItems = [
   },
 ]
 
+// CONTROLE - Expandable section with sub-items
+const controlNavItems = [
+  {
+    title: 'N1 Warehouse',
+    href: '/dashboard/controle/n1',
+    icon: Warehouse,
+    color: 'text-blue-500',
+    description: 'Comparar pedidos',
+  },
+  {
+    title: 'Financeiro',
+    href: '/dashboard/controle/financeiro',
+    icon: DollarSign,
+    color: 'text-green-500',
+    description: 'Controle financeiro',
+  },
+  {
+    title: 'Pagamentos',
+    href: '/dashboard/controle/pagamentos',
+    icon: CreditCard,
+    color: 'text-purple-500',
+    description: 'Controle de pagamentos',
+  },
+  {
+    title: 'Conferência',
+    href: '/dashboard/controle/conferencia',
+    icon: FileCheck,
+    color: 'text-orange-500',
+    description: 'Conferir entregas',
+  },
+  {
+    title: 'Divergências',
+    href: '/dashboard/controle/divergencias',
+    icon: GitCompare,
+    color: 'text-red-500',
+    description: 'Pedidos com problemas',
+  },
+]
+
 interface SidebarProps {
   className?: string
 }
@@ -147,6 +198,7 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
+  const [controlOpen, setControlOpen] = useState(true)
 
   const NavItem = ({ item }: { item: typeof mainNavItems[0] }) => {
     const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -265,6 +317,38 @@ export function Sidebar({ className }: SidebarProps) {
             <div className={cn('h-px bg-border/50', collapsed && 'mx-2')} />
 
             <NavSection title="Operacional" items={operationalNavItems} />
+
+            <div className={cn('h-px bg-border/50', collapsed && 'mx-2')} />
+
+            {/* CONTROLE - Expandable Section */}
+            <div className="space-y-1">
+              {!collapsed ? (
+                <Collapsible open={controlOpen} onOpenChange={setControlOpen}>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full group">
+                    <h4 className="sidebar-section-title flex items-center gap-2 cursor-pointer hover:text-foreground transition-colors">
+                      <Shield className="h-3.5 w-3.5 text-red-500" />
+                      Controle
+                    </h4>
+                    <ChevronDown className={cn(
+                      "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                      controlOpen && "rotate-180"
+                    )} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-1 mt-1">
+                    {controlNavItems.map((item) => (
+                      <NavItem key={item.href} item={item} />
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              ) : (
+                <>
+                  <div className="h-2" />
+                  {controlNavItems.map((item) => (
+                    <NavItem key={item.href} item={item} />
+                  ))}
+                </>
+              )}
+            </div>
 
             <div className={cn('h-px bg-border/50', collapsed && 'mx-2')} />
 
