@@ -224,10 +224,11 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Compact Revenue Progress Bar - Clickable */}
+      {/* Compact Revenue Progress Bar - Clickable - Shows totalRevenue */}
       <Link
         href="/dashboard/goals"
         className="flex items-center gap-2 px-2 md:px-3 py-1.5 rounded-xl bg-muted/30 border border-border/40 hover:bg-muted/50 hover:border-border/60 transition-all cursor-pointer"
+        title={`Faturamento Total: ${formatCompactCurrency(currentRevenue, currencySymbol)} - Meta: ${milestoneData.nextMilestone.label}`}
       >
         <Trophy className={cn(
           "h-4 w-4",
