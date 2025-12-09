@@ -334,8 +334,9 @@ export class N1WarehouseMockClient extends N1WarehouseClient {
       order.status = newStatus
       order.statusLabel = N1_STATUS_MAP[newStatus]?.label || newStatus
       order.updatedAt = new Date().toISOString()
+      return order
     }
-    return order
+    return null
   }
 }
 
