@@ -162,7 +162,7 @@ export default function N1ControlPage() {
 
   // Get unique countries from orders
   const activeCountries = useMemo(() => {
-    const uniqueCountries = [...new Set(comparisonData.map(o => o.country))]
+    const uniqueCountries = Array.from(new Set(comparisonData.map(o => o.country)))
     return uniqueCountries.map(code => ({ code, ...countries[code] }))
   }, [comparisonData])
 
