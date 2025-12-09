@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -32,15 +32,18 @@ import {
   Download,
   Upload,
   Filter,
-  ArrowUpDown,
-  Link2,
-  Unlink,
   Clock,
   Package,
   TrendingUp,
   AlertCircle,
+  Link2,
+  Unlink,
+  Wifi,
+  WifiOff,
+  Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useN1Warehouse, N1_STATUS_MAP } from '@/hooks/use-n1-warehouse'
 
 // Country configuration
 const countries: Record<string, { flag: string; name: string; currency: string; symbol: string }> = {
@@ -52,7 +55,7 @@ const countries: Record<string, { flag: string; name: string; currency: string; 
   MZ: { flag: '🇲🇿', name: 'Moçambique', currency: 'MZN', symbol: 'MT' },
 }
 
-// Mock data - pedidos do DOD com país
+// Mock DOD orders (in production, this would come from your DOD API/database)
 const dodOrders = [
   { id: 'DOD-001', country: 'PT', customer: 'João Silva', total: 289.90, status: 'SHIPPED', date: '2024-12-07', trackingCode: 'PT123456789' },
   { id: 'DOD-002', country: 'ES', customer: 'María García', total: 459.90, status: 'DELIVERED', date: '2024-12-06', trackingCode: 'ES987654321' },
@@ -68,25 +71,6 @@ const dodOrders = [
   { id: 'DOD-012', country: 'AO', customer: 'Manuel Silva', total: 259.90, status: 'PENDING', date: '2024-12-07', trackingCode: '' },
 ]
 
-// Mock data - pedidos encontrados na N1 Warehouse
-const n1Orders = [
-  { id: 'N1-001', dodId: 'DOD-001', status: 'EM_SEPARACAO', lastUpdate: '2024-12-07 14:30' },
-  { id: 'N1-002', dodId: 'DOD-002', status: 'ENTREGUE', lastUpdate: '2024-12-06 18:45' },
-  { id: 'N1-004', dodId: 'DOD-004', status: 'ENVIADO', lastUpdate: '2024-12-05 09:15' },
-  { id: 'N1-005', dodId: 'DOD-005', status: 'ENTREGUE', lastUpdate: '2024-12-04 16:20' },
-  { id: 'N1-006', dodId: 'DOD-006', status: 'EM_SEPARACAO', lastUpdate: '2024-12-07 11:00' },
-  { id: 'N1-008', dodId: 'DOD-008', status: 'ENVIADO', lastUpdate: '2024-12-06 10:30' },
-  { id: 'N1-010', dodId: 'DOD-010', status: 'ENTREGUE', lastUpdate: '2024-12-05 15:45' },
-]
-
-const n1StatusMap: Record<string, { label: string; color: string }> = {
-  'PENDENTE': { label: 'Pendente', color: 'bg-yellow-500/10 text-yellow-500' },
-  'EM_SEPARACAO': { label: 'Em Separação', color: 'bg-blue-500/10 text-blue-500' },
-  'ENVIADO': { label: 'Enviado', color: 'bg-purple-500/10 text-purple-500' },
-  'ENTREGUE': { label: 'Entregue', color: 'bg-green-500/10 text-green-500' },
-  'DEVOLVIDO': { label: 'Devolvido', color: 'bg-red-500/10 text-red-500' },
-}
-
 const dodStatusMap: Record<string, { label: string; color: string }> = {
   'PENDING': { label: 'Pendente', color: 'bg-yellow-500/10 text-yellow-500' },
   'SHIPPED': { label: 'Enviado', color: 'bg-blue-500/10 text-blue-500' },
@@ -95,15 +79,27 @@ const dodStatusMap: Record<string, { label: string; color: string }> = {
 }
 
 export default function N1ControlPage() {
-  const [isLoading, setIsLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterCountry, setFilterCountry] = useState('all')
-  const [lastSync, setLastSync] = useState('2024-12-07 15:30')
 
-  // Compare orders - find matches and mismatches
+  // Use N1 Warehouse hook with auto-sync every 30 seconds
+  const {
+    orders: n1Orders,
+    isLoading,
+    isSyncing,
+    syncStatus,
+    syncOrders,
+    fetchOrders,
+  } = useN1Warehouse({
+    autoSync: true,
+    syncInterval: 30000,
+    enableSSE: false, // Enable for real-time SSE updates
+  })
+
+  // Compare DOD orders with N1 orders
   const comparisonData = useMemo(() => {
-    const n1Map = new Map(n1Orders.map(o => [o.dodId, o]))
+    const n1Map = new Map(n1Orders.map(o => [o.externalRef, o]))
 
     return dodOrders.map(dod => {
       const n1 = n1Map.get(dod.id)
@@ -111,9 +107,11 @@ export default function N1ControlPage() {
         ...dod,
         n1Order: n1 || null,
         syncStatus: n1 ? 'synced' : 'not_found',
+        n1Status: n1?.status,
+        n1StatusLabel: n1?.statusLabel || (n1?.status ? N1_STATUS_MAP[n1.status]?.label : null),
       }
     })
-  }, [])
+  }, [n1Orders])
 
   // Filter data
   const filteredData = useMemo(() => {
@@ -167,11 +165,20 @@ export default function N1ControlPage() {
   }, [comparisonData])
 
   const handleSync = async () => {
-    setIsLoading(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setLastSync(new Date().toLocaleString('pt-BR'))
-    setIsLoading(false)
+    await syncOrders()
+  }
+
+  // Format last sync time
+  const formatLastSync = (dateStr: string | null) => {
+    if (!dateStr) return 'Nunca sincronizado'
+    const date = new Date(dateStr)
+    return date.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
   }
 
   return (
@@ -186,12 +193,32 @@ export default function N1ControlPage() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight">N1 Warehouse</h1>
               <p className="text-sm text-muted-foreground">
-                Comparação de pedidos DOD × N1 Warehouse
+                Comparação de pedidos DOD × N1 Warehouse (Tempo Real)
               </p>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <Badge
+            variant="outline"
+            className={cn(
+              syncStatus.connected
+                ? "bg-green-500/10 text-green-500 border-green-500/20"
+                : "bg-red-500/10 text-red-500 border-red-500/20"
+            )}
+          >
+            {syncStatus.connected ? (
+              <>
+                <Wifi className="h-3 w-3 mr-1" />
+                {syncStatus.mode === 'demo' ? 'Demo' : 'Conectado'}
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-3 w-3 mr-1" />
+                Desconectado
+              </>
+            )}
+          </Badge>
           <Button variant="outline" size="sm" asChild>
             <a href="https://n1warehouse.com/dashboard" target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-4 w-4 mr-2" />
@@ -201,10 +228,10 @@ export default function N1ControlPage() {
           <Button
             size="sm"
             onClick={handleSync}
-            disabled={isLoading}
+            disabled={isSyncing || isLoading}
           >
-            <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
-            {isLoading ? 'Sincronizando...' : 'Sincronizar'}
+            <RefreshCw className={cn("h-4 w-4 mr-2", (isSyncing || isLoading) && "animate-spin")} />
+            {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
           </Button>
         </div>
       </div>
@@ -266,18 +293,40 @@ export default function N1ControlPage() {
       </div>
 
       {/* Last Sync Info */}
-      <Card className="border-blue-500/20 bg-blue-500/5">
+      <Card className={cn(
+        "border-blue-500/20",
+        syncStatus.connected ? "bg-blue-500/5" : "bg-yellow-500/5 border-yellow-500/20"
+      )}>
         <CardContent className="py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4 text-blue-500" />
+              <Clock className={cn("h-4 w-4", syncStatus.connected ? "text-blue-500" : "text-yellow-500")} />
               <span className="text-muted-foreground">Última sincronização:</span>
-              <span className="font-medium">{lastSync}</span>
+              <span className="font-medium">{formatLastSync(syncStatus.lastSyncAt)}</span>
+              {syncStatus.mode === 'demo' && (
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  <Zap className="h-3 w-3 mr-1" />
+                  Modo Demo
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Conectado
+              <Badge variant="outline" className={cn(
+                syncStatus.connected
+                  ? "bg-green-500/10 text-green-500 border-green-500/20"
+                  : "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+              )}>
+                {syncStatus.connected ? (
+                  <>
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    {syncStatus.message}
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    {syncStatus.message}
+                  </>
+                )}
               </Badge>
             </div>
           </div>
@@ -377,6 +426,7 @@ export default function N1ControlPage() {
               <CardTitle>Comparação de Pedidos</CardTitle>
               <CardDescription>
                 Pedidos do DOD comparados com a N1 Warehouse
+                {isLoading && <span className="ml-2 text-blue-500">(Carregando...)</span>}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -396,6 +446,7 @@ export default function N1ControlPage() {
                 <TableBody>
                   {filteredData.map((order) => {
                     const country = countries[order.country]
+                    const n1StatusInfo = order.n1Status ? N1_STATUS_MAP[order.n1Status] : null
                     return (
                       <TableRow key={order.id}>
                         <TableCell>
@@ -412,9 +463,9 @@ export default function N1ControlPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {order.n1Order ? (
-                            <Badge className={n1StatusMap[order.n1Order.status]?.color}>
-                              {n1StatusMap[order.n1Order.status]?.label}
+                          {n1StatusInfo ? (
+                            <Badge className={n1StatusInfo.color}>
+                              {order.n1StatusLabel || n1StatusInfo.label}
                             </Badge>
                           ) : (
                             <span className="text-muted-foreground text-sm">-</span>
@@ -542,7 +593,7 @@ export default function N1ControlPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">URL da API N1</label>
               <Input
-                value="https://api.n1warehouse.com/v1"
+                value={process.env.NEXT_PUBLIC_N1_API_URL || "https://api.n1warehouse.com/v1"}
                 readOnly
                 className="bg-muted/50"
               />
@@ -557,8 +608,20 @@ export default function N1ControlPage() {
               />
             </div>
           </div>
+          <div className="flex items-center gap-4 pt-2">
+            <div className="flex items-center gap-2">
+              <Badge variant={syncStatus.connected ? "default" : "secondary"}>
+                {syncStatus.mode === 'demo' ? 'Modo Demo' : 'Produção'}
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                {syncStatus.mode === 'demo'
+                  ? 'Configure as variáveis de ambiente para produção'
+                  : 'Conectado à API de produção'}
+              </span>
+            </div>
+          </div>
           <div className="flex items-center gap-4">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => fetchOrders()}>
               Testar Conexão
             </Button>
             <Button variant="outline">

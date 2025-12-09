@@ -651,3 +651,77 @@ model ActivityLog {
   @@index([userId])
   @@map("activity_logs")
 }
+
+// ==================== INTEGRAÇÃO N1 WAREHOUSE ====================
+
+model N1Integration {
+  id            String    @id @default(cuid())
+  workspaceId   String    @unique
+  apiUrl        String    @default("https://api.n1warehouse.com/v1")
+  apiToken      String    // Token criptografado
+  webhookSecret String?   // Secret para validar webhooks
+  isActive      Boolean   @default(true)
+  lastSyncAt    DateTime?
+  syncInterval  Int       @default(300) // Intervalo em segundos (5 min)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  orders        N1Order[]
+
+  @@map("n1_integrations")
+}
+
+model N1Order {
+  id              String      @id @default(cuid())
+  integrationId   String
+  n1OrderId       String      // ID do pedido na N1
+  dodOrderId      String?     // ID do pedido no DOD (referência)
+  externalRef     String?     // Referência externa
+
+  // Status N1
+  status          N1OrderStatus @default(PENDENTE)
+  statusLabel     String?
+
+  // Dados do pedido
+  customerName    String?
+  trackingCode    String?
+  carrierName     String?
+  country         String?     // PT, ES, IT, BR, AO, MZ
+
+  // Valores
+  total           Float?
+  currency        String?
+
+  // Datas
+  n1CreatedAt     DateTime?
+  n1UpdatedAt     DateTime?
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+
+  // Metadados
+  rawData         Json?       // Dados brutos da API N1
+  lastSyncAt      DateTime    @default(now())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  integration     N1Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationId, n1OrderId])
+  @@index([dodOrderId])
+  @@index([status])
+  @@map("n1_orders")
+}
+
+enum N1OrderStatus {
+  PENDENTE
+  EM_SEPARACAO
+  SEPARADO
+  EMBALADO
+  ENVIADO
+  EM_TRANSITO
+  SAIU_ENTREGA
+  ENTREGUE
+  DEVOLVIDO
+  CANCELADO
+  ERRO
+}
