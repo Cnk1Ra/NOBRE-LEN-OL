@@ -42,18 +42,30 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// Mock data - pedidos do DOD
+// Country configuration
+const countries: Record<string, { flag: string; name: string; currency: string; symbol: string }> = {
+  BR: { flag: '🇧🇷', name: 'Brasil', currency: 'BRL', symbol: 'R$' },
+  PT: { flag: '🇵🇹', name: 'Portugal', currency: 'EUR', symbol: '€' },
+  ES: { flag: '🇪🇸', name: 'Espanha', currency: 'EUR', symbol: '€' },
+  IT: { flag: '🇮🇹', name: 'Itália', currency: 'EUR', symbol: '€' },
+  AO: { flag: '🇦🇴', name: 'Angola', currency: 'AOA', symbol: 'Kz' },
+  MZ: { flag: '🇲🇿', name: 'Moçambique', currency: 'MZN', symbol: 'MT' },
+}
+
+// Mock data - pedidos do DOD com país
 const dodOrders = [
-  { id: 'DOD-001', customer: 'João Silva', total: 289.90, status: 'SHIPPED', date: '2024-12-07', trackingCode: 'BR123456789' },
-  { id: 'DOD-002', customer: 'Maria Santos', total: 459.90, status: 'DELIVERED', date: '2024-12-06', trackingCode: 'BR987654321' },
-  { id: 'DOD-003', customer: 'Pedro Costa', total: 189.90, status: 'PENDING', date: '2024-12-07', trackingCode: '' },
-  { id: 'DOD-004', customer: 'Ana Oliveira', total: 599.90, status: 'SHIPPED', date: '2024-12-05', trackingCode: 'BR456789123' },
-  { id: 'DOD-005', customer: 'Carlos Lima', total: 349.90, status: 'DELIVERED', date: '2024-12-04', trackingCode: 'BR321654987' },
-  { id: 'DOD-006', customer: 'Lucia Ferreira', total: 279.90, status: 'SHIPPED', date: '2024-12-07', trackingCode: 'BR147258369' },
-  { id: 'DOD-007', customer: 'Roberto Alves', total: 429.90, status: 'PENDING', date: '2024-12-07', trackingCode: '' },
-  { id: 'DOD-008', customer: 'Fernanda Souza', total: 199.90, status: 'SHIPPED', date: '2024-12-06', trackingCode: 'BR963852741' },
-  { id: 'DOD-009', customer: 'Marcos Pereira', total: 529.90, status: 'RETURNED', date: '2024-12-03', trackingCode: 'BR852741963' },
-  { id: 'DOD-010', customer: 'Julia Mendes', total: 319.90, status: 'DELIVERED', date: '2024-12-05', trackingCode: 'BR741852963' },
+  { id: 'DOD-001', country: 'PT', customer: 'João Silva', total: 289.90, status: 'SHIPPED', date: '2024-12-07', trackingCode: 'PT123456789' },
+  { id: 'DOD-002', country: 'ES', customer: 'María García', total: 459.90, status: 'DELIVERED', date: '2024-12-06', trackingCode: 'ES987654321' },
+  { id: 'DOD-003', country: 'PT', customer: 'Pedro Costa', total: 189.90, status: 'PENDING', date: '2024-12-07', trackingCode: '' },
+  { id: 'DOD-004', country: 'IT', customer: 'Marco Rossi', total: 599.90, status: 'SHIPPED', date: '2024-12-05', trackingCode: 'IT456789123' },
+  { id: 'DOD-005', country: 'ES', customer: 'Carlos López', total: 349.90, status: 'DELIVERED', date: '2024-12-04', trackingCode: 'ES321654987' },
+  { id: 'DOD-006', country: 'PT', customer: 'Lucia Ferreira', total: 279.90, status: 'SHIPPED', date: '2024-12-07', trackingCode: 'PT147258369' },
+  { id: 'DOD-007', country: 'IT', customer: 'Giuseppe Bianchi', total: 429.90, status: 'PENDING', date: '2024-12-07', trackingCode: '' },
+  { id: 'DOD-008', country: 'ES', customer: 'Ana Martínez', total: 199.90, status: 'SHIPPED', date: '2024-12-06', trackingCode: 'ES963852741' },
+  { id: 'DOD-009', country: 'PT', customer: 'Marcos Pereira', total: 529.90, status: 'RETURNED', date: '2024-12-03', trackingCode: 'PT852741963' },
+  { id: 'DOD-010', country: 'IT', customer: 'Francesca Romano', total: 319.90, status: 'DELIVERED', date: '2024-12-05', trackingCode: 'IT741852963' },
+  { id: 'DOD-011', country: 'BR', customer: 'Roberto Santos', total: 389.90, status: 'SHIPPED', date: '2024-12-07', trackingCode: 'BR123789456' },
+  { id: 'DOD-012', country: 'AO', customer: 'Manuel Silva', total: 259.90, status: 'PENDING', date: '2024-12-07', trackingCode: '' },
 ]
 
 // Mock data - pedidos encontrados na N1 Warehouse
@@ -86,6 +98,7 @@ export default function N1ControlPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [filterCountry, setFilterCountry] = useState('all')
   const [lastSync, setLastSync] = useState('2024-12-07 15:30')
 
   // Compare orders - find matches and mismatches
@@ -111,7 +124,8 @@ export default function N1ControlPage() {
       data = data.filter(o =>
         o.id.toLowerCase().includes(term) ||
         o.customer.toLowerCase().includes(term) ||
-        o.trackingCode.toLowerCase().includes(term)
+        o.trackingCode.toLowerCase().includes(term) ||
+        countries[o.country]?.name.toLowerCase().includes(term)
       )
     }
 
@@ -123,8 +137,12 @@ export default function N1ControlPage() {
       }
     }
 
+    if (filterCountry !== 'all') {
+      data = data.filter(o => o.country === filterCountry)
+    }
+
     return data
-  }, [comparisonData, searchTerm, filterStatus])
+  }, [comparisonData, searchTerm, filterStatus, filterCountry])
 
   // Stats
   const stats = useMemo(() => {
@@ -133,7 +151,19 @@ export default function N1ControlPage() {
     const total = comparisonData.length
     const syncRate = total > 0 ? (synced / total * 100).toFixed(1) : 0
 
-    return { synced, notFound, total, syncRate }
+    // Country breakdown
+    const byCountry = Object.keys(countries).reduce((acc, code) => {
+      acc[code] = comparisonData.filter(o => o.country === code).length
+      return acc
+    }, {} as Record<string, number>)
+
+    return { synced, notFound, total, syncRate, byCountry }
+  }, [comparisonData])
+
+  // Get unique countries from orders
+  const activeCountries = useMemo(() => {
+    const uniqueCountries = [...new Set(comparisonData.map(o => o.country))]
+    return uniqueCountries.map(code => ({ code, ...countries[code] }))
   }, [comparisonData])
 
   const handleSync = async () => {
@@ -254,24 +284,68 @@ export default function N1ControlPage() {
         </CardContent>
       </Card>
 
+      {/* Country Stats */}
+      <div className="flex flex-wrap gap-2">
+        {activeCountries.map(country => (
+          <Badge
+            key={country.code}
+            variant="outline"
+            className={cn(
+              "cursor-pointer transition-colors",
+              filterCountry === country.code
+                ? "bg-primary/10 border-primary"
+                : "hover:bg-muted"
+            )}
+            onClick={() => setFilterCountry(filterCountry === country.code ? 'all' : country.code)}
+          >
+            <span className="mr-1">{country.flag}</span>
+            {country.name}
+            <span className="ml-1.5 text-muted-foreground">
+              ({stats.byCountry[country.code] || 0})
+            </span>
+          </Badge>
+        ))}
+        {filterCountry !== 'all' && (
+          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setFilterCountry('all')}>
+            Limpar filtro
+          </Button>
+        )}
+      </div>
+
       {/* Filters */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por ID, cliente ou código de rastreio..."
+            placeholder="Buscar por ID, cliente, país ou rastreio..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
           />
         </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[200px]">
-            <Filter className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Filtrar status" />
+        <Select value={filterCountry} onValueChange={setFilterCountry}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="País" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos os pedidos</SelectItem>
+            <SelectItem value="all">Todos os países</SelectItem>
+            {activeCountries.map(country => (
+              <SelectItem key={country.code} value={country.code}>
+                <span className="flex items-center gap-2">
+                  <span>{country.flag}</span>
+                  {country.name}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[180px]">
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os status</SelectItem>
             <SelectItem value="synced">Sincronizados</SelectItem>
             <SelectItem value="not_found">Não encontrados</SelectItem>
           </SelectContent>
@@ -309,6 +383,7 @@ export default function N1ControlPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>País</TableHead>
                     <TableHead>ID DOD</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Valor</TableHead>
@@ -319,45 +394,53 @@ export default function N1ControlPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredData.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-mono text-sm">{order.id}</TableCell>
-                      <TableCell>{order.customer}</TableCell>
-                      <TableCell>R$ {order.total.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Badge className={dodStatusMap[order.status]?.color}>
-                          {dodStatusMap[order.status]?.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {order.n1Order ? (
-                          <Badge className={n1StatusMap[order.n1Order.status]?.color}>
-                            {n1StatusMap[order.n1Order.status]?.label}
+                  {filteredData.map((order) => {
+                    const country = countries[order.country]
+                    return (
+                      <TableRow key={order.id}>
+                        <TableCell>
+                          <span className="text-lg" title={country?.name}>{country?.flag}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-sm">{order.id}</span>
+                        </TableCell>
+                        <TableCell>{order.customer}</TableCell>
+                        <TableCell>{country?.symbol} {order.total.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Badge className={dodStatusMap[order.status]?.color}>
+                            {dodStatusMap[order.status]?.label}
                           </Badge>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {order.syncStatus === 'synced' ? (
-                          <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Sincronizado
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Não encontrado
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>
+                          {order.n1Order ? (
+                            <Badge className={n1StatusMap[order.n1Order.status]?.color}>
+                              {n1StatusMap[order.n1Order.status]?.label}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {order.syncStatus === 'synced' ? (
+                            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Sincronizado
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Não encontrado
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm">
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
@@ -379,6 +462,7 @@ export default function N1ControlPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>País</TableHead>
                     <TableHead>ID DOD</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Valor</TableHead>
@@ -390,25 +474,31 @@ export default function N1ControlPage() {
                 <TableBody>
                   {filteredData
                     .filter(o => o.syncStatus === 'not_found')
-                    .map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-mono text-sm">{order.id}</TableCell>
-                        <TableCell>{order.customer}</TableCell>
-                        <TableCell>R$ {order.total.toFixed(2)}</TableCell>
-                        <TableCell>{order.date}</TableCell>
-                        <TableCell>
-                          <Badge className={dodStatusMap[order.status]?.color}>
-                            {dodStatusMap[order.status]?.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="outline" size="sm">
-                            <Upload className="h-4 w-4 mr-2" />
-                            Enviar para N1
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    .map((order) => {
+                      const country = countries[order.country]
+                      return (
+                        <TableRow key={order.id}>
+                          <TableCell>
+                            <span className="text-lg" title={country?.name}>{country?.flag}</span>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">{order.id}</TableCell>
+                          <TableCell>{order.customer}</TableCell>
+                          <TableCell>{country?.symbol} {order.total.toFixed(2)}</TableCell>
+                          <TableCell>{order.date}</TableCell>
+                          <TableCell>
+                            <Badge className={dodStatusMap[order.status]?.color}>
+                              {dodStatusMap[order.status]?.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="outline" size="sm">
+                              <Upload className="h-4 w-4 mr-2" />
+                              Enviar para N1
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                 </TableBody>
               </Table>
             </CardContent>
