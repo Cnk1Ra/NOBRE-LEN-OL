@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { mockN1Client, createN1Client } from '@/lib/n1-warehouse'
 
+// Force dynamic rendering - this route uses searchParams
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 // GET /api/n1/orders - List all orders from N1
 export async function GET(request: NextRequest) {
   try {
