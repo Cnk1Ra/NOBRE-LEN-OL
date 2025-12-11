@@ -74,6 +74,7 @@ import { useTheme } from 'next-themes'
 import { useNotifications } from '@/contexts/notifications-context'
 import { useCountry } from '@/contexts/country-context'
 import { useUser } from '@/contexts/user-context'
+import { useLanguage, languages } from '@/contexts/language-context'
 import { toast } from '@/hooks/use-toast'
 
 function SettingsContent() {
@@ -169,8 +170,8 @@ function SettingsContent() {
   const [savingCompany, setSavingCompany] = useState(false)
   const hasCompanyChanges = JSON.stringify(company) !== JSON.stringify(savedCompany)
 
-  // Appearance state
-  const [language, setLanguage] = useState('pt-BR')
+  // Appearance state - language comes from context
+  const { language, setLanguage, t } = useLanguage()
   const [savingAppearance, setSavingAppearance] = useState(false)
 
   // Load saved data from localStorage on mount (except profile which comes from context)
@@ -187,11 +188,7 @@ function SettingsContent() {
       }
     }
 
-    // Load language
-    const savedLanguage = localStorage.getItem('dod-language')
-    if (savedLanguage) {
-      setLanguage(savedLanguage)
-    }
+    // Language is loaded from context (LanguageProvider)
 
     // Load integrations
     const savedIntegrations = localStorage.getItem('dod-integrations')
@@ -389,11 +386,11 @@ function SettingsContent() {
 
   const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage)
-    // Save to localStorage
-    localStorage.setItem('dod-language', newLanguage)
+    // Context handles localStorage
+    const langInfo = languages.find(l => l.code === newLanguage)
     toast({
-      title: 'Idioma alterado!',
-      description: 'O idioma foi atualizado com sucesso.',
+      title: t('appearance.languageChanged'),
+      description: `${langInfo?.flag} ${langInfo?.name}`,
       className: 'bg-green-500 text-white border-green-600',
     })
   }
@@ -1156,18 +1153,35 @@ function SettingsContent() {
               <Separator />
 
               <div className="space-y-4">
-                <h4 className="font-medium">Idioma</h4>
+                <h4 className="font-medium">{t('appearance.language')}</h4>
                 <Select value={language} onValueChange={handleLanguageChange}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue />
+                  <SelectTrigger className="w-[320px]">
+                    <SelectValue>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{languages.find(l => l.code === language)?.flag}</span>
+                        <span>{languages.find(l => l.code === language)?.name}</span>
+                      </div>
+                    </SelectValue>
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pt-BR">Portugues (Brasil)</SelectItem>
-                    <SelectItem value="pt-PT">Portugues (Portugal)</SelectItem>
-                    <SelectItem value="en-US">English (US)</SelectItem>
-                    <SelectItem value="es">Espanol</SelectItem>
+                  <SelectContent className="max-h-[400px]">
+                    {languages.map((lang) => (
+                      <SelectItem key={lang.code} value={lang.code}>
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">{lang.flag}</span>
+                          <span>{lang.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'pt-BR' ? '30 idiomas disponiveis' :
+                   language === 'en-US' ? '30 languages available' :
+                   language === 'es' ? '30 idiomas disponibles' :
+                   language === 'fr' ? '30 langues disponibles' :
+                   language === 'de' ? '30 Sprachen verfugbar' :
+                   '30 languages available'}
+                </p>
               </div>
             </CardContent>
           </Card>

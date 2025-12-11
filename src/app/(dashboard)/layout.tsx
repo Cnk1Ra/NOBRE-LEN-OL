@@ -7,6 +7,7 @@ import { DateFilterProvider } from '@/contexts/date-filter-context'
 import { NotificationsProvider } from '@/contexts/notifications-context'
 import { CountryProvider } from '@/contexts/country-context'
 import { UserProvider } from '@/contexts/user-context'
+import { LanguageProvider } from '@/contexts/language-context'
 
 export default function DashboardLayout({
   children,
@@ -14,23 +15,25 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <UserProvider>
-      <DateFilterProvider>
-        <NotificationsProvider>
-          <CountryProvider>
-            <div className="flex h-screen overflow-hidden">
-              <Sidebar />
-              <div className="flex flex-1 flex-col overflow-hidden">
-                <Header />
-                <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
-                  {children}
-                </main>
+    <LanguageProvider>
+      <UserProvider>
+        <DateFilterProvider>
+          <NotificationsProvider>
+            <CountryProvider>
+              <div className="flex h-screen overflow-hidden">
+                <Sidebar />
+                <div className="flex flex-1 flex-col overflow-hidden">
+                  <Header />
+                  <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
+                    {children}
+                  </main>
+                </div>
               </div>
-            </div>
-            <Toaster />
-          </CountryProvider>
-        </NotificationsProvider>
-      </DateFilterProvider>
-    </UserProvider>
+              <Toaster />
+            </CountryProvider>
+          </NotificationsProvider>
+        </DateFilterProvider>
+      </UserProvider>
+    </LanguageProvider>
   )
 }
