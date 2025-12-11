@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -66,6 +66,9 @@ import {
   Copy,
   CheckCheck,
   ChevronsUpDown,
+  Upload,
+  X,
+  Camera,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useNotifications } from '@/contexts/notifications-context'
@@ -79,7 +82,64 @@ function SettingsContent() {
   const [activeTab, setActiveTab] = useState('profile')
   const { preferences, updatePreference } = useNotifications()
   const { defaultCurrency, setDefaultCurrency } = useCountry()
-  const { profile: userProfile, updateProfile: updateUserProfile } = useUser()
+  const { profile: userProfile, updateProfile: updateUserProfile, updateAvatar, getInitials } = useUser()
+
+  // File input ref for photo upload
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Handle photo upload
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Erro!',
+        description: 'Por favor, selecione uma imagem valida (JPG, PNG).',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: 'Erro!',
+        description: 'A imagem deve ter no maximo 2MB.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Convert to base64
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string
+      updateAvatar(base64)
+      toast({
+        title: 'Foto atualizada!',
+        description: 'Sua foto de perfil foi alterada com sucesso.',
+        className: 'bg-green-500 text-white border-green-600',
+      })
+    }
+    reader.readAsDataURL(file)
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  // Remove photo
+  const handleRemovePhoto = () => {
+    updateAvatar(null)
+    toast({
+      title: 'Foto removida!',
+      description: 'Sua foto de perfil foi removida.',
+      className: 'bg-green-500 text-white border-green-600',
+    })
+  }
 
   // Default values
   const defaultCompany = {
@@ -530,12 +590,62 @@ function SettingsContent() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center gap-6">
-                <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary transition-all">
-                  {profile.firstName.charAt(0).toUpperCase()}{profile.lastName.charAt(0).toUpperCase()}
+                {/* Hidden file input */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handlePhotoUpload}
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  className="hidden"
+                />
+
+                {/* Avatar display */}
+                <div className="relative">
+                  {userProfile.avatar ? (
+                    <div className="h-20 w-20 rounded-full overflow-hidden border-2 border-primary/20">
+                      <img
+                        src={userProfile.avatar}
+                        alt="Foto de perfil"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary transition-all">
+                      {getInitials()}
+                    </div>
+                  )}
+                  {/* Camera icon overlay */}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
+                  >
+                    <Camera className="h-4 w-4" />
+                  </button>
                 </div>
-                <div>
-                  <Button variant="outline" size="sm">Alterar foto</Button>
-                  <p className="text-xs text-muted-foreground mt-1">JPG, PNG. Max 2MB</p>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {userProfile.avatar ? 'Trocar foto' : 'Adicionar foto'}
+                    </Button>
+                    {userProfile.avatar && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRemovePhoto}
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Remover
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">JPG, PNG, GIF, WEBP. Max 2MB</p>
                   <p className="text-sm font-medium mt-2">{profile.firstName} {profile.lastName}</p>
                   <p className="text-xs text-muted-foreground">{profile.email}</p>
                 </div>

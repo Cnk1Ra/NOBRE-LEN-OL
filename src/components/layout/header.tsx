@@ -436,7 +436,7 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
             className="h-9 gap-2 pl-2 pr-3 rounded-xl hover:bg-muted/50"
           >
             <Avatar className="h-7 w-7 ring-2 ring-background">
-              <AvatarImage src="/avatars/user.png" alt="User" />
+              <AvatarImage src={profile.avatar || "/avatars/user.png"} alt="User" />
               <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground text-xs font-semibold">
                 {getInitials()}
               </AvatarFallback>
@@ -451,7 +451,7 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
           <DropdownMenuLabel className="font-normal p-3">
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src="/avatars/user.png" alt="User" />
+                <AvatarImage src={profile.avatar || "/avatars/user.png"} alt="User" />
                 <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground">
                   {getInitials()}
                 </AvatarFallback>

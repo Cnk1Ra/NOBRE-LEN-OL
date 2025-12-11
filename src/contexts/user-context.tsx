@@ -7,11 +7,13 @@ export interface UserProfile {
   lastName: string
   email: string
   phone: string
+  avatar?: string // Base64 encoded image
 }
 
 interface UserContextType {
   profile: UserProfile
   updateProfile: (profile: UserProfile) => void
+  updateAvatar: (avatar: string | null) => void
   getInitials: () => string
   getFullName: () => string
 }
@@ -23,6 +25,7 @@ const defaultProfile: UserProfile = {
   lastName: 'DOD',
   email: 'admin@dashondelivery.com',
   phone: '11 99999-9999',
+  avatar: undefined,
 }
 
 export function UserProvider({ children }: { children: ReactNode }) {
@@ -44,12 +47,27 @@ export function UserProvider({ children }: { children: ReactNode }) {
         // Invalid JSON, use default
       }
     }
+    // Load avatar separately (can be large)
+    const savedAvatar = localStorage.getItem('dod-avatar')
+    if (savedAvatar) {
+      setProfile(prev => ({ ...prev, avatar: savedAvatar }))
+    }
   }, [])
 
   const updateProfile = useCallback((newProfile: UserProfile) => {
-    setProfile(newProfile)
-    // Save to localStorage
-    localStorage.setItem('dod-profile', JSON.stringify(newProfile))
+    setProfile(prev => ({ ...newProfile, avatar: prev.avatar }))
+    // Save to localStorage (without avatar to keep profile data small)
+    const { avatar, ...profileWithoutAvatar } = newProfile
+    localStorage.setItem('dod-profile', JSON.stringify(profileWithoutAvatar))
+  }, [])
+
+  const updateAvatar = useCallback((avatar: string | null) => {
+    setProfile(prev => ({ ...prev, avatar: avatar || undefined }))
+    if (avatar) {
+      localStorage.setItem('dod-avatar', avatar)
+    } else {
+      localStorage.removeItem('dod-avatar')
+    }
   }, [])
 
   const getInitials = useCallback(() => {
@@ -67,6 +85,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       value={{
         profile,
         updateProfile,
+        updateAvatar,
         getInitials,
         getFullName,
       }}
