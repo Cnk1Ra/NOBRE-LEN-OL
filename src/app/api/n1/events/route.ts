@@ -1,6 +1,10 @@
 import { NextRequest } from 'next/server'
 import { mockN1Client, createN1Client } from '@/lib/n1-warehouse'
 
+// Force dynamic rendering - this is a streaming SSE endpoint
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 // GET /api/n1/events - Server-Sent Events for real-time updates
 export async function GET(request: NextRequest) {
   const encoder = new TextEncoder()
