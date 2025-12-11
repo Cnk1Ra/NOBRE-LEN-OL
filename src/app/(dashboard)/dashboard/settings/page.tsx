@@ -336,6 +336,56 @@ function SettingsContent() {
     { code: 'ZAR', name: 'Rand Sul-africano', symbol: 'R', flag: '🇿🇦' },
   ]
 
+  // Country phone codes (DDI)
+  const phoneCountryCodes = [
+    { code: 'BR', name: 'Brasil', ddi: '+55', flag: '🇧🇷' },
+    { code: 'PT', name: 'Portugal', ddi: '+351', flag: '🇵🇹' },
+    { code: 'AO', name: 'Angola', ddi: '+244', flag: '🇦🇴' },
+    { code: 'MZ', name: 'Mocambique', ddi: '+258', flag: '🇲🇿' },
+    { code: 'CV', name: 'Cabo Verde', ddi: '+238', flag: '🇨🇻' },
+    { code: 'US', name: 'Estados Unidos', ddi: '+1', flag: '🇺🇸' },
+    { code: 'GB', name: 'Reino Unido', ddi: '+44', flag: '🇬🇧' },
+    { code: 'ES', name: 'Espanha', ddi: '+34', flag: '🇪🇸' },
+    { code: 'FR', name: 'Franca', ddi: '+33', flag: '🇫🇷' },
+    { code: 'DE', name: 'Alemanha', ddi: '+49', flag: '🇩🇪' },
+    { code: 'IT', name: 'Italia', ddi: '+39', flag: '🇮🇹' },
+    { code: 'JP', name: 'Japao', ddi: '+81', flag: '🇯🇵' },
+    { code: 'CN', name: 'China', ddi: '+86', flag: '🇨🇳' },
+    { code: 'IN', name: 'India', ddi: '+91', flag: '🇮🇳' },
+    { code: 'MX', name: 'Mexico', ddi: '+52', flag: '🇲🇽' },
+    { code: 'AR', name: 'Argentina', ddi: '+54', flag: '🇦🇷' },
+    { code: 'CL', name: 'Chile', ddi: '+56', flag: '🇨🇱' },
+    { code: 'CO', name: 'Colombia', ddi: '+57', flag: '🇨🇴' },
+    { code: 'PE', name: 'Peru', ddi: '+51', flag: '🇵🇪' },
+    { code: 'CA', name: 'Canada', ddi: '+1', flag: '🇨🇦' },
+    { code: 'AU', name: 'Australia', ddi: '+61', flag: '🇦🇺' },
+    { code: 'ZA', name: 'Africa do Sul', ddi: '+27', flag: '🇿🇦' },
+    { code: 'KR', name: 'Coreia do Sul', ddi: '+82', flag: '🇰🇷' },
+    { code: 'RU', name: 'Russia', ddi: '+7', flag: '🇷🇺' },
+    { code: 'AE', name: 'Emirados Arabes', ddi: '+971', flag: '🇦🇪' },
+    { code: 'SA', name: 'Arabia Saudita', ddi: '+966', flag: '🇸🇦' },
+    { code: 'IL', name: 'Israel', ddi: '+972', flag: '🇮🇱' },
+    { code: 'CH', name: 'Suica', ddi: '+41', flag: '🇨🇭' },
+    { code: 'NL', name: 'Holanda', ddi: '+31', flag: '🇳🇱' },
+    { code: 'BE', name: 'Belgica', ddi: '+32', flag: '🇧🇪' },
+  ]
+
+  // Phone country code state
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+55')
+
+  // Load phone country code from localStorage
+  useEffect(() => {
+    const savedPhoneCode = localStorage.getItem('dod-phone-country-code')
+    if (savedPhoneCode) {
+      setPhoneCountryCode(savedPhoneCode)
+    }
+  }, [])
+
+  const handlePhoneCountryChange = (ddi: string) => {
+    setPhoneCountryCode(ddi)
+    localStorage.setItem('dod-phone-country-code', ddi)
+  }
+
   // Currency change confirmation state
   const [pendingCurrency, setPendingCurrency] = useState<typeof currencyOptions[0] | null>(null)
   const [showCurrencyConfirm, setShowCurrencyConfirm] = useState(false)
@@ -450,11 +500,36 @@ function SettingsContent() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Telefone</Label>
-                  <Input
-                    id="phone"
-                    value={profile.phone}
-                    onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
-                  />
+                  <div className="flex gap-2">
+                    <Select value={phoneCountryCode} onValueChange={handlePhoneCountryChange}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue>
+                          <div className="flex items-center gap-2">
+                            <span>{phoneCountryCodes.find(c => c.ddi === phoneCountryCode)?.flag}</span>
+                            <span className="font-medium">{phoneCountryCode}</span>
+                          </div>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        {phoneCountryCodes.map((country) => (
+                          <SelectItem key={country.code} value={country.ddi}>
+                            <div className="flex items-center gap-2">
+                              <span>{country.flag}</span>
+                              <span className="font-medium w-14">{country.ddi}</span>
+                              <span className="text-muted-foreground text-sm">{country.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      id="phone"
+                      placeholder="11 999999999"
+                      value={profile.phone}
+                      onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
+                      className="flex-1"
+                    />
+                  </div>
                 </div>
               </div>
 
