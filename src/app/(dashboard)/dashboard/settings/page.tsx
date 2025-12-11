@@ -384,16 +384,7 @@ function SettingsContent() {
     })
   }
 
-  const handleLanguageChange = (newLanguage: string) => {
-    setLanguage(newLanguage)
-    // Context handles localStorage
-    const langInfo = languages.find(l => l.code === newLanguage)
-    toast({
-      title: t('appearance.languageChanged'),
-      description: `${langInfo?.flag} ${langInfo?.name}`,
-      className: 'bg-green-500 text-white border-green-600',
-    })
-  }
+  // handleLanguageChange moved to handleLanguageSelect with confirmation dialog
 
   // All available currencies
   const currencyOptions = [
@@ -543,6 +534,36 @@ function SettingsContent() {
   const cancelCurrencyChange = () => {
     setShowCurrencyConfirm(false)
     setPendingCurrency(null)
+  }
+
+  // Language change confirmation state
+  const [pendingLanguage, setPendingLanguage] = useState<typeof languages[0] | null>(null)
+  const [showLanguageConfirm, setShowLanguageConfirm] = useState(false)
+
+  const handleLanguageSelect = (langCode: string) => {
+    const lang = languages.find(l => l.code === langCode)
+    if (lang && lang.code !== language) {
+      setPendingLanguage(lang)
+      setShowLanguageConfirm(true)
+    }
+  }
+
+  const confirmLanguageChange = () => {
+    if (pendingLanguage) {
+      setLanguage(pendingLanguage.code)
+      toast({
+        title: t('appearance.languageChanged'),
+        description: `${pendingLanguage.flag} ${pendingLanguage.name}`,
+        className: 'bg-green-500 text-white border-green-600',
+      })
+    }
+    setShowLanguageConfirm(false)
+    setPendingLanguage(null)
+  }
+
+  const cancelLanguageChange = () => {
+    setShowLanguageConfirm(false)
+    setPendingLanguage(null)
   }
 
   // Handle URL parameter for tab selection
@@ -1154,7 +1175,7 @@ function SettingsContent() {
 
               <div className="space-y-4">
                 <h4 className="font-medium">{t('appearance.language')}</h4>
-                <Select value={language} onValueChange={handleLanguageChange}>
+                <Select value={language} onValueChange={handleLanguageSelect}>
                   <SelectTrigger className="w-[320px]">
                     <SelectValue>
                       <div className="flex items-center gap-2">
@@ -1415,6 +1436,71 @@ function SettingsContent() {
             <AlertDialogCancel onClick={cancelCurrencyChange}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmCurrencyChange} className="bg-primary">
               Confirmar Alteracao
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Language Change Confirmation Dialog */}
+      <AlertDialog open={showLanguageConfirm} onOpenChange={setShowLanguageConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-blue-500" />
+              {language === 'pt-BR' ? 'Alterar Idioma?' :
+               language === 'en-US' ? 'Change Language?' :
+               language === 'es' ? 'Cambiar Idioma?' :
+               language === 'fr' ? 'Changer la Langue?' :
+               language === 'de' ? 'Sprache andern?' :
+               'Change Language?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                {language === 'pt-BR' ? 'Voce esta prestes a alterar o idioma do dashboard de' :
+                 language === 'en-US' ? 'You are about to change the dashboard language from' :
+                 language === 'es' ? 'Esta a punto de cambiar el idioma del dashboard de' :
+                 language === 'fr' ? 'Vous etes sur le point de changer la langue du dashboard de' :
+                 language === 'de' ? 'Sie sind dabei, die Dashboard-Sprache zu andern von' :
+                 'You are about to change the dashboard language from'}{' '}
+                <span className="font-semibold text-foreground">
+                  {languages.find(l => l.code === language)?.flag} {languages.find(l => l.code === language)?.name}
+                </span>{' '}
+                {language === 'pt-BR' ? 'para' :
+                 language === 'en-US' ? 'to' :
+                 language === 'es' ? 'a' :
+                 language === 'fr' ? 'a' :
+                 language === 'de' ? 'zu' :
+                 'to'}{' '}
+                <span className="font-semibold text-foreground">
+                  {pendingLanguage?.flag} {pendingLanguage?.name}
+                </span>.
+              </p>
+              <p className="text-blue-600 dark:text-blue-400">
+                {language === 'pt-BR' ? 'Esta acao ira alterar todos os textos e labels do dashboard para o novo idioma selecionado.' :
+                 language === 'en-US' ? 'This action will change all texts and labels in the dashboard to the selected language.' :
+                 language === 'es' ? 'Esta accion cambiara todos los textos y etiquetas del dashboard al nuevo idioma seleccionado.' :
+                 language === 'fr' ? 'Cette action changera tous les textes et libelles du dashboard vers la nouvelle langue selectionnee.' :
+                 language === 'de' ? 'Diese Aktion andert alle Texte und Beschriftungen im Dashboard in die ausgewahlte Sprache.' :
+                 'This action will change all texts and labels in the dashboard to the selected language.'}
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelLanguageChange}>
+              {language === 'pt-BR' ? 'Cancelar' :
+               language === 'en-US' ? 'Cancel' :
+               language === 'es' ? 'Cancelar' :
+               language === 'fr' ? 'Annuler' :
+               language === 'de' ? 'Abbrechen' :
+               'Cancel'}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmLanguageChange} className="bg-primary">
+              {language === 'pt-BR' ? 'Confirmar Alteracao' :
+               language === 'en-US' ? 'Confirm Change' :
+               language === 'es' ? 'Confirmar Cambio' :
+               language === 'fr' ? 'Confirmer le Changement' :
+               language === 'de' ? 'Anderung Bestatigen' :
+               'Confirm Change'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
