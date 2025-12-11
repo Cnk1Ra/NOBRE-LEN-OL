@@ -172,6 +172,18 @@ function SettingsContent() {
 
   // Save handlers
   const handleSaveProfile = async () => {
+    // Validate phone before saving
+    const phoneValidationError = validatePhone(profile.phone, phoneCountryCode)
+    if (phoneValidationError) {
+      setPhoneError(phoneValidationError)
+      toast({
+        title: 'Erro de validacao!',
+        description: phoneValidationError,
+        variant: 'destructive',
+      })
+      return
+    }
+
     setSavingProfile(true)
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 800))
@@ -350,44 +362,75 @@ function SettingsContent() {
     { code: 'ZAR', name: 'Rand Sul-africano', symbol: 'R', flag: '🇿🇦' },
   ]
 
-  // Country phone codes (DDI)
+  // Country phone codes (DDI) with validation rules
   const phoneCountryCodes = [
-    { code: 'BR', name: 'Brasil', ddi: '+55', flag: '🇧🇷' },
-    { code: 'PT', name: 'Portugal', ddi: '+351', flag: '🇵🇹' },
-    { code: 'AO', name: 'Angola', ddi: '+244', flag: '🇦🇴' },
-    { code: 'MZ', name: 'Mocambique', ddi: '+258', flag: '🇲🇿' },
-    { code: 'CV', name: 'Cabo Verde', ddi: '+238', flag: '🇨🇻' },
-    { code: 'US', name: 'Estados Unidos', ddi: '+1', flag: '🇺🇸' },
-    { code: 'GB', name: 'Reino Unido', ddi: '+44', flag: '🇬🇧' },
-    { code: 'ES', name: 'Espanha', ddi: '+34', flag: '🇪🇸' },
-    { code: 'FR', name: 'Franca', ddi: '+33', flag: '🇫🇷' },
-    { code: 'DE', name: 'Alemanha', ddi: '+49', flag: '🇩🇪' },
-    { code: 'IT', name: 'Italia', ddi: '+39', flag: '🇮🇹' },
-    { code: 'JP', name: 'Japao', ddi: '+81', flag: '🇯🇵' },
-    { code: 'CN', name: 'China', ddi: '+86', flag: '🇨🇳' },
-    { code: 'IN', name: 'India', ddi: '+91', flag: '🇮🇳' },
-    { code: 'MX', name: 'Mexico', ddi: '+52', flag: '🇲🇽' },
-    { code: 'AR', name: 'Argentina', ddi: '+54', flag: '🇦🇷' },
-    { code: 'CL', name: 'Chile', ddi: '+56', flag: '🇨🇱' },
-    { code: 'CO', name: 'Colombia', ddi: '+57', flag: '🇨🇴' },
-    { code: 'PE', name: 'Peru', ddi: '+51', flag: '🇵🇪' },
-    { code: 'CA', name: 'Canada', ddi: '+1', flag: '🇨🇦' },
-    { code: 'AU', name: 'Australia', ddi: '+61', flag: '🇦🇺' },
-    { code: 'ZA', name: 'Africa do Sul', ddi: '+27', flag: '🇿🇦' },
-    { code: 'KR', name: 'Coreia do Sul', ddi: '+82', flag: '🇰🇷' },
-    { code: 'RU', name: 'Russia', ddi: '+7', flag: '🇷🇺' },
-    { code: 'AE', name: 'Emirados Arabes', ddi: '+971', flag: '🇦🇪' },
-    { code: 'SA', name: 'Arabia Saudita', ddi: '+966', flag: '🇸🇦' },
-    { code: 'IL', name: 'Israel', ddi: '+972', flag: '🇮🇱' },
-    { code: 'CH', name: 'Suica', ddi: '+41', flag: '🇨🇭' },
-    { code: 'NL', name: 'Holanda', ddi: '+31', flag: '🇳🇱' },
-    { code: 'BE', name: 'Belgica', ddi: '+32', flag: '🇧🇪' },
+    { code: 'BR', name: 'Brasil', ddi: '+55', flag: '🇧🇷', minLen: 10, maxLen: 11, example: '11 999999999' },
+    { code: 'PT', name: 'Portugal', ddi: '+351', flag: '🇵🇹', minLen: 9, maxLen: 9, example: '912345678' },
+    { code: 'AO', name: 'Angola', ddi: '+244', flag: '🇦🇴', minLen: 9, maxLen: 9, example: '923456789' },
+    { code: 'MZ', name: 'Mocambique', ddi: '+258', flag: '🇲🇿', minLen: 9, maxLen: 9, example: '841234567' },
+    { code: 'CV', name: 'Cabo Verde', ddi: '+238', flag: '🇨🇻', minLen: 7, maxLen: 7, example: '9912345' },
+    { code: 'US', name: 'Estados Unidos', ddi: '+1', flag: '🇺🇸', minLen: 10, maxLen: 10, example: '2025551234' },
+    { code: 'GB', name: 'Reino Unido', ddi: '+44', flag: '🇬🇧', minLen: 10, maxLen: 10, example: '7911123456' },
+    { code: 'ES', name: 'Espanha', ddi: '+34', flag: '🇪🇸', minLen: 9, maxLen: 9, example: '612345678' },
+    { code: 'FR', name: 'Franca', ddi: '+33', flag: '🇫🇷', minLen: 9, maxLen: 9, example: '612345678' },
+    { code: 'DE', name: 'Alemanha', ddi: '+49', flag: '🇩🇪', minLen: 10, maxLen: 11, example: '15123456789' },
+    { code: 'IT', name: 'Italia', ddi: '+39', flag: '🇮🇹', minLen: 9, maxLen: 10, example: '3123456789' },
+    { code: 'JP', name: 'Japao', ddi: '+81', flag: '🇯🇵', minLen: 10, maxLen: 10, example: '9012345678' },
+    { code: 'CN', name: 'China', ddi: '+86', flag: '🇨🇳', minLen: 11, maxLen: 11, example: '13812345678' },
+    { code: 'IN', name: 'India', ddi: '+91', flag: '🇮🇳', minLen: 10, maxLen: 10, example: '9876543210' },
+    { code: 'MX', name: 'Mexico', ddi: '+52', flag: '🇲🇽', minLen: 10, maxLen: 10, example: '5512345678' },
+    { code: 'AR', name: 'Argentina', ddi: '+54', flag: '🇦🇷', minLen: 10, maxLen: 10, example: '1123456789' },
+    { code: 'CL', name: 'Chile', ddi: '+56', flag: '🇨🇱', minLen: 9, maxLen: 9, example: '912345678' },
+    { code: 'CO', name: 'Colombia', ddi: '+57', flag: '🇨🇴', minLen: 10, maxLen: 10, example: '3001234567' },
+    { code: 'PE', name: 'Peru', ddi: '+51', flag: '🇵🇪', minLen: 9, maxLen: 9, example: '912345678' },
+    { code: 'CA', name: 'Canada', ddi: '+1', flag: '🇨🇦', minLen: 10, maxLen: 10, example: '4165551234' },
+    { code: 'AU', name: 'Australia', ddi: '+61', flag: '🇦🇺', minLen: 9, maxLen: 9, example: '412345678' },
+    { code: 'ZA', name: 'Africa do Sul', ddi: '+27', flag: '🇿🇦', minLen: 9, maxLen: 9, example: '821234567' },
+    { code: 'KR', name: 'Coreia do Sul', ddi: '+82', flag: '🇰🇷', minLen: 9, maxLen: 10, example: '1012345678' },
+    { code: 'RU', name: 'Russia', ddi: '+7', flag: '🇷🇺', minLen: 10, maxLen: 10, example: '9123456789' },
+    { code: 'AE', name: 'Emirados Arabes', ddi: '+971', flag: '🇦🇪', minLen: 9, maxLen: 9, example: '501234567' },
+    { code: 'SA', name: 'Arabia Saudita', ddi: '+966', flag: '🇸🇦', minLen: 9, maxLen: 9, example: '512345678' },
+    { code: 'IL', name: 'Israel', ddi: '+972', flag: '🇮🇱', minLen: 9, maxLen: 9, example: '501234567' },
+    { code: 'CH', name: 'Suica', ddi: '+41', flag: '🇨🇭', minLen: 9, maxLen: 9, example: '791234567' },
+    { code: 'NL', name: 'Holanda', ddi: '+31', flag: '🇳🇱', minLen: 9, maxLen: 9, example: '612345678' },
+    { code: 'BE', name: 'Belgica', ddi: '+32', flag: '🇧🇪', minLen: 9, maxLen: 9, example: '471234567' },
   ]
 
   // Phone country code state
   const [phoneCountryCode, setPhoneCountryCode] = useState('+55')
   const [phoneCountryOpen, setPhoneCountryOpen] = useState(false)
   const [phoneSearch, setPhoneSearch] = useState('')
+  const [phoneError, setPhoneError] = useState<string | null>(null)
+
+  // Validate phone number based on selected country
+  const validatePhone = (phone: string, countryDdi: string): string | null => {
+    const country = phoneCountryCodes.find(c => c.ddi === countryDdi)
+    if (!country) return null
+
+    // Remove spaces, dashes, parentheses for validation
+    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '')
+
+    // Check if empty
+    if (!cleanPhone) {
+      return 'Numero de telefone e obrigatorio'
+    }
+
+    // Check if contains only numbers
+    if (!/^\d+$/.test(cleanPhone)) {
+      return 'Numero deve conter apenas digitos'
+    }
+
+    // Check length
+    if (cleanPhone.length < country.minLen) {
+      return `Numero muito curto para ${country.name}. Minimo: ${country.minLen} digitos. Exemplo: ${country.example}`
+    }
+
+    if (cleanPhone.length > country.maxLen) {
+      return `Numero muito longo para ${country.name}. Maximo: ${country.maxLen} digitos. Exemplo: ${country.example}`
+    }
+
+    return null
+  }
 
   // Filter phone country codes based on search
   const filteredPhoneCountries = phoneCountryCodes.filter(country =>
@@ -409,6 +452,9 @@ function SettingsContent() {
     localStorage.setItem('dod-phone-country-code', ddi)
     setPhoneCountryOpen(false)
     setPhoneSearch('')
+    // Re-validate phone with new country
+    const error = validatePhone(profile.phone, ddi)
+    setPhoneError(error)
   }
 
   // Currency change confirmation state
@@ -582,12 +628,24 @@ function SettingsContent() {
                     </Popover>
                     <Input
                       id="phone"
-                      placeholder="11 999999999"
+                      placeholder={phoneCountryCodes.find(c => c.ddi === phoneCountryCode)?.example || '11 999999999'}
                       value={profile.phone}
-                      onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
-                      className="flex-1"
+                      onChange={(e) => {
+                        const newPhone = e.target.value
+                        setProfile(prev => ({ ...prev, phone: newPhone }))
+                        // Validate on change
+                        const error = validatePhone(newPhone, phoneCountryCode)
+                        setPhoneError(error)
+                      }}
+                      className={`flex-1 ${phoneError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     />
                   </div>
+                  {phoneError && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {phoneError}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -604,7 +662,7 @@ function SettingsContent() {
                     Tudo salvo
                   </p>
                 )}
-                <Button onClick={handleSaveProfile} disabled={savingProfile || !hasProfileChanges}>
+                <Button onClick={handleSaveProfile} disabled={savingProfile || !hasProfileChanges || !!phoneError}>
                   {savingProfile ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
