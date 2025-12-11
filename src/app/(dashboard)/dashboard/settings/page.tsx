@@ -40,15 +40,222 @@ import {
   CheckCircle,
   Volume2,
   Loader2,
+  Copy,
+  CheckCheck,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useNotifications } from '@/contexts/notifications-context'
+import { toast } from '@/hooks/use-toast'
 
 function SettingsContent() {
   const { theme, setTheme } = useTheme()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
   const { preferences, updatePreference } = useNotifications()
+
+  // Profile state
+  const [profile, setProfile] = useState({
+    firstName: 'Admin',
+    lastName: 'DOD',
+    email: 'admin@dashondelivery.com',
+    phone: '+55 11 99999-9999',
+  })
+  const [savingProfile, setSavingProfile] = useState(false)
+
+  // Company state
+  const [company, setCompany] = useState({
+    name: 'Dash On Delivery LTDA',
+    cnpj: '12.345.678/0001-90',
+    address: 'Rua Example, 123 - Centro',
+    city: 'Sao Paulo',
+    state: 'SP',
+    currency: 'BRL',
+  })
+  const [savingCompany, setSavingCompany] = useState(false)
+
+  // Appearance state
+  const [language, setLanguage] = useState('pt-BR')
+  const [savingAppearance, setSavingAppearance] = useState(false)
+
+  // Security state
+  const [passwords, setPasswords] = useState({
+    current: '',
+    new: '',
+    confirm: '',
+  })
+  const [savingPassword, setSavingPassword] = useState(false)
+
+  // Integrations state
+  const [integrations, setIntegrations] = useState([
+    { name: 'Shopify', desc: 'Sincronize pedidos e produtos', connected: true, icon: '🛒' },
+    { name: 'Facebook Ads', desc: 'Importe dados de campanhas', connected: true, icon: '📘' },
+    { name: 'Google Analytics', desc: 'Acompanhe metricas de trafego', connected: false, icon: '📊' },
+    { name: 'Slack', desc: 'Receba notificacoes no Slack', connected: false, icon: '💬' },
+    { name: 'Zapier', desc: 'Automatize workflows', connected: false, icon: '⚡' },
+  ])
+  const [apiKeyCopied, setApiKeyCopied] = useState(false)
+  const [webhookCopied, setWebhookCopied] = useState(false)
+
+  // Sessions state
+  const [sessions, setSessions] = useState([
+    { device: 'MacBook Pro - Chrome', location: 'Sao Paulo, BR', current: true, time: 'Agora' },
+    { device: 'iPhone 14 - Safari', location: 'Sao Paulo, BR', current: false, time: '2h atras' },
+  ])
+
+  // Save handlers
+  const handleSaveProfile = async () => {
+    setSavingProfile(true)
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 800))
+    setSavingProfile(false)
+    toast({
+      title: 'Perfil atualizado!',
+      description: 'Suas informacoes foram salvas com sucesso.',
+      className: 'bg-green-500 text-white border-green-600',
+    })
+  }
+
+  const handleSaveCompany = async () => {
+    setSavingCompany(true)
+    await new Promise(resolve => setTimeout(resolve, 800))
+    setSavingCompany(false)
+    toast({
+      title: 'Dados da empresa atualizados!',
+      description: 'As informacoes da empresa foram salvas com sucesso.',
+      className: 'bg-green-500 text-white border-green-600',
+    })
+  }
+
+  const handleSaveAppearance = async () => {
+    setSavingAppearance(true)
+    await new Promise(resolve => setTimeout(resolve, 500))
+    setSavingAppearance(false)
+    toast({
+      title: 'Preferencias salvas!',
+      description: 'Suas preferencias de aparencia foram atualizadas.',
+      className: 'bg-green-500 text-white border-green-600',
+    })
+  }
+
+  const handleUpdatePassword = async () => {
+    if (passwords.new !== passwords.confirm) {
+      toast({
+        title: 'Erro!',
+        description: 'As senhas nao coincidem.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (passwords.new.length < 6) {
+      toast({
+        title: 'Erro!',
+        description: 'A senha deve ter pelo menos 6 caracteres.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setSavingPassword(true)
+    await new Promise(resolve => setTimeout(resolve, 800))
+    setSavingPassword(false)
+    setPasswords({ current: '', new: '', confirm: '' })
+    toast({
+      title: 'Senha atualizada!',
+      description: 'Sua senha foi alterada com sucesso.',
+      className: 'bg-green-500 text-white border-green-600',
+    })
+  }
+
+  const handleToggleIntegration = (index: number) => {
+    const updated = [...integrations]
+    updated[index].connected = !updated[index].connected
+    setIntegrations(updated)
+    toast({
+      title: updated[index].connected ? 'Integracao conectada!' : 'Integracao desconectada!',
+      description: `${updated[index].name} foi ${updated[index].connected ? 'conectado' : 'desconectado'} com sucesso.`,
+      className: 'bg-green-500 text-white border-green-600',
+    })
+  }
+
+  const handleCopyApiKey = () => {
+    navigator.clipboard.writeText('sk_live_xxxxxxxxxxxxxxxxxx')
+    setApiKeyCopied(true)
+    setTimeout(() => setApiKeyCopied(false), 2000)
+    toast({
+      title: 'API Key copiada!',
+      description: 'A chave foi copiada para a area de transferencia.',
+      className: 'bg-green-500 text-white border-green-600',
+    })
+  }
+
+  const handleCopyWebhook = () => {
+    navigator.clipboard.writeText('https://api.dashondelivery.com/webhooks/...')
+    setWebhookCopied(true)
+    setTimeout(() => setWebhookCopied(false), 2000)
+    toast({
+      title: 'Webhook URL copiada!',
+      description: 'A URL foi copiada para a area de transferencia.',
+      className: 'bg-green-500 text-white border-green-600',
+    })
+  }
+
+  const handleTestWebhook = async () => {
+    toast({
+      title: 'Testando webhook...',
+      description: 'Enviando requisicao de teste.',
+      className: 'bg-blue-500 text-white border-blue-600',
+    })
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    toast({
+      title: 'Webhook funcionando!',
+      description: 'A requisicao de teste foi recebida com sucesso.',
+      className: 'bg-green-500 text-white border-green-600',
+    })
+  }
+
+  const handleEndSession = (index: number) => {
+    const updated = sessions.filter((_, i) => i !== index)
+    setSessions(updated)
+    toast({
+      title: 'Sessao encerrada!',
+      description: 'O dispositivo foi desconectado com sucesso.',
+      className: 'bg-green-500 text-white border-green-600',
+    })
+  }
+
+  const handleSetupTwoFactor = () => {
+    toast({
+      title: '2FA em configuracao',
+      description: 'Funcionalidade de autenticacao de dois fatores sera implementada.',
+      className: 'bg-blue-500 text-white border-blue-600',
+    })
+  }
+
+  const handleThemeChange = (newTheme: string) => {
+    setTheme(newTheme)
+    toast({
+      title: 'Tema alterado!',
+      description: `Tema ${newTheme === 'light' ? 'claro' : newTheme === 'dark' ? 'escuro' : 'do sistema'} ativado.`,
+      className: 'bg-green-500 text-white border-green-600',
+    })
+  }
+
+  const handleLanguageChange = (newLanguage: string) => {
+    setLanguage(newLanguage)
+    toast({
+      title: 'Idioma alterado!',
+      description: 'O idioma foi atualizado com sucesso.',
+      className: 'bg-green-500 text-white border-green-600',
+    })
+  }
+
+  const handleCurrencyChange = (currency: string) => {
+    setCompany(prev => ({ ...prev, currency }))
+    toast({
+      title: 'Moeda alterada!',
+      description: `Moeda padrao alterada para ${currency}.`,
+      className: 'bg-green-500 text-white border-green-600',
+    })
+  }
 
   // Handle URL parameter for tab selection
   useEffect(() => {
@@ -106,24 +313,50 @@ function SettingsContent() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">Nome</Label>
-                  <Input id="firstName" defaultValue="Admin" />
+                  <Input
+                    id="firstName"
+                    value={profile.firstName}
+                    onChange={(e) => setProfile(prev => ({ ...prev, firstName: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lastName">Sobrenome</Label>
-                  <Input id="lastName" defaultValue="DOD" />
+                  <Input
+                    id="lastName"
+                    value={profile.lastName}
+                    onChange={(e) => setProfile(prev => ({ ...prev, lastName: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="admin@dashondelivery.com" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={profile.email}
+                    onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Telefone</Label>
-                  <Input id="phone" defaultValue="+55 11 99999-9999" />
+                  <Input
+                    id="phone"
+                    value={profile.phone}
+                    onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
+                  />
                 </div>
               </div>
 
               <div className="flex justify-end">
-                <Button>Salvar alteracoes</Button>
+                <Button onClick={handleSaveProfile} disabled={savingProfile}>
+                  {savingProfile ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    'Salvar alteracoes'
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -145,23 +378,42 @@ function SettingsContent() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="companyName">Nome da Empresa</Label>
-                  <Input id="companyName" defaultValue="Dash On Delivery LTDA" />
+                  <Input
+                    id="companyName"
+                    value={company.name}
+                    onChange={(e) => setCompany(prev => ({ ...prev, name: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cnpj">CNPJ</Label>
-                  <Input id="cnpj" defaultValue="12.345.678/0001-90" />
+                  <Input
+                    id="cnpj"
+                    value={company.cnpj}
+                    onChange={(e) => setCompany(prev => ({ ...prev, cnpj: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="address">Endereco</Label>
-                  <Input id="address" defaultValue="Rua Example, 123 - Centro" />
+                  <Input
+                    id="address"
+                    value={company.address}
+                    onChange={(e) => setCompany(prev => ({ ...prev, address: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="city">Cidade</Label>
-                  <Input id="city" defaultValue="Sao Paulo" />
+                  <Input
+                    id="city"
+                    value={company.city}
+                    onChange={(e) => setCompany(prev => ({ ...prev, city: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="state">Estado</Label>
-                  <Select defaultValue="SP">
+                  <Select
+                    value={company.state}
+                    onValueChange={(value) => setCompany(prev => ({ ...prev, state: value }))}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -170,6 +422,10 @@ function SettingsContent() {
                       <SelectItem value="RJ">Rio de Janeiro</SelectItem>
                       <SelectItem value="MG">Minas Gerais</SelectItem>
                       <SelectItem value="PR">Parana</SelectItem>
+                      <SelectItem value="RS">Rio Grande do Sul</SelectItem>
+                      <SelectItem value="SC">Santa Catarina</SelectItem>
+                      <SelectItem value="BA">Bahia</SelectItem>
+                      <SelectItem value="PE">Pernambuco</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -185,17 +441,23 @@ function SettingsContent() {
                     { code: 'EUR', name: 'Euro', symbol: '€' },
                     { code: 'USD', name: 'Dolar Americano', symbol: '$' },
                     { code: 'AOA', name: 'Kwanza Angolano', symbol: 'Kz' },
-                  ].map((currency) => (
+                  ].map((currencyOption) => (
                     <Card
-                      key={currency.code}
-                      className={`cursor-pointer transition-colors ${currency.code === 'BRL' ? 'border-primary' : ''}`}
+                      key={currencyOption.code}
+                      className={`cursor-pointer transition-colors hover:border-primary/50 ${company.currency === currencyOption.code ? 'border-primary bg-primary/5' : ''}`}
+                      onClick={() => handleCurrencyChange(currencyOption.code)}
                     >
                       <CardContent className="p-4 flex items-center justify-between">
                         <div>
-                          <p className="font-medium">{currency.code}</p>
-                          <p className="text-xs text-muted-foreground">{currency.name}</p>
+                          <p className="font-medium">{currencyOption.code}</p>
+                          <p className="text-xs text-muted-foreground">{currencyOption.name}</p>
                         </div>
-                        <span className="text-lg font-bold">{currency.symbol}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold">{currencyOption.symbol}</span>
+                          {company.currency === currencyOption.code && (
+                            <Check className="h-4 w-4 text-primary" />
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
@@ -203,7 +465,16 @@ function SettingsContent() {
               </div>
 
               <div className="flex justify-end">
-                <Button>Salvar alteracoes</Button>
+                <Button onClick={handleSaveCompany} disabled={savingCompany}>
+                  {savingCompany ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    'Salvar alteracoes'
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -396,8 +667,8 @@ function SettingsContent() {
                 <h4 className="font-medium">Tema</h4>
                 <div className="grid gap-3 md:grid-cols-3">
                   <Card
-                    className={`cursor-pointer transition-colors ${theme === 'light' ? 'border-primary' : ''}`}
-                    onClick={() => setTheme('light')}
+                    className={`cursor-pointer transition-colors hover:border-primary/50 ${theme === 'light' ? 'border-primary bg-primary/5' : ''}`}
+                    onClick={() => handleThemeChange('light')}
                   >
                     <CardContent className="p-4 flex items-center gap-3">
                       <Sun className="h-5 w-5" />
@@ -409,8 +680,8 @@ function SettingsContent() {
                     </CardContent>
                   </Card>
                   <Card
-                    className={`cursor-pointer transition-colors ${theme === 'dark' ? 'border-primary' : ''}`}
-                    onClick={() => setTheme('dark')}
+                    className={`cursor-pointer transition-colors hover:border-primary/50 ${theme === 'dark' ? 'border-primary bg-primary/5' : ''}`}
+                    onClick={() => handleThemeChange('dark')}
                   >
                     <CardContent className="p-4 flex items-center gap-3">
                       <Moon className="h-5 w-5" />
@@ -422,8 +693,8 @@ function SettingsContent() {
                     </CardContent>
                   </Card>
                   <Card
-                    className={`cursor-pointer transition-colors ${theme === 'system' ? 'border-primary' : ''}`}
-                    onClick={() => setTheme('system')}
+                    className={`cursor-pointer transition-colors hover:border-primary/50 ${theme === 'system' ? 'border-primary bg-primary/5' : ''}`}
+                    onClick={() => handleThemeChange('system')}
                   >
                     <CardContent className="p-4 flex items-center gap-3">
                       <Globe className="h-5 w-5" />
@@ -441,7 +712,7 @@ function SettingsContent() {
 
               <div className="space-y-4">
                 <h4 className="font-medium">Idioma</h4>
-                <Select defaultValue="pt-BR">
+                <Select value={language} onValueChange={handleLanguageChange}>
                   <SelectTrigger className="w-[200px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -470,14 +741,8 @@ function SettingsContent() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {[
-                { name: 'Shopify', desc: 'Sincronize pedidos e produtos', connected: true, icon: '🛒' },
-                { name: 'Facebook Ads', desc: 'Importe dados de campanhas', connected: true, icon: '📘' },
-                { name: 'Google Analytics', desc: 'Acompanhe metricas de trafego', connected: false, icon: '📊' },
-                { name: 'Slack', desc: 'Receba notificacoes no Slack', connected: false, icon: '💬' },
-                { name: 'Zapier', desc: 'Automatize workflows', connected: false, icon: '⚡' },
-              ].map((integration) => (
-                <div key={integration.name} className="flex items-center justify-between p-4 border rounded-lg">
+              {integrations.map((integration, index) => (
+                <div key={integration.name} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{integration.icon}</span>
                     <div>
@@ -490,8 +755,12 @@ function SettingsContent() {
                       <p className="text-sm text-muted-foreground">{integration.desc}</p>
                     </div>
                   </div>
-                  <Button variant={integration.connected ? 'outline' : 'default'} size="sm">
-                    {integration.connected ? 'Configurar' : 'Conectar'}
+                  <Button
+                    variant={integration.connected ? 'outline' : 'default'}
+                    size="sm"
+                    onClick={() => handleToggleIntegration(index)}
+                  >
+                    {integration.connected ? 'Desconectar' : 'Conectar'}
                     <ExternalLink className="ml-2 h-3 w-3" />
                   </Button>
                 </div>
@@ -509,14 +778,41 @@ function SettingsContent() {
                     <Label>API Key</Label>
                     <div className="flex gap-2">
                       <Input type="password" value="sk_live_xxxxxxxxxxxxxxxxxx" readOnly className="font-mono" />
-                      <Button variant="outline">Copiar</Button>
+                      <Button variant="outline" onClick={handleCopyApiKey}>
+                        {apiKeyCopied ? (
+                          <>
+                            <CheckCheck className="mr-2 h-4 w-4 text-green-500" />
+                            Copiado!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Copiar
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Webhook URL</Label>
                     <div className="flex gap-2">
                       <Input value="https://api.dashondelivery.com/webhooks/..." readOnly className="font-mono text-sm" />
-                      <Button variant="outline">Testar</Button>
+                      <Button variant="outline" onClick={handleCopyWebhook}>
+                        {webhookCopied ? (
+                          <>
+                            <CheckCheck className="mr-2 h-4 w-4 text-green-500" />
+                            Copiado!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Copiar
+                          </>
+                        )}
+                      </Button>
+                      <Button variant="outline" onClick={handleTestWebhook}>
+                        Testar
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -543,17 +839,45 @@ function SettingsContent() {
                 <div className="grid gap-4 max-w-md">
                   <div className="space-y-2">
                     <Label htmlFor="currentPassword">Senha Atual</Label>
-                    <Input id="currentPassword" type="password" />
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      value={passwords.current}
+                      onChange={(e) => setPasswords(prev => ({ ...prev, current: e.target.value }))}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="newPassword">Nova Senha</Label>
-                    <Input id="newPassword" type="password" />
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      value={passwords.new}
+                      onChange={(e) => setPasswords(prev => ({ ...prev, new: e.target.value }))}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
-                    <Input id="confirmPassword" type="password" />
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={passwords.confirm}
+                      onChange={(e) => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
+                    />
                   </div>
-                  <Button className="w-fit">Atualizar Senha</Button>
+                  <Button
+                    className="w-fit"
+                    onClick={handleUpdatePassword}
+                    disabled={savingPassword || !passwords.current || !passwords.new || !passwords.confirm}
+                  >
+                    {savingPassword ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Atualizando...
+                      </>
+                    ) : (
+                      'Atualizar Senha'
+                    )}
+                  </Button>
                 </div>
               </div>
 
@@ -567,7 +891,7 @@ function SettingsContent() {
                       Adicione uma camada extra de seguranca
                     </p>
                   </div>
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={handleSetupTwoFactor}>
                     <Key className="mr-2 h-4 w-4" />
                     Configurar 2FA
                   </Button>
@@ -579,11 +903,8 @@ function SettingsContent() {
               <div className="space-y-4">
                 <h4 className="font-medium">Sessoes Ativas</h4>
                 <div className="space-y-3">
-                  {[
-                    { device: 'MacBook Pro - Chrome', location: 'Sao Paulo, BR', current: true, time: 'Agora' },
-                    { device: 'iPhone 14 - Safari', location: 'Sao Paulo, BR', current: false, time: '2h atras' },
-                  ].map((session, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+                  {sessions.map((session, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors">
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{session.device}</p>
@@ -594,7 +915,12 @@ function SettingsContent() {
                         </p>
                       </div>
                       {!session.current && (
-                        <Button variant="ghost" size="sm" className="text-destructive">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleEndSession(i)}
+                        >
                           Encerrar
                         </Button>
                       )}
