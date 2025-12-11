@@ -387,6 +387,14 @@ function SettingsContent() {
   // Phone country code state
   const [phoneCountryCode, setPhoneCountryCode] = useState('+55')
   const [phoneCountryOpen, setPhoneCountryOpen] = useState(false)
+  const [phoneSearch, setPhoneSearch] = useState('')
+
+  // Filter phone country codes based on search
+  const filteredPhoneCountries = phoneCountryCodes.filter(country =>
+    country.name.toLowerCase().includes(phoneSearch.toLowerCase()) ||
+    country.ddi.includes(phoneSearch) ||
+    country.code.toLowerCase().includes(phoneSearch.toLowerCase())
+  )
 
   // Load phone country code from localStorage
   useEffect(() => {
@@ -400,6 +408,7 @@ function SettingsContent() {
     setPhoneCountryCode(ddi)
     localStorage.setItem('dod-phone-country-code', ddi)
     setPhoneCountryOpen(false)
+    setPhoneSearch('')
   }
 
   // Currency change confirmation state
@@ -517,7 +526,10 @@ function SettingsContent() {
                 <div className="space-y-2">
                   <Label htmlFor="phone">Telefone</Label>
                   <div className="flex gap-2">
-                    <Popover open={phoneCountryOpen} onOpenChange={setPhoneCountryOpen}>
+                    <Popover open={phoneCountryOpen} onOpenChange={(open) => {
+                      setPhoneCountryOpen(open)
+                      if (!open) setPhoneSearch('')
+                    }}>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
@@ -532,45 +544,40 @@ function SettingsContent() {
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[280px] p-0">
-                        <Command>
-                          <CommandInput placeholder="Buscar pais..." />
-                          <CommandList>
-                            <CommandEmpty>Nenhum pais encontrado.</CommandEmpty>
-                            <CommandGroup>
-                              {phoneCountryCodes.map((country) => {
-                                const handleSelect = () => {
-                                  setPhoneCountryCode(country.ddi)
-                                  localStorage.setItem('dod-phone-country-code', country.ddi)
-                                  setPhoneCountryOpen(false)
-                                }
-                                return (
-                                  <CommandItem
-                                    key={country.code}
-                                    value={`${country.name} ${country.ddi}`}
-                                    onSelect={handleSelect}
-                                    className="cursor-pointer"
-                                  >
-                                    <div
-                                      className="flex items-center w-full"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleSelect()
-                                      }}
-                                    >
-                                      <Check
-                                        className={`mr-2 h-4 w-4 ${phoneCountryCode === country.ddi ? "opacity-100" : "opacity-0"}`}
-                                      />
-                                      <span className="mr-2">{country.flag}</span>
-                                      <span className="font-medium w-14">{country.ddi}</span>
-                                      <span className="text-muted-foreground text-sm">{country.name}</span>
-                                    </div>
-                                  </CommandItem>
-                                )
-                              })}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
+                      <PopoverContent className="w-[300px] p-0" align="start">
+                        <div className="p-2 border-b">
+                          <Input
+                            placeholder="Buscar pais..."
+                            value={phoneSearch}
+                            onChange={(e) => setPhoneSearch(e.target.value)}
+                            className="h-9"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="max-h-[250px] overflow-y-auto p-1">
+                          {filteredPhoneCountries.length === 0 ? (
+                            <div className="py-6 text-center text-sm text-muted-foreground">
+                              Nenhum pais encontrado.
+                            </div>
+                          ) : (
+                            filteredPhoneCountries.map((country) => (
+                              <div
+                                key={country.code}
+                                className={`flex items-center gap-2 px-2 py-2 rounded-md cursor-pointer hover:bg-accent ${
+                                  phoneCountryCode === country.ddi ? 'bg-accent' : ''
+                                }`}
+                                onClick={() => handlePhoneCountryChange(country.ddi)}
+                              >
+                                <Check
+                                  className={`h-4 w-4 ${phoneCountryCode === country.ddi ? "opacity-100" : "opacity-0"}`}
+                                />
+                                <span>{country.flag}</span>
+                                <span className="font-medium w-14">{country.ddi}</span>
+                                <span className="text-muted-foreground text-sm">{country.name}</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </PopoverContent>
                     </Popover>
                     <Input
