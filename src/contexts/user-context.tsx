@@ -22,7 +22,7 @@ const defaultProfile: UserProfile = {
   firstName: 'Admin',
   lastName: 'DOD',
   email: 'admin@dashondelivery.com',
-  phone: '+55 11 99999-9999',
+  phone: '11 99999-9999',
 }
 
 export function UserProvider({ children }: { children: ReactNode }) {
@@ -34,6 +34,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (savedProfile) {
       try {
         const parsed = JSON.parse(savedProfile)
+        // Clean phone number - remove country code prefix if present
+        if (parsed.phone && parsed.phone.startsWith('+')) {
+          // Remove +XX prefix (e.g., +55, +351, +1)
+          parsed.phone = parsed.phone.replace(/^\+\d{1,3}\s*/, '')
+        }
         setProfile(parsed)
       } catch {
         // Invalid JSON, use default
