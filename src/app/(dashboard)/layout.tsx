@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { DateFilterProvider } from '@/contexts/date-filter-context'
 import { NotificationsProvider } from '@/contexts/notifications-context'
 import { CountryProvider } from '@/contexts/country-context'
+import { UserProvider } from '@/contexts/user-context'
 
 export default function DashboardLayout({
   children,
@@ -13,21 +14,23 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <DateFilterProvider>
-      <NotificationsProvider>
-        <CountryProvider>
-          <div className="flex h-screen overflow-hidden">
-            <Sidebar />
-            <div className="flex flex-1 flex-col overflow-hidden">
-              <Header />
-              <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
-                {children}
-              </main>
+    <UserProvider>
+      <DateFilterProvider>
+        <NotificationsProvider>
+          <CountryProvider>
+            <div className="flex h-screen overflow-hidden">
+              <Sidebar />
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <Header />
+                <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
+                  {children}
+                </main>
+              </div>
             </div>
-          </div>
-          <Toaster />
-        </CountryProvider>
-      </NotificationsProvider>
-    </DateFilterProvider>
+            <Toaster />
+          </CountryProvider>
+        </NotificationsProvider>
+      </DateFilterProvider>
+    </UserProvider>
   )
 }

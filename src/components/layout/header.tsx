@@ -41,6 +41,7 @@ import { cn } from '@/lib/utils'
 import { useDateFilter, DateFilterPeriod } from '@/contexts/date-filter-context'
 import { useNotifications } from '@/contexts/notifications-context'
 import { useCountry } from '@/contexts/country-context'
+import { useUser } from '@/contexts/user-context'
 import { Package, Truck, AlertTriangle, CheckCircle, Info, X, Globe2, Check } from 'lucide-react'
 import Link from 'next/link'
 
@@ -96,6 +97,7 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
   const { period, setPeriod, refresh, isRefreshing } = useDateFilter()
   const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification } = useNotifications()
   const { countries, selectedCountry, selectCountry, selectAll, isAllSelected, getCountryData } = useCountry()
+  const { profile, getInitials, getFullName } = useUser()
   const [mounted, setMounted] = useState(false)
 
   const activeCountries = countries.filter(c => c.active)
@@ -436,11 +438,11 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
             <Avatar className="h-7 w-7 ring-2 ring-background">
               <AvatarImage src="/avatars/user.png" alt="User" />
               <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground text-xs font-semibold">
-                JD
+                {getInitials()}
               </AvatarFallback>
             </Avatar>
             <div className="hidden md:flex flex-col items-start">
-              <span className="text-sm font-medium leading-tight">Joao Dev</span>
+              <span className="text-sm font-medium leading-tight">{getFullName()}</span>
             </div>
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           </Button>
@@ -451,12 +453,12 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
               <Avatar className="h-10 w-10">
                 <AvatarImage src="/avatars/user.png" alt="User" />
                 <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground">
-                  JD
+                  {getInitials()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
-                <p className="text-sm font-semibold">Joao Dev</p>
-                <p className="text-xs text-muted-foreground">joao@email.com</p>
+                <p className="text-sm font-semibold">{getFullName()}</p>
+                <p className="text-xs text-muted-foreground">{profile.email}</p>
               </div>
             </div>
           </DropdownMenuLabel>

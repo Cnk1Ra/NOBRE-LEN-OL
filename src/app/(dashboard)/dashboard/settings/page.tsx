@@ -56,6 +56,7 @@ import {
 import { useTheme } from 'next-themes'
 import { useNotifications } from '@/contexts/notifications-context'
 import { useCountry } from '@/contexts/country-context'
+import { useUser } from '@/contexts/user-context'
 import { toast } from '@/hooks/use-toast'
 
 function SettingsContent() {
@@ -64,14 +65,9 @@ function SettingsContent() {
   const [activeTab, setActiveTab] = useState('profile')
   const { preferences, updatePreference } = useNotifications()
   const { defaultCurrency, setDefaultCurrency } = useCountry()
+  const { profile: userProfile, updateProfile: updateUserProfile } = useUser()
 
   // Default values
-  const defaultProfile = {
-    firstName: 'Admin',
-    lastName: 'DOD',
-    email: 'admin@dashondelivery.com',
-    phone: '+55 11 99999-9999',
-  }
   const defaultCompany = {
     name: 'Dash On Delivery LTDA',
     cnpj: '12.345.678/0001-90',
@@ -81,11 +77,17 @@ function SettingsContent() {
     currency: 'BRL',
   }
 
-  // Profile state
-  const [profile, setProfile] = useState(defaultProfile)
-  const [savedProfile, setSavedProfile] = useState(defaultProfile)
+  // Profile state - initialized from user context
+  const [profile, setProfile] = useState(userProfile)
+  const [savedProfile, setSavedProfile] = useState(userProfile)
   const [savingProfile, setSavingProfile] = useState(false)
   const hasProfileChanges = JSON.stringify(profile) !== JSON.stringify(savedProfile)
+
+  // Sync profile state when userProfile changes (from context)
+  useEffect(() => {
+    setProfile(userProfile)
+    setSavedProfile(userProfile)
+  }, [userProfile])
 
   // Company state
   const [company, setCompany] = useState(defaultCompany)
@@ -97,20 +99,8 @@ function SettingsContent() {
   const [language, setLanguage] = useState('pt-BR')
   const [savingAppearance, setSavingAppearance] = useState(false)
 
-  // Load saved data from localStorage on mount
+  // Load saved data from localStorage on mount (except profile which comes from context)
   useEffect(() => {
-    // Load profile
-    const savedProfileData = localStorage.getItem('dod-profile')
-    if (savedProfileData) {
-      try {
-        const parsed = JSON.parse(savedProfileData)
-        setProfile(parsed)
-        setSavedProfile(parsed)
-      } catch {
-        // Invalid JSON, use default
-      }
-    }
-
     // Load company
     const savedCompanyData = localStorage.getItem('dod-company')
     if (savedCompanyData) {
@@ -172,8 +162,8 @@ function SettingsContent() {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 800))
     setSavedProfile({ ...profile })
-    // Save to localStorage
-    localStorage.setItem('dod-profile', JSON.stringify(profile))
+    // Update global user context (this also saves to localStorage)
+    updateUserProfile(profile)
     setSavingProfile(false)
     toast({
       title: 'Perfil atualizado!',
