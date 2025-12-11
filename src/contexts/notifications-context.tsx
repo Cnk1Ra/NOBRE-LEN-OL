@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, ReactNode, useCallback } from 'react'
+import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react'
 
 export type NotificationType = 'order' | 'delivery' | 'stock' | 'system' | 'success' | 'warning'
 
@@ -105,10 +105,28 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications)
   const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences)
 
+  // Load preferences from localStorage on mount
+  useEffect(() => {
+    const savedPreferences = localStorage.getItem('dod-notification-preferences')
+    if (savedPreferences) {
+      try {
+        const parsed = JSON.parse(savedPreferences)
+        setPreferences(parsed)
+      } catch {
+        // Invalid JSON, use default
+      }
+    }
+  }, [])
+
   const unreadCount = notifications.filter(n => n.unread).length
 
   const updatePreference = useCallback((key: keyof NotificationPreferences, value: boolean) => {
-    setPreferences(prev => ({ ...prev, [key]: value }))
+    setPreferences(prev => {
+      const updated = { ...prev, [key]: value }
+      // Save to localStorage
+      localStorage.setItem('dod-notification-preferences', JSON.stringify(updated))
+      return updated
+    })
   }, [])
 
   const markAsRead = useCallback((id: string) => {

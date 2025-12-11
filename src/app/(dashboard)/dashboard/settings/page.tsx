@@ -65,45 +65,81 @@ function SettingsContent() {
   const { preferences, updatePreference } = useNotifications()
   const { defaultCurrency, setDefaultCurrency } = useCountry()
 
+  // Default values
+  const defaultProfile = {
+    firstName: 'Admin',
+    lastName: 'DOD',
+    email: 'admin@dashondelivery.com',
+    phone: '+55 11 99999-9999',
+  }
+  const defaultCompany = {
+    name: 'Dash On Delivery LTDA',
+    cnpj: '12.345.678/0001-90',
+    address: 'Rua Example, 123 - Centro',
+    city: 'Sao Paulo',
+    state: 'SP',
+    currency: 'BRL',
+  }
+
   // Profile state
-  const [profile, setProfile] = useState({
-    firstName: 'Admin',
-    lastName: 'DOD',
-    email: 'admin@dashondelivery.com',
-    phone: '+55 11 99999-9999',
-  })
-  const [savedProfile, setSavedProfile] = useState({
-    firstName: 'Admin',
-    lastName: 'DOD',
-    email: 'admin@dashondelivery.com',
-    phone: '+55 11 99999-9999',
-  })
+  const [profile, setProfile] = useState(defaultProfile)
+  const [savedProfile, setSavedProfile] = useState(defaultProfile)
   const [savingProfile, setSavingProfile] = useState(false)
   const hasProfileChanges = JSON.stringify(profile) !== JSON.stringify(savedProfile)
 
   // Company state
-  const [company, setCompany] = useState({
-    name: 'Dash On Delivery LTDA',
-    cnpj: '12.345.678/0001-90',
-    address: 'Rua Example, 123 - Centro',
-    city: 'Sao Paulo',
-    state: 'SP',
-    currency: 'BRL',
-  })
-  const [savedCompany, setSavedCompany] = useState({
-    name: 'Dash On Delivery LTDA',
-    cnpj: '12.345.678/0001-90',
-    address: 'Rua Example, 123 - Centro',
-    city: 'Sao Paulo',
-    state: 'SP',
-    currency: 'BRL',
-  })
+  const [company, setCompany] = useState(defaultCompany)
+  const [savedCompany, setSavedCompany] = useState(defaultCompany)
   const [savingCompany, setSavingCompany] = useState(false)
   const hasCompanyChanges = JSON.stringify(company) !== JSON.stringify(savedCompany)
 
   // Appearance state
   const [language, setLanguage] = useState('pt-BR')
   const [savingAppearance, setSavingAppearance] = useState(false)
+
+  // Load saved data from localStorage on mount
+  useEffect(() => {
+    // Load profile
+    const savedProfileData = localStorage.getItem('dod-profile')
+    if (savedProfileData) {
+      try {
+        const parsed = JSON.parse(savedProfileData)
+        setProfile(parsed)
+        setSavedProfile(parsed)
+      } catch {
+        // Invalid JSON, use default
+      }
+    }
+
+    // Load company
+    const savedCompanyData = localStorage.getItem('dod-company')
+    if (savedCompanyData) {
+      try {
+        const parsed = JSON.parse(savedCompanyData)
+        setCompany(parsed)
+        setSavedCompany(parsed)
+      } catch {
+        // Invalid JSON, use default
+      }
+    }
+
+    // Load language
+    const savedLanguage = localStorage.getItem('dod-language')
+    if (savedLanguage) {
+      setLanguage(savedLanguage)
+    }
+
+    // Load integrations
+    const savedIntegrations = localStorage.getItem('dod-integrations')
+    if (savedIntegrations) {
+      try {
+        const parsed = JSON.parse(savedIntegrations)
+        setIntegrations(parsed)
+      } catch {
+        // Invalid JSON, use default
+      }
+    }
+  }, [])
 
   // Security state
   const [passwords, setPasswords] = useState({
@@ -136,6 +172,8 @@ function SettingsContent() {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 800))
     setSavedProfile({ ...profile })
+    // Save to localStorage
+    localStorage.setItem('dod-profile', JSON.stringify(profile))
     setSavingProfile(false)
     toast({
       title: 'Perfil atualizado!',
@@ -148,6 +186,8 @@ function SettingsContent() {
     setSavingCompany(true)
     await new Promise(resolve => setTimeout(resolve, 800))
     setSavedCompany({ ...company })
+    // Save to localStorage
+    localStorage.setItem('dod-company', JSON.stringify(company))
     setSavingCompany(false)
     toast({
       title: 'Dados da empresa atualizados!',
@@ -199,6 +239,8 @@ function SettingsContent() {
     const updated = [...integrations]
     updated[index].connected = !updated[index].connected
     setIntegrations(updated)
+    // Save to localStorage
+    localStorage.setItem('dod-integrations', JSON.stringify(updated))
     toast({
       title: updated[index].connected ? 'Integracao conectada!' : 'Integracao desconectada!',
       description: `${updated[index].name} foi ${updated[index].connected ? 'conectado' : 'desconectado'} com sucesso.`,
@@ -271,6 +313,8 @@ function SettingsContent() {
 
   const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage)
+    // Save to localStorage
+    localStorage.setItem('dod-language', newLanguage)
     toast({
       title: 'Idioma alterado!',
       description: 'O idioma foi atualizado com sucesso.',

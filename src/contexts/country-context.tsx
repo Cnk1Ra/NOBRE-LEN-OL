@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, ReactNode, useCallback } from 'react'
+import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react'
 
 export interface Country {
   code: string
@@ -173,6 +173,19 @@ export function CountryProvider({ children }: { children: ReactNode }) {
   const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null)
   const [defaultCurrency, setDefaultCurrencyState] = useState<CurrencyConfig>(availableCurrencies[0])
 
+  // Load currency from localStorage on mount
+  useEffect(() => {
+    const savedCurrency = localStorage.getItem('dod-default-currency')
+    if (savedCurrency) {
+      try {
+        const parsed = JSON.parse(savedCurrency)
+        setDefaultCurrencyState(parsed)
+      } catch {
+        // Invalid JSON, use default
+      }
+    }
+  }, [])
+
   const selectedCountry = selectedCountryCode
     ? countries.find(c => c.code === selectedCountryCode) || null
     : null
@@ -181,6 +194,8 @@ export function CountryProvider({ children }: { children: ReactNode }) {
 
   const setDefaultCurrency = useCallback((currency: CurrencyConfig) => {
     setDefaultCurrencyState(currency)
+    // Save to localStorage
+    localStorage.setItem('dod-default-currency', JSON.stringify(currency))
   }, [])
 
   const formatCurrency = useCallback((value: number, fromCurrency: string = 'BRL'): string => {
