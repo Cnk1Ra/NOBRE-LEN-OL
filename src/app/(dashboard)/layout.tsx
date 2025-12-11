@@ -2,6 +2,7 @@
 
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
+import { Toaster } from '@/components/ui/toaster'
 import { DateFilterProvider } from '@/contexts/date-filter-context'
 import { NotificationsProvider } from '@/contexts/notifications-context'
 import { CountryProvider } from '@/contexts/country-context'
@@ -24,6 +25,7 @@ export default function DashboardLayout({
               </main>
             </div>
           </div>
+          <Toaster />
         </CountryProvider>
       </NotificationsProvider>
     </DateFilterProvider>

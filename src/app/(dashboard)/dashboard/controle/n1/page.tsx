@@ -79,6 +79,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useN1Warehouse, N1_STATUS_MAP } from '@/hooks/use-n1-warehouse'
+import { toast } from '@/hooks/use-toast'
 
 // Country configuration
 const countries: Record<string, { flag: string; name: string; currency: string; symbol: string }> = {
@@ -151,9 +152,6 @@ export default function N1ControlPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null)
 
-  // Toast/notification state
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
-
   // Use N1 Warehouse hook with auto-sync every 30 seconds
   const {
     orders: n1Orders,
@@ -168,10 +166,15 @@ export default function N1ControlPage() {
     enableSSE: false,
   })
 
-  // Show notification
+  // Show notification using global toast
   const showNotification = useCallback((message: string, type: 'success' | 'error') => {
-    setNotification({ message, type })
-    setTimeout(() => setNotification(null), 3000)
+    toast({
+      title: type === 'success' ? 'Sucesso!' : 'Erro!',
+      description: message,
+      className: type === 'success'
+        ? 'bg-green-500 text-white border-green-600'
+        : 'bg-red-500 text-white border-red-600',
+    })
   }, [])
 
   // Compare DOD orders with N1 orders
@@ -316,23 +319,6 @@ export default function N1ControlPage() {
 
   return (
     <div className="space-y-6">
-      {/* Notification Toast */}
-      {notification && (
-        <div className={cn(
-          "fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-in slide-in-from-top-2",
-          notification.type === 'success'
-            ? "bg-green-500 text-white"
-            : "bg-red-500 text-white"
-        )}>
-          {notification.type === 'success' ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
-            <XCircle className="h-4 w-4" />
-          )}
-          {notification.message}
-        </div>
-      )}
-
       {/* Edit Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
