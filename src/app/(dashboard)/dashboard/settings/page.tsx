@@ -1447,59 +1447,91 @@ function SettingsContent() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5 text-blue-500" />
-              {language === 'pt-BR' ? 'Alterar Idioma?' :
-               language === 'en-US' ? 'Change Language?' :
-               language === 'es' ? 'Cambiar Idioma?' :
-               language === 'fr' ? 'Changer la Langue?' :
-               language === 'de' ? 'Sprache andern?' :
+              {pendingLanguage?.code === 'pt-BR' ? 'Alterar Idioma?' :
+               pendingLanguage?.code === 'en-US' || pendingLanguage?.code === 'en-GB' ? 'Change Language?' :
+               pendingLanguage?.code === 'es' || pendingLanguage?.code === 'es-MX' ? 'Cambiar Idioma?' :
+               pendingLanguage?.code === 'fr' ? 'Changer la Langue?' :
+               pendingLanguage?.code === 'de' ? 'Sprache andern?' :
+               pendingLanguage?.code === 'it' ? 'Cambiare Lingua?' :
+               pendingLanguage?.code === 'pt-PT' ? 'Alterar Idioma?' :
+               pendingLanguage?.code === 'ja' ? '言語を変更しますか？' :
+               pendingLanguage?.code === 'zh-CN' || pendingLanguage?.code === 'zh-TW' ? '更改语言？' :
+               pendingLanguage?.code === 'ko' ? '언어 변경?' :
+               pendingLanguage?.code === 'ru' ? 'Изменить язык?' :
+               pendingLanguage?.code === 'ar' ? 'تغيير اللغة؟' :
                'Change Language?'}
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
               <p>
-                {language === 'pt-BR' ? 'Voce esta prestes a alterar o idioma do dashboard de' :
-                 language === 'en-US' ? 'You are about to change the dashboard language from' :
-                 language === 'es' ? 'Esta a punto de cambiar el idioma del dashboard de' :
-                 language === 'fr' ? 'Vous etes sur le point de changer la langue du dashboard de' :
-                 language === 'de' ? 'Sie sind dabei, die Dashboard-Sprache zu andern von' :
+                {pendingLanguage?.code === 'pt-BR' || pendingLanguage?.code === 'pt-PT' ? 'Voce esta prestes a alterar o idioma do dashboard de' :
+                 pendingLanguage?.code === 'en-US' || pendingLanguage?.code === 'en-GB' ? 'You are about to change the dashboard language from' :
+                 pendingLanguage?.code === 'es' || pendingLanguage?.code === 'es-MX' ? 'Esta a punto de cambiar el idioma del dashboard de' :
+                 pendingLanguage?.code === 'fr' ? 'Vous etes sur le point de changer la langue du dashboard de' :
+                 pendingLanguage?.code === 'de' ? 'Sie sind dabei, die Dashboard-Sprache zu andern von' :
+                 pendingLanguage?.code === 'it' ? 'Stai per cambiare la lingua del dashboard da' :
+                 pendingLanguage?.code === 'ja' ? 'ダッシュボードの言語を変更します：' :
+                 pendingLanguage?.code === 'zh-CN' || pendingLanguage?.code === 'zh-TW' ? '您即将把仪表板语言从' :
+                 pendingLanguage?.code === 'ko' ? '대시보드 언어를 변경합니다:' :
+                 pendingLanguage?.code === 'ru' ? 'Вы собираетесь изменить язык панели с' :
                  'You are about to change the dashboard language from'}{' '}
                 <span className="font-semibold text-foreground">
                   {languages.find(l => l.code === language)?.flag} {languages.find(l => l.code === language)?.name}
                 </span>{' '}
-                {language === 'pt-BR' ? 'para' :
-                 language === 'en-US' ? 'to' :
-                 language === 'es' ? 'a' :
-                 language === 'fr' ? 'a' :
-                 language === 'de' ? 'zu' :
+                {pendingLanguage?.code === 'pt-BR' || pendingLanguage?.code === 'pt-PT' ? 'para' :
+                 pendingLanguage?.code === 'en-US' || pendingLanguage?.code === 'en-GB' ? 'to' :
+                 pendingLanguage?.code === 'es' || pendingLanguage?.code === 'es-MX' ? 'a' :
+                 pendingLanguage?.code === 'fr' ? 'a' :
+                 pendingLanguage?.code === 'de' ? 'zu' :
+                 pendingLanguage?.code === 'it' ? 'a' :
+                 pendingLanguage?.code === 'ja' ? 'から' :
+                 pendingLanguage?.code === 'zh-CN' || pendingLanguage?.code === 'zh-TW' ? '更改为' :
+                 pendingLanguage?.code === 'ko' ? '에서' :
+                 pendingLanguage?.code === 'ru' ? 'на' :
                  'to'}{' '}
                 <span className="font-semibold text-foreground">
                   {pendingLanguage?.flag} {pendingLanguage?.name}
                 </span>.
               </p>
               <p className="text-blue-600 dark:text-blue-400">
-                {language === 'pt-BR' ? 'Esta acao ira alterar todos os textos e labels do dashboard para o novo idioma selecionado.' :
-                 language === 'en-US' ? 'This action will change all texts and labels in the dashboard to the selected language.' :
-                 language === 'es' ? 'Esta accion cambiara todos los textos y etiquetas del dashboard al nuevo idioma seleccionado.' :
-                 language === 'fr' ? 'Cette action changera tous les textes et libelles du dashboard vers la nouvelle langue selectionnee.' :
-                 language === 'de' ? 'Diese Aktion andert alle Texte und Beschriftungen im Dashboard in die ausgewahlte Sprache.' :
+                {pendingLanguage?.code === 'pt-BR' || pendingLanguage?.code === 'pt-PT' ? 'Esta acao ira alterar todos os textos e labels do dashboard para o novo idioma selecionado.' :
+                 pendingLanguage?.code === 'en-US' || pendingLanguage?.code === 'en-GB' ? 'This action will change all texts and labels in the dashboard to the selected language.' :
+                 pendingLanguage?.code === 'es' || pendingLanguage?.code === 'es-MX' ? 'Esta accion cambiara todos los textos y etiquetas del dashboard al nuevo idioma seleccionado.' :
+                 pendingLanguage?.code === 'fr' ? 'Cette action changera tous les textes et libelles du dashboard vers la nouvelle langue selectionnee.' :
+                 pendingLanguage?.code === 'de' ? 'Diese Aktion andert alle Texte und Beschriftungen im Dashboard in die ausgewahlte Sprache.' :
+                 pendingLanguage?.code === 'it' ? 'Questa azione cambiera tutti i testi e le etichette del dashboard nella lingua selezionata.' :
+                 pendingLanguage?.code === 'ja' ? 'この操作により、ダッシュボードのすべてのテキストとラベルが選択した言語に変更されます。' :
+                 pendingLanguage?.code === 'zh-CN' || pendingLanguage?.code === 'zh-TW' ? '此操作将把仪表板中的所有文本和标签更改为所选语言。' :
+                 pendingLanguage?.code === 'ko' ? '이 작업은 대시보드의 모든 텍스트와 레이블을 선택한 언어로 변경합니다.' :
+                 pendingLanguage?.code === 'ru' ? 'Это действие изменит все тексты и метки на панели на выбранный язык.' :
                  'This action will change all texts and labels in the dashboard to the selected language.'}
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={cancelLanguageChange}>
-              {language === 'pt-BR' ? 'Cancelar' :
-               language === 'en-US' ? 'Cancel' :
-               language === 'es' ? 'Cancelar' :
-               language === 'fr' ? 'Annuler' :
-               language === 'de' ? 'Abbrechen' :
+              {pendingLanguage?.code === 'pt-BR' || pendingLanguage?.code === 'pt-PT' ? 'Cancelar' :
+               pendingLanguage?.code === 'en-US' || pendingLanguage?.code === 'en-GB' ? 'Cancel' :
+               pendingLanguage?.code === 'es' || pendingLanguage?.code === 'es-MX' ? 'Cancelar' :
+               pendingLanguage?.code === 'fr' ? 'Annuler' :
+               pendingLanguage?.code === 'de' ? 'Abbrechen' :
+               pendingLanguage?.code === 'it' ? 'Annulla' :
+               pendingLanguage?.code === 'ja' ? 'キャンセル' :
+               pendingLanguage?.code === 'zh-CN' || pendingLanguage?.code === 'zh-TW' ? '取消' :
+               pendingLanguage?.code === 'ko' ? '취소' :
+               pendingLanguage?.code === 'ru' ? 'Отмена' :
                'Cancel'}
             </AlertDialogCancel>
             <AlertDialogAction onClick={confirmLanguageChange} className="bg-primary">
-              {language === 'pt-BR' ? 'Confirmar Alteracao' :
-               language === 'en-US' ? 'Confirm Change' :
-               language === 'es' ? 'Confirmar Cambio' :
-               language === 'fr' ? 'Confirmer le Changement' :
-               language === 'de' ? 'Anderung Bestatigen' :
+              {pendingLanguage?.code === 'pt-BR' || pendingLanguage?.code === 'pt-PT' ? 'Confirmar Alteracao' :
+               pendingLanguage?.code === 'en-US' || pendingLanguage?.code === 'en-GB' ? 'Confirm Change' :
+               pendingLanguage?.code === 'es' || pendingLanguage?.code === 'es-MX' ? 'Confirmar Cambio' :
+               pendingLanguage?.code === 'fr' ? 'Confirmer le Changement' :
+               pendingLanguage?.code === 'de' ? 'Anderung Bestatigen' :
+               pendingLanguage?.code === 'it' ? 'Conferma Modifica' :
+               pendingLanguage?.code === 'ja' ? '変更を確認' :
+               pendingLanguage?.code === 'zh-CN' || pendingLanguage?.code === 'zh-TW' ? '确认更改' :
+               pendingLanguage?.code === 'ko' ? '변경 확인' :
+               pendingLanguage?.code === 'ru' ? 'Подтвердить' :
                'Confirm Change'}
             </AlertDialogAction>
           </AlertDialogFooter>
