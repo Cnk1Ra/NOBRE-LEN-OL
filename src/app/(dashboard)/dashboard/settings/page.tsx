@@ -538,21 +538,36 @@ function SettingsContent() {
                           <CommandList>
                             <CommandEmpty>Nenhum pais encontrado.</CommandEmpty>
                             <CommandGroup>
-                              {phoneCountryCodes.map((country) => (
-                                <CommandItem
-                                  key={country.code}
-                                  value={`${country.name} ${country.ddi}`}
-                                  onSelect={() => handlePhoneCountryChange(country.ddi)}
-                                  className="cursor-pointer"
-                                >
-                                  <Check
-                                    className={`mr-2 h-4 w-4 ${phoneCountryCode === country.ddi ? "opacity-100" : "opacity-0"}`}
-                                  />
-                                  <span className="mr-2">{country.flag}</span>
-                                  <span className="font-medium w-14">{country.ddi}</span>
-                                  <span className="text-muted-foreground text-sm">{country.name}</span>
-                                </CommandItem>
-                              ))}
+                              {phoneCountryCodes.map((country) => {
+                                const handleSelect = () => {
+                                  setPhoneCountryCode(country.ddi)
+                                  localStorage.setItem('dod-phone-country-code', country.ddi)
+                                  setPhoneCountryOpen(false)
+                                }
+                                return (
+                                  <CommandItem
+                                    key={country.code}
+                                    value={`${country.name} ${country.ddi}`}
+                                    onSelect={handleSelect}
+                                    className="cursor-pointer"
+                                  >
+                                    <div
+                                      className="flex items-center w-full"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleSelect()
+                                      }}
+                                    >
+                                      <Check
+                                        className={`mr-2 h-4 w-4 ${phoneCountryCode === country.ddi ? "opacity-100" : "opacity-0"}`}
+                                      />
+                                      <span className="mr-2">{country.flag}</span>
+                                      <span className="font-medium w-14">{country.ddi}</span>
+                                      <span className="text-muted-foreground text-sm">{country.name}</span>
+                                    </div>
+                                  </CommandItem>
+                                )
+                              })}
                             </CommandGroup>
                           </CommandList>
                         </Command>
