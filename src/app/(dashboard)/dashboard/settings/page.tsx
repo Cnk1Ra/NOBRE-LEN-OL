@@ -60,7 +60,14 @@ function SettingsContent() {
     email: 'admin@dashondelivery.com',
     phone: '+55 11 99999-9999',
   })
+  const [savedProfile, setSavedProfile] = useState({
+    firstName: 'Admin',
+    lastName: 'DOD',
+    email: 'admin@dashondelivery.com',
+    phone: '+55 11 99999-9999',
+  })
   const [savingProfile, setSavingProfile] = useState(false)
+  const hasProfileChanges = JSON.stringify(profile) !== JSON.stringify(savedProfile)
 
   // Company state
   const [company, setCompany] = useState({
@@ -71,7 +78,16 @@ function SettingsContent() {
     state: 'SP',
     currency: 'BRL',
   })
+  const [savedCompany, setSavedCompany] = useState({
+    name: 'Dash On Delivery LTDA',
+    cnpj: '12.345.678/0001-90',
+    address: 'Rua Example, 123 - Centro',
+    city: 'Sao Paulo',
+    state: 'SP',
+    currency: 'BRL',
+  })
   const [savingCompany, setSavingCompany] = useState(false)
+  const hasCompanyChanges = JSON.stringify(company) !== JSON.stringify(savedCompany)
 
   // Appearance state
   const [language, setLanguage] = useState('pt-BR')
@@ -107,6 +123,7 @@ function SettingsContent() {
     setSavingProfile(true)
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 800))
+    setSavedProfile({ ...profile })
     setSavingProfile(false)
     toast({
       title: 'Perfil atualizado!',
@@ -118,6 +135,7 @@ function SettingsContent() {
   const handleSaveCompany = async () => {
     setSavingCompany(true)
     await new Promise(resolve => setTimeout(resolve, 800))
+    setSavedCompany({ ...company })
     setSavingCompany(false)
     toast({
       title: 'Dados da empresa atualizados!',
@@ -299,12 +317,14 @@ function SettingsContent() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center gap-6">
-                <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">
-                  AD
+                <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary transition-all">
+                  {profile.firstName.charAt(0).toUpperCase()}{profile.lastName.charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <Button variant="outline" size="sm">Alterar foto</Button>
                   <p className="text-xs text-muted-foreground mt-1">JPG, PNG. Max 2MB</p>
+                  <p className="text-sm font-medium mt-2">{profile.firstName} {profile.lastName}</p>
+                  <p className="text-xs text-muted-foreground">{profile.email}</p>
                 </div>
               </div>
 
@@ -346,8 +366,20 @@ function SettingsContent() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <Button onClick={handleSaveProfile} disabled={savingProfile}>
+              <div className="flex items-center justify-between">
+                {hasProfileChanges && (
+                  <p className="text-sm text-amber-600 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Alteracoes nao salvas
+                  </p>
+                )}
+                {!hasProfileChanges && (
+                  <p className="text-sm text-green-600 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Tudo salvo
+                  </p>
+                )}
+                <Button onClick={handleSaveProfile} disabled={savingProfile || !hasProfileChanges}>
                   {savingProfile ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -464,8 +496,20 @@ function SettingsContent() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <Button onClick={handleSaveCompany} disabled={savingCompany}>
+              <div className="flex items-center justify-between">
+                {hasCompanyChanges && (
+                  <p className="text-sm text-amber-600 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Alteracoes nao salvas
+                  </p>
+                )}
+                {!hasCompanyChanges && (
+                  <p className="text-sm text-green-600 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Tudo salvo
+                  </p>
+                )}
+                <Button onClick={handleSaveCompany} disabled={savingCompany || !hasCompanyChanges}>
                   {savingCompany ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
