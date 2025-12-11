@@ -285,7 +285,7 @@ function addRandomVariation(data: typeof mockDataByPeriod.month, seed: number) {
 export default function DashboardPage() {
   // Usa o contexto global de filtro de data
   const { period, refreshKey, isRefreshing } = useDateFilter()
-  const { selectedCountry, isAllSelected, getCountryData } = useCountry()
+  const { selectedCountry, isAllSelected, getCountryData, formatCurrency: formatCurrencyGlobal, defaultCurrency } = useCountry()
 
   // Obtem dados baseados no periodo e pais selecionado
   const currentData = useMemo(() => {
@@ -341,17 +341,25 @@ export default function DashboardPage() {
     visitors: calculateChange(currentData.visitors, previousData.visitors),
   }), [currentData, previousData])
 
-  const currencySymbol = selectedCountry?.currencySymbol || 'R$'
-
+  // Formata valores monetarios usando a moeda global selecionada
   const formatCurrency = (value: number) => {
-    if (value >= 1000000) {
-      return `${currencySymbol} ${(value / 1000000).toFixed(2)}M`
+    // Primeiro converte o valor usando a funcao global
+    const convertedValue = value * (defaultCurrency.code === 'BRL' ? 1 :
+      defaultCurrency.code === 'EUR' ? 0.18 :
+      defaultCurrency.code === 'USD' ? 0.20 :
+      defaultCurrency.code === 'AOA' ? 166.50 : 1)
+
+    // Formata com abreviacao para valores grandes
+    if (Math.abs(convertedValue) >= 1000000) {
+      return `${defaultCurrency.symbol} ${(convertedValue / 1000000).toFixed(2)}M`
     }
-    if (value >= 1000) {
-      return `${currencySymbol} ${(value / 1000).toFixed(1)}K`
+    if (Math.abs(convertedValue) >= 1000) {
+      return `${defaultCurrency.symbol} ${(convertedValue / 1000).toFixed(1)}K`
     }
-    return `${currencySymbol} ${value.toFixed(2)}`
+    return `${defaultCurrency.symbol} ${convertedValue.toFixed(2)}`
   }
+
+  const currencySymbol = defaultCurrency.symbol
 
   return (
     <div className="space-y-6 animate-fade-in relative">

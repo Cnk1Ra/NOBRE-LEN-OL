@@ -43,7 +43,8 @@ interface CountryContextType {
   // Currency settings
   defaultCurrency: CurrencyConfig
   setDefaultCurrency: (currency: CurrencyConfig) => void
-  formatCurrency: (value: number) => string
+  formatCurrency: (value: number, fromCurrency?: string) => string
+  convertValue: (value: number, fromCurrency?: string) => number
 }
 
 const CountryContext = createContext<CountryContextType | undefined>(undefined)
@@ -151,13 +152,21 @@ const countryDataMap: Record<string, CountryData> = {
   },
 }
 
-// Available currencies
+// Available currencies with exchange rates (base: BRL)
 const availableCurrencies: CurrencyConfig[] = [
   { code: 'BRL', name: 'Real Brasileiro', symbol: 'R$' },
   { code: 'EUR', name: 'Euro', symbol: '€' },
   { code: 'USD', name: 'Dolar Americano', symbol: '$' },
   { code: 'AOA', name: 'Kwanza Angolano', symbol: 'Kz' },
 ]
+
+// Exchange rates from BRL to other currencies
+const exchangeRates: Record<string, number> = {
+  BRL: 1,
+  EUR: 0.18,      // 1 BRL = 0.18 EUR
+  USD: 0.20,      // 1 BRL = 0.20 USD
+  AOA: 166.50,    // 1 BRL = 166.50 AOA
+}
 
 export function CountryProvider({ children }: { children: ReactNode }) {
   const [countries, setCountries] = useState<Country[]>(initialCountries)
@@ -174,8 +183,21 @@ export function CountryProvider({ children }: { children: ReactNode }) {
     setDefaultCurrencyState(currency)
   }, [])
 
-  const formatCurrency = useCallback((value: number): string => {
-    return `${defaultCurrency.symbol} ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const formatCurrency = useCallback((value: number, fromCurrency: string = 'BRL'): string => {
+    // Convert from source currency to BRL first, then to target currency
+    const valueInBRL = fromCurrency === 'BRL' ? value : value / exchangeRates[fromCurrency]
+    const convertedValue = valueInBRL * exchangeRates[defaultCurrency.code]
+
+    // Format based on currency
+    if (defaultCurrency.code === 'AOA') {
+      return `${defaultCurrency.symbol} ${convertedValue.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+    }
+    return `${defaultCurrency.symbol} ${convertedValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }, [defaultCurrency])
+
+  const convertValue = useCallback((value: number, fromCurrency: string = 'BRL'): number => {
+    const valueInBRL = fromCurrency === 'BRL' ? value : value / exchangeRates[fromCurrency]
+    return valueInBRL * exchangeRates[defaultCurrency.code]
   }, [defaultCurrency])
 
   const selectCountry = useCallback((code: string) => {
@@ -222,6 +244,7 @@ export function CountryProvider({ children }: { children: ReactNode }) {
         defaultCurrency,
         setDefaultCurrency,
         formatCurrency,
+        convertValue,
       }}
     >
       {children}
