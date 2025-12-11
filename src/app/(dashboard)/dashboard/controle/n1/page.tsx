@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Table,
@@ -21,6 +22,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   Warehouse,
   RefreshCw,
@@ -41,6 +68,14 @@ import {
   Wifi,
   WifiOff,
   Zap,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Eye,
+  Copy,
+  Send,
+  Save,
+  X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useN1Warehouse, N1_STATUS_MAP } from '@/hooks/use-n1-warehouse'
@@ -55,20 +90,11 @@ const countries: Record<string, { flag: string; name: string; currency: string; 
   MZ: { flag: '🇲🇿', name: 'Moçambique', currency: 'MZN', symbol: 'MT' },
 }
 
-// Mock DOD orders (in production, this would come from your DOD API/database)
-const dodOrders = [
-  { id: 'DOD-001', country: 'PT', customer: 'João Silva', total: 289.90, status: 'SHIPPED', date: '2024-12-07', trackingCode: 'PT123456789' },
-  { id: 'DOD-002', country: 'ES', customer: 'María García', total: 459.90, status: 'DELIVERED', date: '2024-12-06', trackingCode: 'ES987654321' },
-  { id: 'DOD-003', country: 'PT', customer: 'Pedro Costa', total: 189.90, status: 'PENDING', date: '2024-12-07', trackingCode: '' },
-  { id: 'DOD-004', country: 'IT', customer: 'Marco Rossi', total: 599.90, status: 'SHIPPED', date: '2024-12-05', trackingCode: 'IT456789123' },
-  { id: 'DOD-005', country: 'ES', customer: 'Carlos López', total: 349.90, status: 'DELIVERED', date: '2024-12-04', trackingCode: 'ES321654987' },
-  { id: 'DOD-006', country: 'PT', customer: 'Lucia Ferreira', total: 279.90, status: 'SHIPPED', date: '2024-12-07', trackingCode: 'PT147258369' },
-  { id: 'DOD-007', country: 'IT', customer: 'Giuseppe Bianchi', total: 429.90, status: 'PENDING', date: '2024-12-07', trackingCode: '' },
-  { id: 'DOD-008', country: 'ES', customer: 'Ana Martínez', total: 199.90, status: 'SHIPPED', date: '2024-12-06', trackingCode: 'ES963852741' },
-  { id: 'DOD-009', country: 'PT', customer: 'Marcos Pereira', total: 529.90, status: 'RETURNED', date: '2024-12-03', trackingCode: 'PT852741963' },
-  { id: 'DOD-010', country: 'IT', customer: 'Francesca Romano', total: 319.90, status: 'DELIVERED', date: '2024-12-05', trackingCode: 'IT741852963' },
-  { id: 'DOD-011', country: 'BR', customer: 'Roberto Santos', total: 389.90, status: 'SHIPPED', date: '2024-12-07', trackingCode: 'BR123789456' },
-  { id: 'DOD-012', country: 'AO', customer: 'Manuel Silva', total: 259.90, status: 'PENDING', date: '2024-12-07', trackingCode: '' },
+const dodStatusOptions = [
+  { value: 'PENDING', label: 'Pendente' },
+  { value: 'SHIPPED', label: 'Enviado' },
+  { value: 'DELIVERED', label: 'Entregue' },
+  { value: 'RETURNED', label: 'Devolvido' },
 ]
 
 const dodStatusMap: Record<string, { label: string; color: string }> = {
@@ -78,10 +104,55 @@ const dodStatusMap: Record<string, { label: string; color: string }> = {
   'RETURNED': { label: 'Devolvido', color: 'bg-red-500/10 text-red-500' },
 }
 
+interface DODOrder {
+  id: string
+  country: string
+  customer: string
+  total: number
+  status: string
+  date: string
+  trackingCode: string
+  phone?: string
+  email?: string
+  address?: string
+}
+
+// Initial DOD orders data
+const initialDodOrders: DODOrder[] = [
+  { id: 'DOD-001', country: 'PT', customer: 'João Silva', total: 289.90, status: 'SHIPPED', date: '2024-12-07', trackingCode: 'PT123456789', phone: '+351910192960', email: 'joao@email.com' },
+  { id: 'DOD-002', country: 'ES', customer: 'María García', total: 459.90, status: 'DELIVERED', date: '2024-12-06', trackingCode: 'ES987654321', phone: '+34612345678', email: 'maria@email.com' },
+  { id: 'DOD-003', country: 'PT', customer: 'Pedro Costa', total: 189.90, status: 'PENDING', date: '2024-12-07', trackingCode: '', phone: '+351965868007', email: 'pedro@email.com' },
+  { id: 'DOD-004', country: 'IT', customer: 'Marco Rossi', total: 599.90, status: 'SHIPPED', date: '2024-12-05', trackingCode: 'IT456789123', phone: '+39345678901', email: 'marco@email.com' },
+  { id: 'DOD-005', country: 'ES', customer: 'Carlos López', total: 349.90, status: 'DELIVERED', date: '2024-12-04', trackingCode: 'ES321654987', phone: '+34698765432', email: 'carlos@email.com' },
+  { id: 'DOD-006', country: 'PT', customer: 'Lucia Ferreira', total: 279.90, status: 'SHIPPED', date: '2024-12-07', trackingCode: 'PT147258369', phone: '+351933124552', email: 'lucia@email.com' },
+  { id: 'DOD-007', country: 'IT', customer: 'Giuseppe Bianchi', total: 429.90, status: 'PENDING', date: '2024-12-07', trackingCode: '', phone: '+39334567890', email: 'giuseppe@email.com' },
+  { id: 'DOD-008', country: 'ES', customer: 'Ana Martínez', total: 199.90, status: 'SHIPPED', date: '2024-12-06', trackingCode: 'ES963852741', phone: '+34654321098', email: 'ana@email.com' },
+  { id: 'DOD-009', country: 'PT', customer: 'Marcos Pereira', total: 529.90, status: 'RETURNED', date: '2024-12-03', trackingCode: 'PT852741963', phone: '+351918663601', email: 'marcos@email.com' },
+  { id: 'DOD-010', country: 'IT', customer: 'Francesca Romano', total: 319.90, status: 'DELIVERED', date: '2024-12-05', trackingCode: 'IT741852963', phone: '+39312345678', email: 'francesca@email.com' },
+  { id: 'DOD-011', country: 'BR', customer: 'Roberto Santos', total: 389.90, status: 'SHIPPED', date: '2024-12-07', trackingCode: 'BR123789456', phone: '+5511987654321', email: 'roberto@email.com' },
+  { id: 'DOD-012', country: 'AO', customer: 'Manuel Silva', total: 259.90, status: 'PENDING', date: '2024-12-07', trackingCode: '', phone: '+244923456789', email: 'manuel@email.com' },
+]
+
 export default function N1ControlPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterCountry, setFilterCountry] = useState('all')
+
+  // State for orders (editable)
+  const [dodOrders, setDodOrders] = useState<DODOrder[]>(initialDodOrders)
+
+  // Edit modal state
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [editingOrder, setEditingOrder] = useState<DODOrder | null>(null)
+  const [editForm, setEditForm] = useState<DODOrder | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Delete confirmation state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null)
+
+  // Toast/notification state
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   // Use N1 Warehouse hook with auto-sync every 30 seconds
   const {
@@ -94,8 +165,14 @@ export default function N1ControlPage() {
   } = useN1Warehouse({
     autoSync: true,
     syncInterval: 30000,
-    enableSSE: false, // Enable for real-time SSE updates
+    enableSSE: false,
   })
+
+  // Show notification
+  const showNotification = useCallback((message: string, type: 'success' | 'error') => {
+    setNotification({ message, type })
+    setTimeout(() => setNotification(null), 3000)
+  }, [])
 
   // Compare DOD orders with N1 orders
   const comparisonData = useMemo(() => {
@@ -111,7 +188,7 @@ export default function N1ControlPage() {
         n1StatusLabel: n1?.statusLabel || (n1?.status ? N1_STATUS_MAP[n1.status]?.label : null),
       }
     })
-  }, [n1Orders])
+  }, [n1Orders, dodOrders])
 
   // Filter data
   const filteredData = useMemo(() => {
@@ -149,7 +226,6 @@ export default function N1ControlPage() {
     const total = comparisonData.length
     const syncRate = total > 0 ? (synced / total * 100).toFixed(1) : 0
 
-    // Country breakdown
     const byCountry = Object.keys(countries).reduce((acc, code) => {
       acc[code] = comparisonData.filter(o => o.country === code).length
       return acc
@@ -164,8 +240,65 @@ export default function N1ControlPage() {
     return uniqueCountries.map(code => ({ code, ...countries[code] }))
   }, [comparisonData])
 
+  // Handle edit
+  const handleEdit = (order: DODOrder) => {
+    setEditingOrder(order)
+    setEditForm({ ...order })
+    setEditModalOpen(true)
+  }
+
+  // Handle save
+  const handleSave = async () => {
+    if (!editForm) return
+
+    setIsSaving(true)
+
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 800))
+
+    setDodOrders(prev => prev.map(o => o.id === editForm.id ? editForm : o))
+    setEditModalOpen(false)
+    setEditingOrder(null)
+    setEditForm(null)
+    setIsSaving(false)
+    showNotification(`Pedido ${editForm.id} atualizado com sucesso!`, 'success')
+  }
+
+  // Handle delete
+  const handleDelete = (orderId: string) => {
+    setDeletingOrderId(orderId)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!deletingOrderId) return
+
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    setDodOrders(prev => prev.filter(o => o.id !== deletingOrderId))
+    setDeleteDialogOpen(false)
+    showNotification(`Pedido ${deletingOrderId} removido!`, 'success')
+    setDeletingOrderId(null)
+  }
+
+  // Handle sync single order
+  const handleSyncOrder = async (orderId: string) => {
+    showNotification(`Sincronizando pedido ${orderId}...`, 'success')
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    showNotification(`Pedido ${orderId} sincronizado!`, 'success')
+  }
+
+  // Handle copy
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text)
+    showNotification('Copiado para a área de transferência!', 'success')
+  }
+
+  // Handle sync
   const handleSync = async () => {
     await syncOrders()
+    showNotification('Sincronização concluída!', 'success')
   }
 
   // Format last sync time
@@ -183,6 +316,178 @@ export default function N1ControlPage() {
 
   return (
     <div className="space-y-6">
+      {/* Notification Toast */}
+      {notification && (
+        <div className={cn(
+          "fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-in slide-in-from-top-2",
+          notification.type === 'success'
+            ? "bg-green-500 text-white"
+            : "bg-red-500 text-white"
+        )}>
+          {notification.type === 'success' ? (
+            <CheckCircle2 className="h-4 w-4" />
+          ) : (
+            <XCircle className="h-4 w-4" />
+          )}
+          {notification.message}
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5" />
+              Editar Pedido {editForm?.id}
+            </DialogTitle>
+            <DialogDescription>
+              Faça as alterações necessárias e clique em salvar.
+            </DialogDescription>
+          </DialogHeader>
+          {editForm && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customer">Cliente</Label>
+                  <Input
+                    id="customer"
+                    value={editForm.customer}
+                    onChange={(e) => setEditForm({ ...editForm, customer: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country">País</Label>
+                  <Select
+                    value={editForm.country}
+                    onValueChange={(value) => setEditForm({ ...editForm, country: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(countries).map(([code, { flag, name }]) => (
+                        <SelectItem key={code} value={code}>
+                          <span className="flex items-center gap-2">
+                            <span>{flag}</span> {name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="total">Valor ({countries[editForm.country]?.symbol})</Label>
+                  <Input
+                    id="total"
+                    type="number"
+                    step="0.01"
+                    value={editForm.total}
+                    onChange={(e) => setEditForm({ ...editForm, total: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={editForm.status}
+                    onValueChange={(value) => setEditForm({ ...editForm, status: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dodStatusOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="trackingCode">Código de Rastreio</Label>
+                <Input
+                  id="trackingCode"
+                  value={editForm.trackingCode}
+                  onChange={(e) => setEditForm({ ...editForm, trackingCode: e.target.value })}
+                  placeholder="Ex: PT123456789"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefone</Label>
+                  <Input
+                    id="phone"
+                    value={editForm.phone || ''}
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    placeholder="+351..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={editForm.email || ''}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="date">Data do Pedido</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={editForm.date}
+                  onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditModalOpen(false)} disabled={isSaving}>
+              <X className="h-4 w-4 mr-2" />
+              Cancelar
+            </Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Alterações
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o pedido {deletingOrderId}? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-500 hover:bg-red-600">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -485,9 +790,49 @@ export default function N1ControlPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleEdit(order)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleCopy(order.id)}>
+                                <Copy className="h-4 w-4 mr-2" />
+                                Copiar ID
+                              </DropdownMenuItem>
+                              {order.trackingCode && (
+                                <DropdownMenuItem onClick={() => handleCopy(order.trackingCode)}>
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  Copiar Rastreio
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => handleSyncOrder(order.id)}>
+                                <RefreshCw className="h-4 w-4 mr-2" />
+                                Sincronizar
+                              </DropdownMenuItem>
+                              {order.syncStatus === 'not_found' && (
+                                <DropdownMenuItem>
+                                  <Send className="h-4 w-4 mr-2" />
+                                  Enviar para N1
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(order.id)}
+                                className="text-red-500 focus:text-red-500"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     )
@@ -542,10 +887,15 @@ export default function N1ControlPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="outline" size="sm">
-                              <Upload className="h-4 w-4 mr-2" />
-                              Enviar para N1
-                            </Button>
+                            <div className="flex items-center justify-end gap-2">
+                              <Button variant="ghost" size="sm" onClick={() => handleEdit(order)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm">
+                                <Upload className="h-4 w-4 mr-2" />
+                                Enviar para N1
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       )
@@ -591,7 +941,7 @@ export default function N1ControlPage() {
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium">URL da API N1</label>
+              <Label>URL da API N1</Label>
               <Input
                 value={process.env.NEXT_PUBLIC_N1_API_URL || "https://api.n1warehouse.com/v1"}
                 readOnly
@@ -599,7 +949,7 @@ export default function N1ControlPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Token de Acesso</label>
+              <Label>Token de Acesso</Label>
               <Input
                 value="••••••••••••••••"
                 type="password"
