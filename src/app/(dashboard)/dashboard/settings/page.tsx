@@ -18,6 +18,16 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   User,
   Building,
   Bell,
@@ -268,24 +278,59 @@ function SettingsContent() {
     })
   }
 
+  // All available currencies
   const currencyOptions = [
-    { code: 'BRL', name: 'Real Brasileiro', symbol: 'R$' },
-    { code: 'EUR', name: 'Euro', symbol: '€' },
-    { code: 'USD', name: 'Dolar Americano', symbol: '$' },
-    { code: 'AOA', name: 'Kwanza Angolano', symbol: 'Kz' },
+    { code: 'BRL', name: 'Real Brasileiro', symbol: 'R$', flag: '🇧🇷' },
+    { code: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺' },
+    { code: 'USD', name: 'Dolar Americano', symbol: '$', flag: '🇺🇸' },
+    { code: 'AOA', name: 'Kwanza Angolano', symbol: 'Kz', flag: '🇦🇴' },
+    { code: 'GBP', name: 'Libra Esterlina', symbol: '£', flag: '🇬🇧' },
+    { code: 'JPY', name: 'Iene Japones', symbol: '¥', flag: '🇯🇵' },
+    { code: 'CNY', name: 'Yuan Chines', symbol: '¥', flag: '🇨🇳' },
+    { code: 'CHF', name: 'Franco Suico', symbol: 'Fr', flag: '🇨🇭' },
+    { code: 'CAD', name: 'Dolar Canadense', symbol: 'C$', flag: '🇨🇦' },
+    { code: 'AUD', name: 'Dolar Australiano', symbol: 'A$', flag: '🇦🇺' },
+    { code: 'MXN', name: 'Peso Mexicano', symbol: '$', flag: '🇲🇽' },
+    { code: 'ARS', name: 'Peso Argentino', symbol: '$', flag: '🇦🇷' },
+    { code: 'CLP', name: 'Peso Chileno', symbol: '$', flag: '🇨🇱' },
+    { code: 'COP', name: 'Peso Colombiano', symbol: '$', flag: '🇨🇴' },
+    { code: 'PEN', name: 'Sol Peruano', symbol: 'S/', flag: '🇵🇪' },
+    { code: 'MZN', name: 'Metical Mocambicano', symbol: 'MT', flag: '🇲🇿' },
+    { code: 'CVE', name: 'Escudo Cabo-verdiano', symbol: '$', flag: '🇨🇻' },
+    { code: 'INR', name: 'Rupia Indiana', symbol: '₹', flag: '🇮🇳' },
+    { code: 'KRW', name: 'Won Sul-coreano', symbol: '₩', flag: '🇰🇷' },
+    { code: 'ZAR', name: 'Rand Sul-africano', symbol: 'R', flag: '🇿🇦' },
   ]
 
-  const handleCurrencyChange = (currencyCode: string) => {
+  // Currency change confirmation state
+  const [pendingCurrency, setPendingCurrency] = useState<typeof currencyOptions[0] | null>(null)
+  const [showCurrencyConfirm, setShowCurrencyConfirm] = useState(false)
+
+  const handleCurrencySelect = (currencyCode: string) => {
     const currency = currencyOptions.find(c => c.code === currencyCode)
-    if (currency) {
-      setDefaultCurrency(currency)
-      setCompany(prev => ({ ...prev, currency: currencyCode }))
+    if (currency && currency.code !== defaultCurrency.code) {
+      setPendingCurrency(currency)
+      setShowCurrencyConfirm(true)
+    }
+  }
+
+  const confirmCurrencyChange = () => {
+    if (pendingCurrency) {
+      setDefaultCurrency(pendingCurrency)
+      setCompany(prev => ({ ...prev, currency: pendingCurrency.code }))
       toast({
         title: 'Moeda padrao alterada!',
-        description: `Todo o dashboard agora usa ${currency.name} (${currency.symbol}).`,
+        description: `Todo o dashboard agora usa ${pendingCurrency.name} (${pendingCurrency.symbol}).`,
         className: 'bg-green-500 text-white border-green-600',
       })
     }
+    setShowCurrencyConfirm(false)
+    setPendingCurrency(null)
+  }
+
+  const cancelCurrencyChange = () => {
+    setShowCurrencyConfirm(false)
+    setPendingCurrency(null)
   }
 
   // Handle URL parameter for tab selection
@@ -480,28 +525,40 @@ function SettingsContent() {
 
               <div className="space-y-4">
                 <h4 className="font-medium">Moeda Padrao do Dashboard</h4>
-                <p className="text-sm text-muted-foreground">Selecione a moeda que sera usada em todo o dashboard</p>
-                <div className="grid gap-3 md:grid-cols-4">
-                  {currencyOptions.map((currencyOption) => (
-                    <Card
-                      key={currencyOption.code}
-                      className={`cursor-pointer transition-colors hover:border-primary/50 ${defaultCurrency.code === currencyOption.code ? 'border-primary bg-primary/5' : ''}`}
-                      onClick={() => handleCurrencyChange(currencyOption.code)}
-                    >
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{currencyOption.code}</p>
-                          <p className="text-xs text-muted-foreground">{currencyOption.name}</p>
-                        </div>
+                <p className="text-sm text-muted-foreground">Selecione a moeda que sera usada em todo o dashboard. Esta alteracao afetara todos os valores monetarios.</p>
+                <div className="flex items-center gap-4">
+                  <Select
+                    value={defaultCurrency.code}
+                    onValueChange={handleCurrencySelect}
+                  >
+                    <SelectTrigger className="w-[350px]">
+                      <SelectValue>
                         <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold">{currencyOption.symbol}</span>
-                          {defaultCurrency.code === currencyOption.code && (
-                            <Check className="h-4 w-4 text-primary" />
-                          )}
+                          <span>{currencyOptions.find(c => c.code === defaultCurrency.code)?.flag}</span>
+                          <span className="font-medium">{defaultCurrency.code}</span>
+                          <span className="text-muted-foreground">-</span>
+                          <span className="text-muted-foreground">{defaultCurrency.name}</span>
+                          <span className="font-bold ml-auto">{defaultCurrency.symbol}</span>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {currencyOptions.map((currency) => (
+                        <SelectItem key={currency.code} value={currency.code}>
+                          <div className="flex items-center gap-3 w-full">
+                            <span className="text-lg">{currency.flag}</span>
+                            <span className="font-medium w-12">{currency.code}</span>
+                            <span className="text-muted-foreground flex-1">{currency.name}</span>
+                            <span className="font-bold">{currency.symbol}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <CreditCard className="h-4 w-4" />
+                    <span>Moeda atual: <span className="font-medium text-foreground">{defaultCurrency.symbol} {defaultCurrency.code}</span></span>
+                  </div>
                 </div>
               </div>
 
@@ -985,6 +1042,34 @@ function SettingsContent() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Currency Change Confirmation Dialog */}
+      <AlertDialog open={showCurrencyConfirm} onOpenChange={setShowCurrencyConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Alterar Moeda Padrao?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                Voce esta prestes a alterar a moeda padrao do dashboard de{' '}
+                <span className="font-semibold text-foreground">{defaultCurrency.symbol} {defaultCurrency.code}</span> para{' '}
+                <span className="font-semibold text-foreground">{pendingCurrency?.symbol} {pendingCurrency?.code}</span>.
+              </p>
+              <p className="text-amber-600 dark:text-amber-400">
+                Esta acao ira converter e recalcular todos os valores monetarios exibidos no dashboard.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelCurrencyChange}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCurrencyChange} className="bg-primary">
+              Confirmar Alteracao
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
