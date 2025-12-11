@@ -28,6 +28,19 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
   User,
   Building,
   Bell,
@@ -52,6 +65,7 @@ import {
   Loader2,
   Copy,
   CheckCheck,
+  ChevronsUpDown,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useNotifications } from '@/contexts/notifications-context'
@@ -372,6 +386,7 @@ function SettingsContent() {
 
   // Phone country code state
   const [phoneCountryCode, setPhoneCountryCode] = useState('+55')
+  const [phoneCountryOpen, setPhoneCountryOpen] = useState(false)
 
   // Load phone country code from localStorage
   useEffect(() => {
@@ -384,6 +399,7 @@ function SettingsContent() {
   const handlePhoneCountryChange = (ddi: string) => {
     setPhoneCountryCode(ddi)
     localStorage.setItem('dod-phone-country-code', ddi)
+    setPhoneCountryOpen(false)
   }
 
   // Currency change confirmation state
@@ -501,27 +517,47 @@ function SettingsContent() {
                 <div className="space-y-2">
                   <Label htmlFor="phone">Telefone</Label>
                   <div className="flex gap-2">
-                    <Select value={phoneCountryCode} onValueChange={handlePhoneCountryChange}>
-                      <SelectTrigger className="w-[140px]">
-                        <SelectValue>
+                    <Popover open={phoneCountryOpen} onOpenChange={setPhoneCountryOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={phoneCountryOpen}
+                          className="w-[160px] justify-between"
+                        >
                           <div className="flex items-center gap-2">
                             <span>{phoneCountryCodes.find(c => c.ddi === phoneCountryCode)?.flag}</span>
                             <span className="font-medium">{phoneCountryCode}</span>
                           </div>
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
-                        {phoneCountryCodes.map((country) => (
-                          <SelectItem key={country.code} value={country.ddi}>
-                            <div className="flex items-center gap-2">
-                              <span>{country.flag}</span>
-                              <span className="font-medium w-14">{country.ddi}</span>
-                              <span className="text-muted-foreground text-sm">{country.name}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[280px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Buscar pais..." />
+                          <CommandList>
+                            <CommandEmpty>Nenhum pais encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              {phoneCountryCodes.map((country) => (
+                                <CommandItem
+                                  key={country.code}
+                                  value={`${country.name} ${country.ddi}`}
+                                  onSelect={() => handlePhoneCountryChange(country.ddi)}
+                                  className="cursor-pointer"
+                                >
+                                  <Check
+                                    className={`mr-2 h-4 w-4 ${phoneCountryCode === country.ddi ? "opacity-100" : "opacity-0"}`}
+                                  />
+                                  <span className="mr-2">{country.flag}</span>
+                                  <span className="font-medium w-14">{country.ddi}</span>
+                                  <span className="text-muted-foreground text-sm">{country.name}</span>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <Input
                       id="phone"
                       placeholder="11 999999999"
