@@ -24,6 +24,12 @@ export interface CountryData {
   visitors: number
 }
 
+export interface CurrencyConfig {
+  code: string
+  name: string
+  symbol: string
+}
+
 interface CountryContextType {
   countries: Country[]
   selectedCountry: Country | null
@@ -34,6 +40,10 @@ interface CountryContextType {
   removeCountry: (code: string) => void
   toggleCountryActive: (code: string) => void
   getCountryData: (code: string) => CountryData
+  // Currency settings
+  defaultCurrency: CurrencyConfig
+  setDefaultCurrency: (currency: CurrencyConfig) => void
+  formatCurrency: (value: number) => string
 }
 
 const CountryContext = createContext<CountryContextType | undefined>(undefined)
@@ -141,15 +151,32 @@ const countryDataMap: Record<string, CountryData> = {
   },
 }
 
+// Available currencies
+const availableCurrencies: CurrencyConfig[] = [
+  { code: 'BRL', name: 'Real Brasileiro', symbol: 'R$' },
+  { code: 'EUR', name: 'Euro', symbol: '€' },
+  { code: 'USD', name: 'Dolar Americano', symbol: '$' },
+  { code: 'AOA', name: 'Kwanza Angolano', symbol: 'Kz' },
+]
+
 export function CountryProvider({ children }: { children: ReactNode }) {
   const [countries, setCountries] = useState<Country[]>(initialCountries)
   const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null)
+  const [defaultCurrency, setDefaultCurrencyState] = useState<CurrencyConfig>(availableCurrencies[0])
 
   const selectedCountry = selectedCountryCode
     ? countries.find(c => c.code === selectedCountryCode) || null
     : null
 
   const isAllSelected = selectedCountryCode === null
+
+  const setDefaultCurrency = useCallback((currency: CurrencyConfig) => {
+    setDefaultCurrencyState(currency)
+  }, [])
+
+  const formatCurrency = useCallback((value: number): string => {
+    return `${defaultCurrency.symbol} ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }, [defaultCurrency])
 
   const selectCountry = useCallback((code: string) => {
     setSelectedCountryCode(code)
@@ -192,6 +219,9 @@ export function CountryProvider({ children }: { children: ReactNode }) {
         removeCountry,
         toggleCountryActive,
         getCountryData,
+        defaultCurrency,
+        setDefaultCurrency,
+        formatCurrency,
       }}
     >
       {children}

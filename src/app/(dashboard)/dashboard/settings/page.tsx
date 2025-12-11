@@ -45,6 +45,7 @@ import {
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useNotifications } from '@/contexts/notifications-context'
+import { useCountry } from '@/contexts/country-context'
 import { toast } from '@/hooks/use-toast'
 
 function SettingsContent() {
@@ -52,6 +53,7 @@ function SettingsContent() {
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
   const { preferences, updatePreference } = useNotifications()
+  const { defaultCurrency, setDefaultCurrency } = useCountry()
 
   // Profile state
   const [profile, setProfile] = useState({
@@ -266,13 +268,24 @@ function SettingsContent() {
     })
   }
 
-  const handleCurrencyChange = (currency: string) => {
-    setCompany(prev => ({ ...prev, currency }))
-    toast({
-      title: 'Moeda alterada!',
-      description: `Moeda padrao alterada para ${currency}.`,
-      className: 'bg-green-500 text-white border-green-600',
-    })
+  const currencyOptions = [
+    { code: 'BRL', name: 'Real Brasileiro', symbol: 'R$' },
+    { code: 'EUR', name: 'Euro', symbol: '€' },
+    { code: 'USD', name: 'Dolar Americano', symbol: '$' },
+    { code: 'AOA', name: 'Kwanza Angolano', symbol: 'Kz' },
+  ]
+
+  const handleCurrencyChange = (currencyCode: string) => {
+    const currency = currencyOptions.find(c => c.code === currencyCode)
+    if (currency) {
+      setDefaultCurrency(currency)
+      setCompany(prev => ({ ...prev, currency: currencyCode }))
+      toast({
+        title: 'Moeda padrao alterada!',
+        description: `Todo o dashboard agora usa ${currency.name} (${currency.symbol}).`,
+        className: 'bg-green-500 text-white border-green-600',
+      })
+    }
   }
 
   // Handle URL parameter for tab selection
@@ -466,17 +479,13 @@ function SettingsContent() {
               <Separator />
 
               <div className="space-y-4">
-                <h4 className="font-medium">Moeda Padrao</h4>
+                <h4 className="font-medium">Moeda Padrao do Dashboard</h4>
+                <p className="text-sm text-muted-foreground">Selecione a moeda que sera usada em todo o dashboard</p>
                 <div className="grid gap-3 md:grid-cols-4">
-                  {[
-                    { code: 'BRL', name: 'Real Brasileiro', symbol: 'R$' },
-                    { code: 'EUR', name: 'Euro', symbol: '€' },
-                    { code: 'USD', name: 'Dolar Americano', symbol: '$' },
-                    { code: 'AOA', name: 'Kwanza Angolano', symbol: 'Kz' },
-                  ].map((currencyOption) => (
+                  {currencyOptions.map((currencyOption) => (
                     <Card
                       key={currencyOption.code}
-                      className={`cursor-pointer transition-colors hover:border-primary/50 ${company.currency === currencyOption.code ? 'border-primary bg-primary/5' : ''}`}
+                      className={`cursor-pointer transition-colors hover:border-primary/50 ${defaultCurrency.code === currencyOption.code ? 'border-primary bg-primary/5' : ''}`}
                       onClick={() => handleCurrencyChange(currencyOption.code)}
                     >
                       <CardContent className="p-4 flex items-center justify-between">
@@ -486,7 +495,7 @@ function SettingsContent() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-lg font-bold">{currencyOption.symbol}</span>
-                          {company.currency === currencyOption.code && (
+                          {defaultCurrency.code === currencyOption.code && (
                             <Check className="h-4 w-4 text-primary" />
                           )}
                         </div>
