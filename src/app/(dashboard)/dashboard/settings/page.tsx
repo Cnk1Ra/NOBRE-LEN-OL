@@ -69,6 +69,7 @@ import {
   Upload,
   X,
   Camera,
+  Play,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useNotifications } from '@/contexts/notifications-context'
@@ -381,6 +382,130 @@ function SettingsContent() {
       title: 'Tema alterado!',
       description: `Tema ${newTheme === 'light' ? 'claro' : newTheme === 'dark' ? 'escuro' : 'do sistema'} ativado.`,
       className: 'bg-green-500 text-white border-green-600',
+    })
+  }
+
+  // Notification sound frequencies for different types
+  const playNotificationSound = (type: 'order' | 'delivery' | 'stock' | 'success' | 'warning' | 'system') => {
+    if (!preferences.sound) return
+
+    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+    const oscillator = audioContext.createOscillator()
+    const gainNode = audioContext.createGain()
+
+    oscillator.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+
+    // Different sounds for different notification types
+    switch (type) {
+      case 'order':
+        // Cheerful double beep for new orders
+        oscillator.frequency.setValueAtTime(880, audioContext.currentTime) // A5
+        oscillator.frequency.setValueAtTime(1100, audioContext.currentTime + 0.1) // C#6
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3)
+        oscillator.start(audioContext.currentTime)
+        oscillator.stop(audioContext.currentTime + 0.3)
+        break
+      case 'delivery':
+        // Smooth ascending tone for deliveries
+        oscillator.frequency.setValueAtTime(523, audioContext.currentTime) // C5
+        oscillator.frequency.linearRampToValueAtTime(784, audioContext.currentTime + 0.2) // G5
+        gainNode.gain.setValueAtTime(0.25, audioContext.currentTime)
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4)
+        oscillator.start(audioContext.currentTime)
+        oscillator.stop(audioContext.currentTime + 0.4)
+        break
+      case 'stock':
+        // Warning beeps for low stock
+        oscillator.type = 'square'
+        oscillator.frequency.setValueAtTime(440, audioContext.currentTime) // A4
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime)
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime + 0.1)
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime + 0.15)
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3)
+        oscillator.start(audioContext.currentTime)
+        oscillator.stop(audioContext.currentTime + 0.3)
+        break
+      case 'success':
+        // Victory fanfare for success
+        oscillator.frequency.setValueAtTime(523, audioContext.currentTime) // C5
+        oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1) // E5
+        oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2) // G5
+        oscillator.frequency.setValueAtTime(1047, audioContext.currentTime + 0.3) // C6
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
+        oscillator.start(audioContext.currentTime)
+        oscillator.stop(audioContext.currentTime + 0.5)
+        break
+      case 'warning':
+        // Urgent warning sound
+        oscillator.type = 'sawtooth'
+        oscillator.frequency.setValueAtTime(600, audioContext.currentTime)
+        oscillator.frequency.setValueAtTime(400, audioContext.currentTime + 0.15)
+        oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.3)
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime)
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.45)
+        oscillator.start(audioContext.currentTime)
+        oscillator.stop(audioContext.currentTime + 0.45)
+        break
+      case 'system':
+        // Subtle system notification
+        oscillator.type = 'sine'
+        oscillator.frequency.setValueAtTime(698, audioContext.currentTime) // F5
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime)
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2)
+        oscillator.start(audioContext.currentTime)
+        oscillator.stop(audioContext.currentTime + 0.2)
+        break
+    }
+  }
+
+  // Test notification handler
+  const handleTestNotification = (type: 'order' | 'delivery' | 'stock' | 'success' | 'warning' | 'system') => {
+    const notificationConfig = {
+      order: {
+        title: 'Novo Pedido #12345',
+        description: 'Voce recebeu um novo pedido de R$ 159,90',
+        className: 'bg-blue-500 text-white border-blue-600',
+      },
+      delivery: {
+        title: 'Entrega Realizada',
+        description: 'Pedido #12344 foi entregue com sucesso',
+        className: 'bg-green-500 text-white border-green-600',
+      },
+      stock: {
+        title: 'Estoque Baixo',
+        description: 'Produto "Camiseta P" esta com apenas 3 unidades',
+        className: 'bg-orange-500 text-white border-orange-600',
+      },
+      success: {
+        title: 'Meta Atingida!',
+        description: 'Voce atingiu a meta de vendas do mes!',
+        className: 'bg-emerald-500 text-white border-emerald-600',
+      },
+      warning: {
+        title: 'Atencao!',
+        description: 'Pagamento pendente no pedido #12340',
+        className: 'bg-yellow-500 text-white border-yellow-600',
+      },
+      system: {
+        title: 'Atualizacao do Sistema',
+        description: 'Nova versao disponivel com melhorias',
+        className: 'bg-purple-500 text-white border-purple-600',
+      },
+    }
+
+    const config = notificationConfig[type]
+
+    // Play sound
+    playNotificationSound(type)
+
+    // Show toast
+    toast({
+      title: config.title,
+      description: config.description,
+      className: config.className,
     })
   }
 
@@ -1014,7 +1139,7 @@ function SettingsContent() {
                   Tipos de Notificacao
                 </CardTitle>
                 <CardDescription>
-                  Ative ou desative tipos especificos de notificacoes
+                  Ative ou desative tipos especificos de notificacoes. Clique em "Testar" para ouvir o som.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1028,10 +1153,21 @@ function SettingsContent() {
                       <p className="text-sm text-muted-foreground">Novos pedidos e atualizacoes</p>
                     </div>
                   </div>
-                  <Switch
-                    checked={preferences.order}
-                    onCheckedChange={(checked) => updatePreference('order', checked)}
-                  />
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTestNotification('order')}
+                      className="gap-1.5"
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                      Testar
+                    </Button>
+                    <Switch
+                      checked={preferences.order}
+                      onCheckedChange={(checked) => updatePreference('order', checked)}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-3">
@@ -1043,10 +1179,21 @@ function SettingsContent() {
                       <p className="text-sm text-muted-foreground">Atualizacoes de entrega e rastreamento</p>
                     </div>
                   </div>
-                  <Switch
-                    checked={preferences.delivery}
-                    onCheckedChange={(checked) => updatePreference('delivery', checked)}
-                  />
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTestNotification('delivery')}
+                      className="gap-1.5"
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                      Testar
+                    </Button>
+                    <Switch
+                      checked={preferences.delivery}
+                      onCheckedChange={(checked) => updatePreference('delivery', checked)}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-3">
@@ -1058,10 +1205,21 @@ function SettingsContent() {
                       <p className="text-sm text-muted-foreground">Alertas de estoque baixo</p>
                     </div>
                   </div>
-                  <Switch
-                    checked={preferences.stock}
-                    onCheckedChange={(checked) => updatePreference('stock', checked)}
-                  />
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTestNotification('stock')}
+                      className="gap-1.5"
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                      Testar
+                    </Button>
+                    <Switch
+                      checked={preferences.stock}
+                      onCheckedChange={(checked) => updatePreference('stock', checked)}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-3">
@@ -1073,10 +1231,21 @@ function SettingsContent() {
                       <p className="text-sm text-muted-foreground">Metas atingidas e conquistas</p>
                     </div>
                   </div>
-                  <Switch
-                    checked={preferences.success}
-                    onCheckedChange={(checked) => updatePreference('success', checked)}
-                  />
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTestNotification('success')}
+                      className="gap-1.5"
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                      Testar
+                    </Button>
+                    <Switch
+                      checked={preferences.success}
+                      onCheckedChange={(checked) => updatePreference('success', checked)}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-3">
@@ -1088,10 +1257,21 @@ function SettingsContent() {
                       <p className="text-sm text-muted-foreground">Avisos e problemas importantes</p>
                     </div>
                   </div>
-                  <Switch
-                    checked={preferences.warning}
-                    onCheckedChange={(checked) => updatePreference('warning', checked)}
-                  />
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTestNotification('warning')}
+                      className="gap-1.5"
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                      Testar
+                    </Button>
+                    <Switch
+                      checked={preferences.warning}
+                      onCheckedChange={(checked) => updatePreference('warning', checked)}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-3">
@@ -1103,10 +1283,27 @@ function SettingsContent() {
                       <p className="text-sm text-muted-foreground">Atualizacoes e novidades do sistema</p>
                     </div>
                   </div>
-                  <Switch
-                    checked={preferences.system}
-                    onCheckedChange={(checked) => updatePreference('system', checked)}
-                  />
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTestNotification('system')}
+                      className="gap-1.5"
+                    >
+                      <Play className="h-3.5 w-3.5" />
+                      Testar
+                    </Button>
+                    <Switch
+                      checked={preferences.system}
+                      onCheckedChange={(checked) => updatePreference('system', checked)}
+                    />
+                  </div>
+                </div>
+
+                {/* Sound tip */}
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+                  <Volume2 className="h-4 w-4" />
+                  <span>Ative a opcao "Som" acima para ouvir os sons de notificacao.</span>
                 </div>
               </CardContent>
             </Card>
