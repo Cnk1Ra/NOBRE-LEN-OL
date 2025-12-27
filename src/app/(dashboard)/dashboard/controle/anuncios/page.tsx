@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import {
   AlertDialog,
@@ -46,124 +46,99 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { format } from 'date-fns'
+import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Plus,
   Trash2,
-  Edit2,
   ChevronDown,
   ChevronRight,
   Building2,
   CreditCard,
-  DollarSign,
   TrendingUp,
   TrendingDown,
   Calendar as CalendarIcon,
   BarChart3,
   AlertTriangle,
   CheckCircle,
+  RefreshCw,
+  Search,
+  Wallet,
+  ArrowUpRight,
+  ArrowDownRight,
+  Link2,
+  Link2Off,
+  ExternalLink,
+  Loader2,
   Eye,
   EyeOff,
   Copy,
   Check,
-  RefreshCw,
-  Download,
-  Filter,
-  Search,
-  MoreVertical,
-  Wallet,
-  PiggyBank,
-  ArrowUpRight,
-  ArrowDownRight,
+  Info,
+  Facebook,
+  ChevronLeft,
+  ChevronRightIcon,
 } from 'lucide-react'
+import { useMeta } from '@/contexts/meta-context'
 import { useCountry } from '@/contexts/country-context'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 
-// Types
-interface DailyExpense {
-  date: string // YYYY-MM-DD
-  spent: number
-  revenue: number
-  notes?: string
-}
-
-interface AdAccount {
-  id: string
-  name: string
-  accountId: string // ID da conta de anuncio (ex: act_123456789)
-  status: 'active' | 'inactive' | 'paused' | 'disabled'
-  dailyBudget: number
-  dailyExpenses: DailyExpense[]
-  createdAt: string
-}
-
-interface BusinessManager {
-  id: string
-  name: string
-  bmId: string // ID do BM (ex: 123456789)
-  status: 'active' | 'inactive' | 'restricted'
-  adAccounts: AdAccount[]
-  createdAt: string
-}
-
-// Helper to generate unique IDs
-const generateId = () => Math.random().toString(36).substring(2, 15)
-
-// Get today's date as YYYY-MM-DD
-const getTodayDate = () => format(new Date(), 'yyyy-MM-dd')
-
 export default function AnunciosControlPage() {
-  const { formatCurrency, defaultCurrency } = useCountry()
+  const { formatCurrency } = useCountry()
+  const {
+    isConnected,
+    isLoading,
+    accessToken,
+    businessManagers,
+    adAccounts,
+    lastSync,
+    connect,
+    disconnect,
+    refreshData,
+    syncAllData,
+    setManualToken,
+  } = useMeta()
 
   // State
-  const [businessManagers, setBusinessManagers] = useState<BusinessManager[]>([])
-  const [expandedBMs, setExpandedBMs] = useState<Set<string>>(new Set())
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const [dateRange, setDateRange] = useState<'day' | 'week' | 'month' | 'custom'>('day')
+  const [startDate, setStartDate] = useState<Date>(new Date())
+  const [endDate, setEndDate] = useState<Date>(new Date())
+  const [expandedBMs, setExpandedBMs] = useState<Set<string>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [showConnectDialog, setShowConnectDialog] = useState(false)
+  const [showTokenInput, setShowTokenInput] = useState(false)
+  const [tokenInput, setTokenInput] = useState('')
+  const [showToken, setShowToken] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [activeTab, setActiveTab] = useState<'overview' | 'daily' | 'accounts'>('overview')
 
-  // Dialog states
-  const [showAddBM, setShowAddBM] = useState(false)
-  const [showAddAdAccount, setShowAddAdAccount] = useState(false)
-  const [showEditExpense, setShowEditExpense] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-
-  // Form states
-  const [newBM, setNewBM] = useState({ name: '', bmId: '' })
-  const [newAdAccount, setNewAdAccount] = useState({ name: '', accountId: '', dailyBudget: '' })
-  const [selectedBMId, setSelectedBMId] = useState<string | null>(null)
-  const [selectedAdAccountId, setSelectedAdAccountId] = useState<string | null>(null)
-  const [expenseForm, setExpenseForm] = useState({ spent: '', revenue: '', notes: '' })
-  const [deleteTarget, setDeleteTarget] = useState<{ type: 'bm' | 'adAccount', bmId: string, adAccountId?: string } | null>(null)
-
-  // Load from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('dod-business-managers')
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        setBusinessManagers(parsed)
-        // Expand all BMs by default
-        setExpandedBMs(new Set<string>(parsed.map((bm: BusinessManager) => bm.id)))
-      } catch {
-        // Invalid JSON
-      }
-    }
-  }, [])
-
-  // Save to localStorage
+  // Expand all BMs by default when data loads
   useEffect(() => {
     if (businessManagers.length > 0) {
-      localStorage.setItem('dod-business-managers', JSON.stringify(businessManagers))
+      setExpandedBMs(new Set(businessManagers.map(bm => bm.id)))
     }
   }, [businessManagers])
+
+  // Calculate date range based on selection
+  useEffect(() => {
+    const today = new Date()
+    switch (dateRange) {
+      case 'day':
+        setStartDate(selectedDate)
+        setEndDate(selectedDate)
+        break
+      case 'week':
+        setStartDate(subDays(today, 7))
+        setEndDate(today)
+        break
+      case 'month':
+        setStartDate(startOfMonth(today))
+        setEndDate(endOfMonth(today))
+        break
+    }
+  }, [dateRange, selectedDate])
 
   // Toggle BM expansion
   const toggleBM = (bmId: string) => {
@@ -178,243 +153,105 @@ export default function AnunciosControlPage() {
     })
   }
 
-  // Add Business Manager
-  const handleAddBM = () => {
-    if (!newBM.name.trim() || !newBM.bmId.trim()) {
+  // Handle connect with token
+  const handleConnect = () => {
+    if (!tokenInput.trim()) {
       toast({
-        title: 'Erro!',
-        description: 'Preencha todos os campos obrigatorios.',
+        title: 'Token obrigatorio',
+        description: 'Por favor, insira o Access Token do Meta.',
         variant: 'destructive',
       })
       return
     }
 
-    const bm: BusinessManager = {
-      id: generateId(),
-      name: newBM.name.trim(),
-      bmId: newBM.bmId.trim(),
-      status: 'active',
-      adAccounts: [],
-      createdAt: new Date().toISOString(),
+    setManualToken(tokenInput.trim())
+    setShowConnectDialog(false)
+    setTokenInput('')
+    setShowTokenInput(false)
+  }
+
+  // Copy token
+  const handleCopyToken = () => {
+    if (accessToken) {
+      navigator.clipboard.writeText(accessToken)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     }
-
-    setBusinessManagers(prev => [...prev, bm])
-    setExpandedBMs(prev => new Set([...Array.from(prev), bm.id]))
-    setNewBM({ name: '', bmId: '' })
-    setShowAddBM(false)
-
-    toast({
-      title: 'BM Adicionado!',
-      description: `Business Manager "${bm.name}" foi adicionado com sucesso.`,
-      className: 'bg-green-500 text-white border-green-600',
-    })
   }
 
-  // Add Ad Account
-  const handleAddAdAccount = () => {
-    if (!newAdAccount.name.trim() || !newAdAccount.accountId.trim() || !selectedBMId) {
-      toast({
-        title: 'Erro!',
-        description: 'Preencha todos os campos obrigatorios.',
-        variant: 'destructive',
+  // Calculate spend for a specific date range
+  const getSpendForDateRange = (
+    dailySpend: Array<{ date: string; spent: number }>,
+    start: Date,
+    end: Date
+  ) => {
+    return dailySpend
+      .filter(day => {
+        const dayDate = new Date(day.date)
+        return dayDate >= start && dayDate <= end
       })
-      return
-    }
-
-    const adAccount: AdAccount = {
-      id: generateId(),
-      name: newAdAccount.name.trim(),
-      accountId: newAdAccount.accountId.trim(),
-      status: 'active',
-      dailyBudget: parseFloat(newAdAccount.dailyBudget) || 0,
-      dailyExpenses: [],
-      createdAt: new Date().toISOString(),
-    }
-
-    setBusinessManagers(prev => prev.map(bm =>
-      bm.id === selectedBMId
-        ? { ...bm, adAccounts: [...bm.adAccounts, adAccount] }
-        : bm
-    ))
-
-    setNewAdAccount({ name: '', accountId: '', dailyBudget: '' })
-    setShowAddAdAccount(false)
-    setSelectedBMId(null)
-
-    toast({
-      title: 'Conta Adicionada!',
-      description: `Conta de anuncio "${adAccount.name}" foi adicionada com sucesso.`,
-      className: 'bg-green-500 text-white border-green-600',
-    })
+      .reduce((sum, day) => sum + day.spent, 0)
   }
 
-  // Open expense edit dialog
-  const openExpenseEdit = (bmId: string, adAccountId: string) => {
-    setSelectedBMId(bmId)
-    setSelectedAdAccountId(adAccountId)
-
-    // Find existing expense for selected date
-    const bm = businessManagers.find(b => b.id === bmId)
-    const adAccount = bm?.adAccounts.find(a => a.id === adAccountId)
-    const dateStr = format(selectedDate, 'yyyy-MM-dd')
-    const existingExpense = adAccount?.dailyExpenses.find(e => e.date === dateStr)
-
-    if (existingExpense) {
-      setExpenseForm({
-        spent: existingExpense.spent.toString(),
-        revenue: existingExpense.revenue.toString(),
-        notes: existingExpense.notes || '',
-      })
-    } else {
-      setExpenseForm({ spent: '', revenue: '', notes: '' })
-    }
-
-    setShowEditExpense(true)
-  }
-
-  // Save expense
-  const handleSaveExpense = () => {
-    if (!selectedBMId || !selectedAdAccountId) return
-
-    const dateStr = format(selectedDate, 'yyyy-MM-dd')
-    const spent = parseFloat(expenseForm.spent) || 0
-    const revenue = parseFloat(expenseForm.revenue) || 0
-
-    setBusinessManagers(prev => prev.map(bm => {
-      if (bm.id !== selectedBMId) return bm
-
-      return {
-        ...bm,
-        adAccounts: bm.adAccounts.map(adAccount => {
-          if (adAccount.id !== selectedAdAccountId) return adAccount
-
-          const existingIndex = adAccount.dailyExpenses.findIndex(e => e.date === dateStr)
-          let updatedExpenses: DailyExpense[]
-
-          if (existingIndex >= 0) {
-            // Update existing
-            updatedExpenses = adAccount.dailyExpenses.map((e, i) =>
-              i === existingIndex
-                ? { date: dateStr, spent, revenue, notes: expenseForm.notes }
-                : e
-            )
-          } else {
-            // Add new
-            updatedExpenses = [
-              ...adAccount.dailyExpenses,
-              { date: dateStr, spent, revenue, notes: expenseForm.notes }
-            ]
-          }
-
-          return { ...adAccount, dailyExpenses: updatedExpenses }
-        })
-      }
-    }))
-
-    setShowEditExpense(false)
-    setSelectedBMId(null)
-    setSelectedAdAccountId(null)
-    setExpenseForm({ spent: '', revenue: '', notes: '' })
-
-    toast({
-      title: 'Gasto Registrado!',
-      description: `Gasto de ${formatCurrency(spent)} registrado para ${format(selectedDate, 'dd/MM/yyyy')}.`,
-      className: 'bg-green-500 text-white border-green-600',
-    })
-  }
-
-  // Delete BM or Ad Account
-  const handleDelete = () => {
-    if (!deleteTarget) return
-
-    if (deleteTarget.type === 'bm') {
-      setBusinessManagers(prev => prev.filter(bm => bm.id !== deleteTarget.bmId))
-      toast({
-        title: 'BM Removido!',
-        description: 'Business Manager foi removido com sucesso.',
-        className: 'bg-green-500 text-white border-green-600',
-      })
-    } else if (deleteTarget.type === 'adAccount' && deleteTarget.adAccountId) {
-      setBusinessManagers(prev => prev.map(bm =>
-        bm.id === deleteTarget.bmId
-          ? { ...bm, adAccounts: bm.adAccounts.filter(a => a.id !== deleteTarget.adAccountId) }
-          : bm
-      ))
-      toast({
-        title: 'Conta Removida!',
-        description: 'Conta de anuncio foi removida com sucesso.',
-        className: 'bg-green-500 text-white border-green-600',
-      })
-    }
-
-    setShowDeleteConfirm(false)
-    setDeleteTarget(null)
-  }
-
-  // Calculate totals
-  const calculateBMTotals = (bm: BusinessManager, date?: Date) => {
-    const targetDate = date ? format(date, 'yyyy-MM-dd') : null
-
-    let totalSpent = 0
-    let totalRevenue = 0
-
-    bm.adAccounts.forEach(adAccount => {
-      adAccount.dailyExpenses.forEach(expense => {
-        if (!targetDate || expense.date === targetDate) {
-          totalSpent += expense.spent
-          totalRevenue += expense.revenue
-        }
-      })
-    })
-
-    return { totalSpent, totalRevenue, roi: totalSpent > 0 ? ((totalRevenue - totalSpent) / totalSpent) * 100 : 0 }
-  }
-
-  const calculateAdAccountTotals = (adAccount: AdAccount, date?: Date) => {
-    const targetDate = date ? format(date, 'yyyy-MM-dd') : null
-
-    let totalSpent = 0
-    let totalRevenue = 0
-
-    adAccount.dailyExpenses.forEach(expense => {
-      if (!targetDate || expense.date === targetDate) {
-        totalSpent += expense.spent
-        totalRevenue += expense.revenue
-      }
-    })
-
-    return { totalSpent, totalRevenue, roi: totalSpent > 0 ? ((totalRevenue - totalSpent) / totalSpent) * 100 : 0 }
-  }
-
-  const calculateGrandTotals = (date?: Date) => {
-    let totalSpent = 0
-    let totalRevenue = 0
-
-    businessManagers.forEach(bm => {
-      const totals = calculateBMTotals(bm, date)
-      totalSpent += totals.totalSpent
-      totalRevenue += totals.totalRevenue
-    })
-
-    return { totalSpent, totalRevenue, roi: totalSpent > 0 ? ((totalRevenue - totalSpent) / totalSpent) * 100 : 0 }
-  }
-
-  // Get expense for specific date
-  const getExpenseForDate = (adAccount: AdAccount, date: Date) => {
+  // Get spend for selected date
+  const getSpendForDate = (
+    dailySpend: Array<{ date: string; spent: number }>,
+    date: Date
+  ) => {
     const dateStr = format(date, 'yyyy-MM-dd')
-    return adAccount.dailyExpenses.find(e => e.date === dateStr)
+    const day = dailySpend.find(d => d.date === dateStr)
+    return day?.spent || 0
   }
 
-  // Filter BMs
+  // Calculate totals for the selected period
+  const periodTotals = useMemo(() => {
+    let totalSpent = 0
+    let accountCount = 0
+
+    adAccounts.forEach(account => {
+      const spent = dateRange === 'day'
+        ? getSpendForDate(account.dailySpend, selectedDate)
+        : getSpendForDateRange(account.dailySpend, startDate, endDate)
+      totalSpent += spent
+      if (spent > 0) accountCount++
+    })
+
+    return { totalSpent, accountCount }
+  }, [adAccounts, dateRange, selectedDate, startDate, endDate])
+
+  // Calculate BM totals
+  const getBMTotals = (bmId: string) => {
+    const bm = businessManagers.find(b => b.id === bmId)
+    if (!bm) return { totalSpent: 0, accountCount: 0 }
+
+    let totalSpent = 0
+    bm.adAccounts.forEach(account => {
+      const spent = dateRange === 'day'
+        ? getSpendForDate(account.dailySpend, selectedDate)
+        : getSpendForDateRange(account.dailySpend, startDate, endDate)
+      totalSpent += spent
+    })
+
+    return { totalSpent, accountCount: bm.adAccounts.length }
+  }
+
+  // Filter BMs by search
   const filteredBMs = businessManagers.filter(bm => {
-    const matchesSearch = bm.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bm.bmId.includes(searchTerm) ||
-      bm.adAccounts.some(a => a.name.toLowerCase().includes(searchTerm.toLowerCase()) || a.accountId.includes(searchTerm))
-
-    const matchesStatus = filterStatus === 'all' || bm.status === filterStatus
-
-    return matchesSearch && matchesStatus
+    const matchesSearch =
+      bm.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      bm.adAccounts.some(a =>
+        a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.accountId.includes(searchTerm)
+      )
+    return matchesSearch
   })
+
+  // Get all days in the current month for daily view
+  const daysInMonth = useMemo(() => {
+    const start = startOfMonth(selectedDate)
+    const end = endOfMonth(selectedDate)
+    return eachDayOfInterval({ start, end })
+  }, [selectedDate])
 
   // Get status badge
   const getStatusBadge = (status: string) => {
@@ -427,16 +264,23 @@ export default function AnunciosControlPage() {
         return <Badge className="bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20">Pausado</Badge>
       case 'disabled':
         return <Badge variant="destructive">Desativado</Badge>
-      case 'restricted':
-        return <Badge className="bg-red-500/10 text-red-600 hover:bg-red-500/20">Restrito</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
   }
 
-  // Grand totals for selected date
-  const todayTotals = calculateGrandTotals(selectedDate)
-  const monthTotals = calculateGrandTotals()
+  // Navigate month
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    setSelectedDate(prev => {
+      const newDate = new Date(prev)
+      if (direction === 'prev') {
+        newDate.setMonth(newDate.getMonth() - 1)
+      } else {
+        newDate.setMonth(newDate.getMonth() + 1)
+      }
+      return newDate
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -445,633 +289,587 @@ export default function AnunciosControlPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Controle de Anuncios</h1>
           <p className="text-muted-foreground">
-            Gerencie seus Business Managers e contas de anuncio
+            {isConnected
+              ? `Conectado ao Meta • Ultima sincronizacao: ${lastSync ? format(lastSync, "dd/MM 'as' HH:mm") : 'Nunca'}`
+              : 'Conecte sua conta Meta para ver os gastos automaticamente'
+            }
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="date"
-              value={format(selectedDate, 'yyyy-MM-dd')}
-              onChange={(e) => {
-                const date = new Date(e.target.value + 'T12:00:00')
-                if (!isNaN(date.getTime())) {
-                  setSelectedDate(date)
-                }
-              }}
-              className="pl-9 w-[180px]"
-            />
-          </div>
-
-          <Dialog open={showAddBM} onOpenChange={setShowAddBM}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Novo BM
+          {isConnected ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => refreshData()}
+                disabled={isLoading}
+                className="gap-2"
+              >
+                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                {isLoading ? 'Sincronizando...' : 'Atualizar'}
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Adicionar Business Manager</DialogTitle>
-                <DialogDescription>
-                  Adicione um novo BM para controlar os gastos das suas contas de anuncio.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="bmName">Nome do BM</Label>
-                  <Input
-                    id="bmName"
-                    placeholder="Ex: BM Principal"
-                    value={newBM.name}
-                    onChange={(e) => setNewBM(prev => ({ ...prev, name: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bmId">ID do Business Manager</Label>
-                  <Input
-                    id="bmId"
-                    placeholder="Ex: 123456789012345"
-                    value={newBM.bmId}
-                    onChange={(e) => setNewBM(prev => ({ ...prev, bmId: e.target.value }))}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowAddBM(false)}>Cancelar</Button>
-                <Button onClick={handleAddBM}>Adicionar BM</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              <Button
+                variant="outline"
+                onClick={() => disconnect()}
+                className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Link2Off className="h-4 w-4" />
+                Desconectar
+              </Button>
+            </>
+          ) : (
+            <Button
+              onClick={() => setShowConnectDialog(true)}
+              className="gap-2 bg-[#1877F2] hover:bg-[#166FE5]"
+            >
+              <Facebook className="h-4 w-4" />
+              Conectar ao Meta
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Gasto Hoje</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {formatCurrency(todayTotals.totalSpent)}
-                </p>
-              </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10">
-                <ArrowDownRight className="h-6 w-6 text-red-500" />
-              </div>
+      {/* Connection Required Card */}
+      {!isConnected && (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#1877F2]/10 mb-4">
+              <Facebook className="h-8 w-8 text-[#1877F2]" />
             </div>
+            <h3 className="text-lg font-semibold mb-2">Conecte sua conta Meta</h3>
+            <p className="text-muted-foreground text-center mb-6 max-w-md">
+              Para ver automaticamente os gastos de cada BM e conta de anuncio,
+              conecte sua conta do Meta Business Suite.
+            </p>
+            <Button
+              onClick={() => setShowConnectDialog(true)}
+              className="gap-2 bg-[#1877F2] hover:bg-[#166FE5]"
+            >
+              <Facebook className="h-4 w-4" />
+              Conectar ao Meta
+            </Button>
           </CardContent>
         </Card>
+      )}
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Receita Hoje</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {formatCurrency(todayTotals.totalRevenue)}
-                </p>
-              </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
-                <ArrowUpRight className="h-6 w-6 text-green-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Lucro Hoje</p>
-                <p className={cn(
-                  "text-2xl font-bold",
-                  todayTotals.totalRevenue - todayTotals.totalSpent >= 0 ? "text-green-600" : "text-red-600"
-                )}>
-                  {formatCurrency(todayTotals.totalRevenue - todayTotals.totalSpent)}
-                </p>
-              </div>
-              <div className={cn(
-                "flex h-12 w-12 items-center justify-center rounded-full",
-                todayTotals.totalRevenue - todayTotals.totalSpent >= 0 ? "bg-green-500/10" : "bg-red-500/10"
-              )}>
-                <Wallet className={cn(
-                  "h-6 w-6",
-                  todayTotals.totalRevenue - todayTotals.totalSpent >= 0 ? "text-green-500" : "text-red-500"
-                )} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">ROI Hoje</p>
-                <p className={cn(
-                  "text-2xl font-bold",
-                  todayTotals.roi >= 0 ? "text-green-600" : "text-red-600"
-                )}>
-                  {todayTotals.roi.toFixed(1)}%
-                </p>
-              </div>
-              <div className={cn(
-                "flex h-12 w-12 items-center justify-center rounded-full",
-                todayTotals.roi >= 0 ? "bg-green-500/10" : "bg-red-500/10"
-              )}>
-                {todayTotals.roi >= 0
-                  ? <TrendingUp className="h-6 w-6 text-green-500" />
-                  : <TrendingDown className="h-6 w-6 text-red-500" />
-                }
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Monthly Summary */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <BarChart3 className="h-5 w-5 text-primary" />
-            Resumo do Mes - {format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR })}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10">
-                <ArrowDownRight className="h-5 w-5 text-red-500" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Gasto</p>
-                <p className="font-semibold text-red-600">{formatCurrency(monthTotals.totalSpent)}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
-                <ArrowUpRight className="h-5 w-5 text-green-500" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Receita</p>
-                <p className="font-semibold text-green-600">{formatCurrency(monthTotals.totalRevenue)}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <div className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-lg",
-                monthTotals.totalRevenue - monthTotals.totalSpent >= 0 ? "bg-green-500/10" : "bg-red-500/10"
-              )}>
-                <PiggyBank className={cn(
-                  "h-5 w-5",
-                  monthTotals.totalRevenue - monthTotals.totalSpent >= 0 ? "text-green-500" : "text-red-500"
-                )} />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Lucro Total</p>
-                <p className={cn(
-                  "font-semibold",
-                  monthTotals.totalRevenue - monthTotals.totalSpent >= 0 ? "text-green-600" : "text-red-600"
-                )}>
-                  {formatCurrency(monthTotals.totalRevenue - monthTotals.totalSpent)}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <div className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-lg",
-                monthTotals.roi >= 0 ? "bg-green-500/10" : "bg-red-500/10"
-              )}>
-                <BarChart3 className={cn(
-                  "h-5 w-5",
-                  monthTotals.roi >= 0 ? "text-green-500" : "text-red-500"
-                )} />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">ROI Mes</p>
-                <p className={cn(
-                  "font-semibold",
-                  monthTotals.roi >= 0 ? "text-green-600" : "text-red-600"
-                )}>
-                  {monthTotals.roi.toFixed(1)}%
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Search and Filter */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar BM ou conta de anuncio..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[180px]">
-            <Filter className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Filtrar status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="active">Ativos</SelectItem>
-            <SelectItem value="inactive">Inativos</SelectItem>
-            <SelectItem value="restricted">Restritos</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Business Managers List */}
-      <div className="space-y-4">
-        {filteredBMs.length === 0 ? (
+      {/* Main Content - Only show when connected */}
+      {isConnected && (
+        <>
+          {/* Date Filter */}
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Building2 className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Nenhum Business Manager</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                Adicione seu primeiro BM para comecar a controlar os gastos.
-              </p>
-              <Button onClick={() => setShowAddBM(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Adicionar BM
-              </Button>
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <Select value={dateRange} onValueChange={(v: 'day' | 'week' | 'month' | 'custom') => setDateRange(v)}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="day">Dia especifico</SelectItem>
+                      <SelectItem value="week">Ultimos 7 dias</SelectItem>
+                      <SelectItem value="month">Este mes</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {dateRange === 'day' && (
+                    <div className="relative">
+                      <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="date"
+                        value={format(selectedDate, 'yyyy-MM-dd')}
+                        onChange={(e) => {
+                          const date = new Date(e.target.value + 'T12:00:00')
+                          if (!isNaN(date.getTime())) {
+                            setSelectedDate(date)
+                          }
+                        }}
+                        className="pl-9 w-[180px]"
+                      />
+                    </div>
+                  )}
+
+                  {dateRange === 'month' && (
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="icon" onClick={() => navigateMonth('prev')}>
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="font-medium min-w-[140px] text-center">
+                        {format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR })}
+                      </span>
+                      <Button variant="outline" size="icon" onClick={() => navigateMonth('next')}>
+                        <ChevronRightIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="relative flex-1 max-w-xs">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar BM ou conta..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
-        ) : (
-          filteredBMs.map((bm) => {
-            const bmTotals = calculateBMTotals(bm, selectedDate)
-            const bmMonthTotals = calculateBMTotals(bm)
 
-            return (
-              <Card key={bm.id} className="overflow-hidden">
-                <Collapsible
-                  open={expandedBMs.has(bm.id)}
-                  onOpenChange={() => toggleBM(bm.id)}
-                >
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {expandedBMs.has(bm.id) ? (
-                            <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                          ) : (
-                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                          )}
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                            <Building2 className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <CardTitle className="text-lg">{bm.name}</CardTitle>
-                              {getStatusBadge(bm.status)}
+          {/* Summary Cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {dateRange === 'day' ? 'Gasto do Dia' :
+                       dateRange === 'week' ? 'Gasto 7 dias' : 'Gasto do Mes'}
+                    </p>
+                    <p className="text-2xl font-bold text-red-600">
+                      {formatCurrency(periodTotals.totalSpent)}
+                    </p>
+                  </div>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10">
+                    <ArrowDownRight className="h-6 w-6 text-red-500" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Business Managers</p>
+                    <p className="text-2xl font-bold">{businessManagers.length}</p>
+                  </div>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10">
+                    <Building2 className="h-6 w-6 text-blue-500" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Contas de Anuncio</p>
+                    <p className="text-2xl font-bold">{adAccounts.length}</p>
+                  </div>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/10">
+                    <CreditCard className="h-6 w-6 text-purple-500" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Contas Ativas</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {periodTotals.accountCount}
+                    </p>
+                  </div>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+                    <CheckCircle className="h-6 w-6 text-green-500" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Tabs for different views */}
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
+            <TabsList>
+              <TabsTrigger value="overview">Visao Geral</TabsTrigger>
+              <TabsTrigger value="daily">Gastos Diarios</TabsTrigger>
+              <TabsTrigger value="accounts">Todas as Contas</TabsTrigger>
+            </TabsList>
+
+            {/* Overview Tab - BMs with nested accounts */}
+            <TabsContent value="overview" className="space-y-4">
+              {filteredBMs.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <Building2 className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      {isLoading ? 'Carregando dados...' : 'Nenhum Business Manager encontrado'}
+                    </h3>
+                    <p className="text-muted-foreground text-center">
+                      {isLoading
+                        ? 'Buscando suas contas de anuncio do Meta...'
+                        : 'Clique em Atualizar para sincronizar seus dados do Meta.'
+                      }
+                    </p>
+                    {isLoading && (
+                      <Loader2 className="h-8 w-8 animate-spin text-primary mt-4" />
+                    )}
+                  </CardContent>
+                </Card>
+              ) : (
+                filteredBMs.map((bm) => {
+                  const bmTotals = getBMTotals(bm.id)
+
+                  return (
+                    <Card key={bm.id} className="overflow-hidden">
+                      <Collapsible
+                        open={expandedBMs.has(bm.id)}
+                        onOpenChange={() => toggleBM(bm.id)}
+                      >
+                        <CollapsibleTrigger asChild>
+                          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                {expandedBMs.has(bm.id) ? (
+                                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                                )}
+                                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                                  <Building2 className="h-5 w-5 text-primary" />
+                                </div>
+                                <div>
+                                  <CardTitle className="text-lg">{bm.name}</CardTitle>
+                                  <CardDescription>
+                                    {bm.adAccounts.length} conta(s) de anuncio
+                                  </CardDescription>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-6">
+                                <div className="text-right">
+                                  <p className="text-xs text-muted-foreground">
+                                    {dateRange === 'day' ? 'Gasto do Dia' :
+                                     dateRange === 'week' ? 'Gasto 7 dias' : 'Gasto do Mes'}
+                                  </p>
+                                  <p className="text-xl font-bold text-red-600">
+                                    {formatCurrency(bmTotals.totalSpent)}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs text-muted-foreground">Total Geral</p>
+                                  <p className="font-semibold">{formatCurrency(bm.totalSpent)}</p>
+                                </div>
+                              </div>
                             </div>
-                            <CardDescription className="font-mono text-xs">
-                              BM ID: {bm.bmId} • {bm.adAccounts.length} conta(s)
-                            </CardDescription>
-                          </div>
-                        </div>
+                          </CardHeader>
+                        </CollapsibleTrigger>
 
-                        <div className="flex items-center gap-6">
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">Gasto Hoje</p>
-                            <p className="font-semibold text-red-600">{formatCurrency(bmTotals.totalSpent)}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">Receita Hoje</p>
-                            <p className="font-semibold text-green-600">{formatCurrency(bmTotals.totalRevenue)}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">Total Mes</p>
-                            <p className="font-semibold">{formatCurrency(bmMonthTotals.totalSpent)}</p>
-                          </div>
+                        <CollapsibleContent>
+                          <CardContent className="pt-0">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Conta de Anuncio</TableHead>
+                                  <TableHead>ID</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead>Moeda</TableHead>
+                                  <TableHead className="text-right">
+                                    {dateRange === 'day' ? 'Gasto do Dia' :
+                                     dateRange === 'week' ? 'Gasto 7 dias' : 'Gasto do Mes'}
+                                  </TableHead>
+                                  <TableHead className="text-right">Total Geral</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {bm.adAccounts.map((account) => {
+                                  const periodSpend = dateRange === 'day'
+                                    ? getSpendForDate(account.dailySpend, selectedDate)
+                                    : getSpendForDateRange(account.dailySpend, startDate, endDate)
 
-                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setSelectedBMId(bm.id)
-                                setShowAddAdAccount(true)
-                              }}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                              onClick={() => {
-                                setDeleteTarget({ type: 'bm', bmId: bm.id })
-                                setShowDeleteConfirm(true)
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
+                                  return (
+                                    <TableRow key={account.id}>
+                                      <TableCell>
+                                        <div className="flex items-center gap-2">
+                                          <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                          <span className="font-medium">{account.name}</span>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                                          {account.accountId}
+                                        </code>
+                                      </TableCell>
+                                      <TableCell>{getStatusBadge(account.status)}</TableCell>
+                                      <TableCell>
+                                        <Badge variant="outline">{account.currency}</Badge>
+                                      </TableCell>
+                                      <TableCell className="text-right font-medium text-red-600">
+                                        {formatCurrency(periodSpend)}
+                                      </TableCell>
+                                      <TableCell className="text-right font-medium">
+                                        {formatCurrency(account.totalSpent)}
+                                      </TableCell>
+                                    </TableRow>
+                                  )
+                                })}
+                              </TableBody>
+                            </Table>
+                          </CardContent>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </Card>
+                  )
+                })
+              )}
+            </TabsContent>
 
-                  <CollapsibleContent>
-                    <CardContent className="pt-0">
-                      {bm.adAccounts.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-8 border-t">
-                          <CreditCard className="h-8 w-8 text-muted-foreground/50 mb-2" />
-                          <p className="text-sm text-muted-foreground mb-3">
-                            Nenhuma conta de anuncio cadastrada
-                          </p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedBMId(bm.id)
-                              setShowAddAdAccount(true)
-                            }}
-                            className="gap-2"
+            {/* Daily Tab - Day by day spending */}
+            <TabsContent value="daily">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Gastos Diarios</CardTitle>
+                      <CardDescription>
+                        Veja o gasto de cada dia do mes de {format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR })}
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="icon" onClick={() => navigateMonth('prev')}>
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => navigateMonth('next')}>
+                        <ChevronRightIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Dia</TableHead>
+                        {businessManagers.map(bm => (
+                          <TableHead key={bm.id} className="text-right">{bm.name}</TableHead>
+                        ))}
+                        <TableHead className="text-right font-bold">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {daysInMonth.map(day => {
+                        const dayStr = format(day, 'yyyy-MM-dd')
+                        const isToday = isSameDay(day, new Date())
+                        let dayTotal = 0
+
+                        return (
+                          <TableRow
+                            key={dayStr}
+                            className={cn(
+                              isToday && "bg-primary/5",
+                              isSameDay(day, selectedDate) && "bg-blue-50 dark:bg-blue-950/30"
+                            )}
                           >
-                            <Plus className="h-4 w-4" />
-                            Adicionar Conta
-                          </Button>
-                        </div>
-                      ) : (
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Conta de Anuncio</TableHead>
-                              <TableHead>ID</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead className="text-right">Gasto Hoje</TableHead>
-                              <TableHead className="text-right">Receita Hoje</TableHead>
-                              <TableHead className="text-right">Lucro</TableHead>
-                              <TableHead className="text-right">Total Mes</TableHead>
-                              <TableHead className="w-[100px]">Acoes</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {bm.adAccounts.map((adAccount) => {
-                              const expense = getExpenseForDate(adAccount, selectedDate)
-                              const adTotals = calculateAdAccountTotals(adAccount)
-                              const todayProfit = (expense?.revenue || 0) - (expense?.spent || 0)
+                            <TableCell className="font-medium">
+                              {format(day, 'dd/MM')}
+                              {isToday && (
+                                <Badge className="ml-2 bg-green-500">Hoje</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {format(day, 'EEEE', { locale: ptBR })}
+                            </TableCell>
+                            {businessManagers.map(bm => {
+                              let bmDaySpend = 0
+                              bm.adAccounts.forEach(account => {
+                                const spend = getSpendForDate(account.dailySpend, day)
+                                bmDaySpend += spend
+                              })
+                              dayTotal += bmDaySpend
 
                               return (
-                                <TableRow key={adAccount.id}>
-                                  <TableCell>
-                                    <div className="flex items-center gap-2">
-                                      <CreditCard className="h-4 w-4 text-muted-foreground" />
-                                      <span className="font-medium">{adAccount.name}</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                                      {adAccount.accountId}
-                                    </code>
-                                  </TableCell>
-                                  <TableCell>{getStatusBadge(adAccount.status)}</TableCell>
-                                  <TableCell className="text-right font-medium text-red-600">
-                                    {formatCurrency(expense?.spent || 0)}
-                                  </TableCell>
-                                  <TableCell className="text-right font-medium text-green-600">
-                                    {formatCurrency(expense?.revenue || 0)}
-                                  </TableCell>
-                                  <TableCell className={cn(
-                                    "text-right font-medium",
-                                    todayProfit >= 0 ? "text-green-600" : "text-red-600"
-                                  )}>
-                                    {formatCurrency(todayProfit)}
-                                  </TableCell>
-                                  <TableCell className="text-right font-medium">
-                                    {formatCurrency(adTotals.totalSpent)}
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-1">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        onClick={() => openExpenseEdit(bm.id, adAccount.id)}
-                                      >
-                                        <Edit2 className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                        onClick={() => {
-                                          setDeleteTarget({ type: 'adAccount', bmId: bm.id, adAccountId: adAccount.id })
-                                          setShowDeleteConfirm(true)
-                                        }}
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
+                                <TableCell key={bm.id} className="text-right">
+                                  <span className={bmDaySpend > 0 ? "text-red-600 font-medium" : "text-muted-foreground"}>
+                                    {formatCurrency(bmDaySpend)}
+                                  </span>
+                                </TableCell>
                               )
                             })}
-                          </TableBody>
-                        </Table>
-                      )}
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
+                            <TableCell className="text-right font-bold">
+                              <span className={dayTotal > 0 ? "text-red-600" : "text-muted-foreground"}>
+                                {formatCurrency(dayTotal)}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
               </Card>
-            )
-          })
-        )}
-      </div>
+            </TabsContent>
 
-      {/* Add Ad Account Dialog */}
-      <Dialog open={showAddAdAccount} onOpenChange={setShowAddAdAccount}>
-        <DialogContent>
+            {/* All Accounts Tab */}
+            <TabsContent value="accounts">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Todas as Contas de Anuncio</CardTitle>
+                  <CardDescription>
+                    Lista completa de todas as contas de anuncio conectadas
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Conta</TableHead>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Business Manager</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Moeda</TableHead>
+                        <TableHead className="text-right">Gasto Hoje</TableHead>
+                        <TableHead className="text-right">Gasto 7 dias</TableHead>
+                        <TableHead className="text-right">Total Geral</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {adAccounts
+                        .filter(a =>
+                          a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          a.accountId.includes(searchTerm)
+                        )
+                        .map((account) => {
+                          const todaySpend = getSpendForDate(account.dailySpend, new Date())
+                          const weekSpend = getSpendForDateRange(
+                            account.dailySpend,
+                            subDays(new Date(), 7),
+                            new Date()
+                          )
+
+                          return (
+                            <TableRow key={account.id}>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-medium">{account.name}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                                  {account.accountId}
+                                </code>
+                              </TableCell>
+                              <TableCell>
+                                {account.businessName || 'Pessoal'}
+                              </TableCell>
+                              <TableCell>{getStatusBadge(account.status)}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{account.currency}</Badge>
+                              </TableCell>
+                              <TableCell className="text-right font-medium text-red-600">
+                                {formatCurrency(todaySpend)}
+                              </TableCell>
+                              <TableCell className="text-right font-medium text-orange-600">
+                                {formatCurrency(weekSpend)}
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                {formatCurrency(account.totalSpent)}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
+
+      {/* Connect Dialog */}
+      <Dialog open={showConnectDialog} onOpenChange={setShowConnectDialog}>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Adicionar Conta de Anuncio</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Facebook className="h-5 w-5 text-[#1877F2]" />
+              Conectar ao Meta Business
+            </DialogTitle>
             <DialogDescription>
-              Adicione uma nova conta de anuncio ao Business Manager selecionado.
+              Para buscar automaticamente os gastos das suas contas de anuncio,
+              voce precisa gerar um Access Token no Meta Business Suite.
             </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="adAccountName">Nome da Conta</Label>
-              <Input
-                id="adAccountName"
-                placeholder="Ex: Conta Principal"
-                value={newAdAccount.name}
-                onChange={(e) => setNewAdAccount(prev => ({ ...prev, name: e.target.value }))}
-              />
+            {/* Instructions */}
+            <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 p-4 space-y-3">
+              <h4 className="font-medium flex items-center gap-2">
+                <Info className="h-4 w-4 text-blue-500" />
+                Como obter o Access Token:
+              </h4>
+              <ol className="text-sm space-y-2 text-muted-foreground list-decimal list-inside">
+                <li>Acesse o <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Graph API Explorer</a></li>
+                <li>Selecione seu App ou crie um novo</li>
+                <li>Clique em "Generate Access Token"</li>
+                <li>Marque as permissoes: <code className="bg-muted px-1 rounded">ads_read</code>, <code className="bg-muted px-1 rounded">business_management</code></li>
+                <li>Copie o token gerado e cole abaixo</li>
+              </ol>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                onClick={() => window.open('https://developers.facebook.com/tools/explorer/', '_blank')}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Abrir Graph API Explorer
+              </Button>
             </div>
+
+            <Separator />
+
+            {/* Token Input */}
             <div className="space-y-2">
-              <Label htmlFor="adAccountId">ID da Conta de Anuncio</Label>
-              <Input
-                id="adAccountId"
-                placeholder="Ex: act_123456789"
-                value={newAdAccount.accountId}
-                onChange={(e) => setNewAdAccount(prev => ({ ...prev, accountId: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dailyBudget">Orcamento Diario (opcional)</Label>
+              <Label htmlFor="accessToken">Access Token</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  {defaultCurrency.symbol}
-                </span>
                 <Input
-                  id="dailyBudget"
-                  type="number"
-                  placeholder="0.00"
-                  value={newAdAccount.dailyBudget}
-                  onChange={(e) => setNewAdAccount(prev => ({ ...prev, dailyBudget: e.target.value }))}
-                  className="pl-10"
+                  id="accessToken"
+                  type={showToken ? 'text' : 'password'}
+                  placeholder="Cole seu Access Token aqui..."
+                  value={tokenInput}
+                  onChange={(e) => setTokenInput(e.target.value)}
+                  className="pr-10 font-mono text-sm"
                 />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full"
+                  onClick={() => setShowToken(!showToken)}
+                >
+                  {showToken ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                O token sera armazenado localmente no seu navegador.
+              </p>
             </div>
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowAddAdAccount(false)
-              setSelectedBMId(null)
-            }}>
+            <Button variant="outline" onClick={() => setShowConnectDialog(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleAddAdAccount}>Adicionar Conta</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Expense Dialog */}
-      <Dialog open={showEditExpense} onOpenChange={setShowEditExpense}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Registrar Gasto do Dia</DialogTitle>
-            <DialogDescription>
-              {format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="spent">Valor Gasto</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  {defaultCurrency.symbol}
-                </span>
-                <Input
-                  id="spent"
-                  type="number"
-                  placeholder="0.00"
-                  value={expenseForm.spent}
-                  onChange={(e) => setExpenseForm(prev => ({ ...prev, spent: e.target.value }))}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="revenue">Receita Gerada</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  {defaultCurrency.symbol}
-                </span>
-                <Input
-                  id="revenue"
-                  type="number"
-                  placeholder="0.00"
-                  value={expenseForm.revenue}
-                  onChange={(e) => setExpenseForm(prev => ({ ...prev, revenue: e.target.value }))}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="notes">Observacoes (opcional)</Label>
-              <Input
-                id="notes"
-                placeholder="Alguma observacao sobre o dia..."
-                value={expenseForm.notes}
-                onChange={(e) => setExpenseForm(prev => ({ ...prev, notes: e.target.value }))}
-              />
-            </div>
-
-            {/* Quick preview */}
-            <div className="p-3 rounded-lg bg-muted/50 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Lucro:</span>
-                <span className={cn(
-                  "font-medium",
-                  (parseFloat(expenseForm.revenue) || 0) - (parseFloat(expenseForm.spent) || 0) >= 0
-                    ? "text-green-600"
-                    : "text-red-600"
-                )}>
-                  {formatCurrency((parseFloat(expenseForm.revenue) || 0) - (parseFloat(expenseForm.spent) || 0))}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">ROI:</span>
-                <span className={cn(
-                  "font-medium",
-                  ((parseFloat(expenseForm.revenue) || 0) - (parseFloat(expenseForm.spent) || 0)) / (parseFloat(expenseForm.spent) || 1) * 100 >= 0
-                    ? "text-green-600"
-                    : "text-red-600"
-                )}>
-                  {((parseFloat(expenseForm.spent) || 0) > 0
-                    ? (((parseFloat(expenseForm.revenue) || 0) - (parseFloat(expenseForm.spent) || 0)) / (parseFloat(expenseForm.spent) || 1) * 100).toFixed(1)
-                    : 0
-                  )}%
-                </span>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowEditExpense(false)
-              setSelectedBMId(null)
-              setSelectedAdAccountId(null)
-            }}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveExpense}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              Confirmar Exclusao
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleteTarget?.type === 'bm'
-                ? 'Tem certeza que deseja excluir este Business Manager? Todas as contas de anuncio e historico de gastos serao removidos permanentemente.'
-                : 'Tem certeza que deseja excluir esta conta de anuncio? Todo o historico de gastos sera removido permanentemente.'
-              }
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setShowDeleteConfirm(false)
-              setDeleteTarget(null)
-            }}>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-red-500 hover:bg-red-600"
+            <Button
+              onClick={handleConnect}
+              disabled={!tokenInput.trim()}
+              className="gap-2 bg-[#1877F2] hover:bg-[#166FE5]"
             >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <Link2 className="h-4 w-4" />
+              Conectar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
