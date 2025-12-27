@@ -44,6 +44,7 @@ import {
   FileCheck,
   ClipboardList,
   GitCompare,
+  Megaphone,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -154,6 +155,13 @@ const integrationNavItems = [
 
 // CONTROLE - Expandable section with sub-items
 const controlNavItems = [
+  {
+    title: 'Anuncios',
+    href: '/dashboard/controle/anuncios',
+    icon: Megaphone,
+    color: 'text-pink-500',
+    description: 'Gastos por BM e conta',
+  },
   {
     title: 'N1 Warehouse',
     href: '/dashboard/controle/n1',
