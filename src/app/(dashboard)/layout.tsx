@@ -9,6 +9,7 @@ import { CountryProvider } from '@/contexts/country-context'
 import { UserProvider } from '@/contexts/user-context'
 import { LanguageProvider } from '@/contexts/language-context'
 import { MetaProvider } from '@/contexts/meta-context'
+import { TrackingProvider } from '@/contexts/tracking-context'
 
 export default function DashboardLayout({
   children,
@@ -22,6 +23,7 @@ export default function DashboardLayout({
           <NotificationsProvider>
             <CountryProvider>
               <MetaProvider>
+              <TrackingProvider>
                 <div className="flex h-screen overflow-hidden">
                   <Sidebar />
                   <div className="flex flex-1 flex-col overflow-hidden">
@@ -32,6 +34,7 @@ export default function DashboardLayout({
                   </div>
                 </div>
                 <Toaster />
+              </TrackingProvider>
               </MetaProvider>
             </CountryProvider>
           </NotificationsProvider>

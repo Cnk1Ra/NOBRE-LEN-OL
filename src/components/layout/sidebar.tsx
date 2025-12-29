@@ -57,6 +57,12 @@ const mainNavItems = [
     color: 'text-primary',
   },
   {
+    title: 'Atribuição COD',
+    href: '/dashboard/atribuicao',
+    icon: Target,
+    color: 'text-orange-500',
+  },
+  {
     title: 'Pedidos',
     href: '/dashboard/orders',
     icon: ShoppingCart,
