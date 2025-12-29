@@ -1,5 +1,5 @@
 <!-- DOD TRACKING SCRIPT - Cole no theme.liquid antes do </head> -->
-<!-- Versão: 1.0 | Dashboard: DOD -->
+<!-- Versão: 2.0 | Dashboard: DOD | Detecção automática de país/moeda -->
 
 <script>
 (function() {
@@ -17,8 +17,55 @@
     googleTagId: '',      // Ex: 'AW-123456789'
     tiktokPixelId: '',    // Ex: 'CPIX123456789'
 
+    // Moeda padrão se não detectar
+    defaultCurrency: 'MAD',
+
     // Ativar debug no console
     debug: false
+  };
+
+  // ============================================
+  // MAPA DE PAÍSES/MOEDAS POR DOMÍNIO
+  // ============================================
+  const COUNTRY_MAP = {
+    // África
+    'ma': { country: 'MA', currency: 'MAD', name: 'Marrocos' },
+    'dz': { country: 'DZ', currency: 'DZD', name: 'Argélia' },
+    'tn': { country: 'TN', currency: 'TND', name: 'Tunísia' },
+    'eg': { country: 'EG', currency: 'EGP', name: 'Egito' },
+    'ng': { country: 'NG', currency: 'NGN', name: 'Nigéria' },
+    'za': { country: 'ZA', currency: 'ZAR', name: 'África do Sul' },
+    // Oriente Médio
+    'ae': { country: 'AE', currency: 'AED', name: 'Emirados Árabes' },
+    'sa': { country: 'SA', currency: 'SAR', name: 'Arábia Saudita' },
+    'kw': { country: 'KW', currency: 'KWD', name: 'Kuwait' },
+    'qa': { country: 'QA', currency: 'QAR', name: 'Qatar' },
+    'bh': { country: 'BH', currency: 'BHD', name: 'Bahrein' },
+    'om': { country: 'OM', currency: 'OMR', name: 'Omã' },
+    'jo': { country: 'JO', currency: 'JOD', name: 'Jordânia' },
+    'iq': { country: 'IQ', currency: 'IQD', name: 'Iraque' },
+    // Europa
+    'pt': { country: 'PT', currency: 'EUR', name: 'Portugal' },
+    'es': { country: 'ES', currency: 'EUR', name: 'Espanha' },
+    'fr': { country: 'FR', currency: 'EUR', name: 'França' },
+    'de': { country: 'DE', currency: 'EUR', name: 'Alemanha' },
+    'it': { country: 'IT', currency: 'EUR', name: 'Itália' },
+    'uk': { country: 'GB', currency: 'GBP', name: 'Reino Unido' },
+    // Américas
+    'br': { country: 'BR', currency: 'BRL', name: 'Brasil' },
+    'mx': { country: 'MX', currency: 'MXN', name: 'México' },
+    'co': { country: 'CO', currency: 'COP', name: 'Colômbia' },
+    'ar': { country: 'AR', currency: 'ARS', name: 'Argentina' },
+    'cl': { country: 'CL', currency: 'CLP', name: 'Chile' },
+    'pe': { country: 'PE', currency: 'PEN', name: 'Peru' },
+    // Ásia
+    'pk': { country: 'PK', currency: 'PKR', name: 'Paquistão' },
+    'in': { country: 'IN', currency: 'INR', name: 'Índia' },
+    'id': { country: 'ID', currency: 'IDR', name: 'Indonésia' },
+    'my': { country: 'MY', currency: 'MYR', name: 'Malásia' },
+    'ph': { country: 'PH', currency: 'PHP', name: 'Filipinas' },
+    'th': { country: 'TH', currency: 'THB', name: 'Tailândia' },
+    'vn': { country: 'VN', currency: 'VND', name: 'Vietnã' }
   };
 
   // ============================================
@@ -59,8 +106,38 @@
       const d = new Date();
       d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
       document.cookie = `${name}=${value};expires=${d.toUTCString()};path=/;SameSite=Lax`;
+    },
+
+    // Detecta país/moeda automaticamente
+    detectCountry: function() {
+      // 1. Tenta por parâmetro URL (?country=MA)
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlCountry = urlParams.get('country');
+      if (urlCountry && COUNTRY_MAP[urlCountry.toLowerCase()]) {
+        return COUNTRY_MAP[urlCountry.toLowerCase()];
+      }
+
+      // 2. Tenta por TLD do domínio
+      const host = window.location.hostname;
+      const tld = host.split('.').pop().toLowerCase();
+      if (COUNTRY_MAP[tld]) {
+        return COUNTRY_MAP[tld];
+      }
+
+      // 3. Tenta por subdomínio (ex: ma.loja.com)
+      const subdomain = host.split('.')[0].toLowerCase();
+      if (COUNTRY_MAP[subdomain]) {
+        return COUNTRY_MAP[subdomain];
+      }
+
+      // 4. Retorna padrão
+      return { country: 'XX', currency: DOD_CONFIG.defaultCurrency, name: 'Padrão' };
     }
   };
+
+  // País/moeda detectado
+  const countryInfo = DOD.detectCountry();
+  DOD.log('País detectado:', countryInfo);
 
   // ============================================
   // CAPTURA DE PARÂMETROS
@@ -467,7 +544,9 @@
   window.DOD_Tracking = {
     track: EventSender.track.bind(EventSender),
     getParams: TrackingParams.get,
-    getVisitorId: DOD.getVisitorId.bind(DOD)
+    getVisitorId: DOD.getVisitorId.bind(DOD),
+    getCountry: function() { return countryInfo; },
+    getCurrency: function() { return countryInfo.currency; }
   };
 
   init();

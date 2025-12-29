@@ -195,7 +195,52 @@ export default function PixelsUTMsPage() {
   // ============================================
   const DOD_CONFIG = {
     webhookUrl: 'https://seu-dashboard.com/api/webhook/tracking',
+    defaultCurrency: 'MAD',  // Moeda padrão se não detectar
     debug: false
+  };
+
+  // ============================================
+  // MAPA DE PAÍSES/MOEDAS POR DOMÍNIO
+  // ============================================
+  const COUNTRY_MAP = {
+    // África
+    'ma': { country: 'MA', currency: 'MAD', name: 'Marrocos' },
+    'dz': { country: 'DZ', currency: 'DZD', name: 'Argélia' },
+    'tn': { country: 'TN', currency: 'TND', name: 'Tunísia' },
+    'eg': { country: 'EG', currency: 'EGP', name: 'Egito' },
+    'ng': { country: 'NG', currency: 'NGN', name: 'Nigéria' },
+    'za': { country: 'ZA', currency: 'ZAR', name: 'África do Sul' },
+    // Oriente Médio
+    'ae': { country: 'AE', currency: 'AED', name: 'Emirados Árabes' },
+    'sa': { country: 'SA', currency: 'SAR', name: 'Arábia Saudita' },
+    'kw': { country: 'KW', currency: 'KWD', name: 'Kuwait' },
+    'qa': { country: 'QA', currency: 'QAR', name: 'Qatar' },
+    'bh': { country: 'BH', currency: 'BHD', name: 'Bahrein' },
+    'om': { country: 'OM', currency: 'OMR', name: 'Omã' },
+    'jo': { country: 'JO', currency: 'JOD', name: 'Jordânia' },
+    'iq': { country: 'IQ', currency: 'IQD', name: 'Iraque' },
+    // Europa
+    'pt': { country: 'PT', currency: 'EUR', name: 'Portugal' },
+    'es': { country: 'ES', currency: 'EUR', name: 'Espanha' },
+    'fr': { country: 'FR', currency: 'EUR', name: 'França' },
+    'de': { country: 'DE', currency: 'EUR', name: 'Alemanha' },
+    'it': { country: 'IT', currency: 'EUR', name: 'Itália' },
+    'uk': { country: 'GB', currency: 'GBP', name: 'Reino Unido' },
+    // Américas
+    'br': { country: 'BR', currency: 'BRL', name: 'Brasil' },
+    'mx': { country: 'MX', currency: 'MXN', name: 'México' },
+    'co': { country: 'CO', currency: 'COP', name: 'Colômbia' },
+    'ar': { country: 'AR', currency: 'ARS', name: 'Argentina' },
+    'cl': { country: 'CL', currency: 'CLP', name: 'Chile' },
+    'pe': { country: 'PE', currency: 'PEN', name: 'Peru' },
+    // Ásia
+    'pk': { country: 'PK', currency: 'PKR', name: 'Paquistão' },
+    'in': { country: 'IN', currency: 'INR', name: 'Índia' },
+    'id': { country: 'ID', currency: 'IDR', name: 'Indonésia' },
+    'my': { country: 'MY', currency: 'MYR', name: 'Malásia' },
+    'ph': { country: 'PH', currency: 'PHP', name: 'Filipinas' },
+    'th': { country: 'TH', currency: 'THB', name: 'Tailândia' },
+    'vn': { country: 'VN', currency: 'VND', name: 'Vietnã' }
   };
 
   // ============================================
@@ -226,6 +271,31 @@ export default function PixelsUTMsPage() {
       const d = new Date();
       d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
       document.cookie = name + '=' + value + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+    },
+    // Detecta país/moeda automaticamente
+    detectCountry: function() {
+      // 1. Tenta por parâmetro URL (?country=MA)
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlCountry = urlParams.get('country');
+      if (urlCountry && COUNTRY_MAP[urlCountry.toLowerCase()]) {
+        return COUNTRY_MAP[urlCountry.toLowerCase()];
+      }
+
+      // 2. Tenta por TLD do domínio
+      const host = window.location.hostname;
+      const tld = host.split('.').pop().toLowerCase();
+      if (COUNTRY_MAP[tld]) {
+        return COUNTRY_MAP[tld];
+      }
+
+      // 3. Tenta por subdomínio (ex: ma.loja.com)
+      const subdomain = host.split('.')[0].toLowerCase();
+      if (COUNTRY_MAP[subdomain]) {
+        return COUNTRY_MAP[subdomain];
+      }
+
+      // 4. Retorna padrão
+      return { country: 'XX', currency: DOD_CONFIG.defaultCurrency, name: 'Padrão' };
     }
   };
 
@@ -334,15 +404,23 @@ export default function PixelsUTMsPage() {
   // ============================================
   // FUNÇÕES GLOBAIS PARA CHAMAR NO FORMULÁRIO
   // ============================================
+  const countryInfo = DOD.detectCountry();
+  DOD.log('País detectado:', countryInfo);
+
   window.DOD = {
+    // Info do país detectado
+    country: countryInfo,
+
     // Chame quando abrir o formulário
     formOpened: function(productData) {
+      const currency = productData.currency || countryInfo.currency;
       Events.send('InitiateCheckout', {
         content_type: 'product',
         content_ids: [productData.id || ''],
         content_name: productData.name || '',
         value: productData.price || 0,
-        currency: productData.currency || 'BRL',
+        currency: currency,
+        country: countryInfo.country,
         num_items: 1
       });
     },
@@ -354,12 +432,14 @@ export default function PixelsUTMsPage() {
       const tracked = JSON.parse(localStorage.getItem('dod_tracked') || '[]');
       if (tracked.includes(orderId)) return;
 
+      const currency = orderData.currency || countryInfo.currency;
       Events.send('Purchase', {
         content_type: 'product',
         content_ids: [orderData.product_id || ''],
         content_name: orderData.product_name || '',
         value: orderData.value || 0,
-        currency: orderData.currency || 'BRL',
+        currency: currency,
+        country: countryInfo.country,
         order_id: orderId,
         customer_name: orderData.customer_name || '',
         customer_phone: orderData.customer_phone || '',
@@ -373,15 +453,21 @@ export default function PixelsUTMsPage() {
 
     // Chame para Lead (quando preencher telefone/whatsapp)
     lead: function(data) {
+      const currency = data.currency || countryInfo.currency;
       Events.send('Lead', {
         content_name: data.product_name || '',
         value: data.value || 0,
-        currency: data.currency || 'BRL'
+        currency: currency,
+        country: countryInfo.country
       });
     },
 
     // Para tracking manual
-    track: Events.send
+    track: Events.send,
+
+    // Funções auxiliares expostas
+    getCountry: function() { return countryInfo; },
+    getCurrency: function() { return countryInfo.currency; }
   };
 })();
 </script>
@@ -1201,6 +1287,27 @@ export default function PixelsUTMsPage() {
                 />
               </div>
 
+              {/* DETECCAO AUTOMATICA */}
+              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                <p className="text-sm font-semibold mb-2 text-green-600 dark:text-green-400">Detecção Automática de País/Moeda</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  O script detecta automaticamente o país e moeda pelo domínio da loja:
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">.ma</span> → MAD</div>
+                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">.ae</span> → AED</div>
+                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">.sa</span> → SAR</div>
+                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">.eg</span> → EGP</div>
+                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">.br</span> → BRL</div>
+                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">.pt</span> → EUR</div>
+                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">.pk</span> → PKR</div>
+                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">+30 países</span></div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  Também funciona com: <span className="font-mono">?country=MA</span> na URL ou subdomínio <span className="font-mono">ma.loja.com</span>
+                </p>
+              </div>
+
               {/* COMO USAR */}
               <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
                 <p className="text-sm font-semibold mb-3 text-orange-600 dark:text-orange-400">Como usar no seu formulário:</p>
@@ -1212,8 +1319,7 @@ export default function PixelsUTMsPage() {
 {`DOD.formOpened({
   id: '123',           // ID do produto
   name: 'Produto XYZ', // Nome do produto
-  price: 99.90,        // Preço
-  currency: 'BRL'
+  price: 99.90         // Preço (moeda é automática!)
 });`}
                     </pre>
                   </div>
@@ -1225,23 +1331,23 @@ export default function PixelsUTMsPage() {
   order_id: 'PED-001',     // ID do pedido
   product_id: '123',
   product_name: 'Produto XYZ',
-  value: 99.90,
-  currency: 'BRL',
+  value: 99.90,            // Moeda é automática!
   quantity: 1,
-  customer_name: 'João Silva',
-  customer_phone: '11999999999',
-  customer_city: 'São Paulo'
+  customer_name: 'Ahmed',
+  customer_phone: '+212600000000',
+  customer_city: 'Casablanca'
 });`}
                     </pre>
                   </div>
 
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground mb-2">3. Para Lead (quando preencher telefone):</p>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">3. Para ver país/moeda detectado:</p>
                     <pre className="p-2 rounded bg-background text-xs font-mono overflow-x-auto">
-{`DOD.lead({
-  product_name: 'Produto XYZ',
-  value: 99.90
-});`}
+{`console.log(DOD.getCountry());
+// { country: 'MA', currency: 'MAD', name: 'Marrocos' }
+
+console.log(DOD.getCurrency());
+// 'MAD'`}
                     </pre>
                   </div>
                 </div>
