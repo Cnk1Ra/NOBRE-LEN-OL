@@ -473,7 +473,166 @@ export default function PixelsUTMsPage() {
 </script>
 <!-- FIM DOD COD TRACKING -->`
 
-  // Script de tracking para Shopify
+  // Script simples em BRL (sem detecção automática de país)
+  const codSimpleBRLScript = `<!-- DOD COD TRACKING SIMPLES (BRL) - Cole antes do </head> -->
+<script>
+(function() {
+  'use strict';
+
+  const DOD_CONFIG = {
+    webhookUrl: 'https://seu-dashboard.com/api/webhook/tracking',
+    currency: 'BRL',
+    debug: false
+  };
+
+  const DOD = {
+    log: function(msg, data) {
+      if (DOD_CONFIG.debug) console.log('[DOD]', msg, data || '');
+    },
+    generateId: function() {
+      return 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    },
+    getVisitorId: function() {
+      let id = localStorage.getItem('dod_visitor_id');
+      if (!id) {
+        id = this.generateId();
+        localStorage.setItem('dod_visitor_id', id);
+      }
+      return id;
+    },
+    getCookie: function(name) {
+      const value = '; ' + document.cookie;
+      const parts = value.split('; ' + name + '=');
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    },
+    setCookie: function(name, value, days) {
+      const d = new Date();
+      d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+      document.cookie = name + '=' + value + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+    }
+  };
+
+  const Params = {
+    capture: function() {
+      const p = new URLSearchParams(window.location.search);
+      return {
+        utm_source: p.get('utm_source'),
+        utm_campaign: p.get('utm_campaign'),
+        utm_medium: p.get('utm_medium'),
+        utm_content: p.get('utm_content'),
+        utm_term: p.get('utm_term'),
+        fbclid: p.get('fbclid'),
+        gclid: p.get('gclid'),
+        ttclid: p.get('ttclid'),
+        visitor_id: DOD.getVisitorId(),
+        fbp: DOD.getCookie('_fbp'),
+        fbc: DOD.getCookie('_fbc'),
+        landing_page: window.location.href,
+        timestamp: new Date().toISOString()
+      };
+    },
+    save: function(data) {
+      const clean = {};
+      for (const k in data) { if (data[k]) clean[k] = data[k]; }
+      localStorage.setItem('dod_tracking', JSON.stringify(clean));
+      DOD.setCookie('dod_tracking', btoa(JSON.stringify(clean)), 30);
+      return clean;
+    },
+    get: function() {
+      try {
+        const s = localStorage.getItem('dod_tracking');
+        if (s) return JSON.parse(s);
+      } catch (e) {}
+      return {};
+    }
+  };
+
+  const Events = {
+    send: function(eventName, eventData) {
+      const payload = {
+        event: eventName,
+        timestamp: new Date().toISOString(),
+        tracking: Params.get(),
+        data: eventData,
+        page: { url: window.location.href, title: document.title }
+      };
+
+      if (!DOD_CONFIG.webhookUrl.includes('seu-dashboard')) {
+        fetch(DOD_CONFIG.webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          keepalive: true
+        }).catch(function(e) { DOD.log('Erro:', e); });
+      }
+
+      if (typeof fbq !== 'undefined') {
+        fbq('track', eventName, { ...eventData, external_id: Params.get().visitor_id });
+      }
+      if (typeof gtag !== 'undefined') {
+        gtag('event', eventName, eventData);
+      }
+      if (typeof ttq !== 'undefined') {
+        ttq.track(eventName, eventData);
+      }
+      DOD.log(eventName, eventData);
+    }
+  };
+
+  const data = Params.capture();
+  if (data.utm_source || data.fbclid || data.gclid || data.ttclid) {
+    Params.save(data);
+  }
+
+  Events.send('PageView', { page_type: window.location.pathname });
+
+  window.DOD = {
+    formOpened: function(productData) {
+      Events.send('InitiateCheckout', {
+        content_type: 'product',
+        content_ids: [productData.id || ''],
+        content_name: productData.name || '',
+        value: productData.price || 0,
+        currency: DOD_CONFIG.currency,
+        num_items: 1
+      });
+    },
+    purchase: function(orderData) {
+      const orderId = orderData.order_id || DOD.generateId();
+      const tracked = JSON.parse(localStorage.getItem('dod_tracked') || '[]');
+      if (tracked.includes(orderId)) return;
+
+      Events.send('Purchase', {
+        content_type: 'product',
+        content_ids: [orderData.product_id || ''],
+        content_name: orderData.product_name || '',
+        value: orderData.value || 0,
+        currency: DOD_CONFIG.currency,
+        order_id: orderId,
+        customer_name: orderData.customer_name || '',
+        customer_phone: orderData.customer_phone || '',
+        customer_city: orderData.customer_city || '',
+        num_items: orderData.quantity || 1
+      });
+
+      tracked.push(orderId);
+      localStorage.setItem('dod_tracked', JSON.stringify(tracked));
+    },
+    lead: function(data) {
+      Events.send('Lead', {
+        content_name: data.product_name || '',
+        value: data.value || 0,
+        currency: DOD_CONFIG.currency
+      });
+    },
+    track: Events.send
+  };
+})();
+</script>
+<!-- FIM DOD COD TRACKING SIMPLES -->`
+
+  // Script de tracking para Shopify tradicional
   const shopifyTrackingScript = `<!-- DOD TRACKING SCRIPT - Cole antes do </head> -->
 <script>
 (function() {
@@ -1366,6 +1525,56 @@ console.log(DOD.getCurrency());
             </CardContent>
           </Card>
 
+          {/* SCRIPT COD SIMPLES BRL */}
+          <Card className="border-2 border-green-500/50 bg-gradient-to-br from-green-500/5 to-transparent">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-green-500/20">
+                    <CreditCard className="h-5 w-5 text-green-500" />
+                  </div>
+                  <div>
+                    <CardTitle>Script COD Simples (BRL)</CardTitle>
+                    <CardDescription>
+                      Script simplificado para lojas brasileiras - moeda fixa em Real
+                    </CardDescription>
+                  </div>
+                </div>
+                <Button
+                  className="gap-2 bg-green-500 hover:bg-green-600"
+                  onClick={() => copyToClipboard(codSimpleBRLScript, 'brl-script')}
+                >
+                  {copied === 'brl-script' ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Copiar Script
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Textarea
+                  value={codSimpleBRLScript}
+                  readOnly
+                  className="font-mono text-xs min-h-[200px] bg-muted"
+                />
+              </div>
+              <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                <p className="text-xs text-muted-foreground">
+                  Este script usa <span className="font-semibold text-green-600">BRL (Real)</span> como moeda fixa.
+                  Ideal para lojas que vendem apenas no Brasil.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* SCRIPT SHOPIFY TRADICIONAL */}
           <Card className="border border-muted">
             <CardHeader>
@@ -1402,43 +1611,7 @@ console.log(DOD.getCurrency());
             </CardHeader>
           </Card>
 
-          {/* CONFIGURACAO DO WEBHOOK */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                Configuração do Webhook
-              </CardTitle>
-              <CardDescription>
-                Configure a URL do webhook para receber os eventos no dashboard
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>URL do Webhook</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="https://seu-dashboard.com/api/webhook/tracking"
-                    className="font-mono text-sm"
-                  />
-                  <Button variant="outline">Salvar</Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Esta URL receberá todos os eventos de tracking via POST
-                </p>
-              </div>
-              <div className="p-4 rounded-lg bg-muted">
-                <p className="text-sm font-semibold mb-2">Eventos enviados:</p>
-                <div className="flex flex-wrap gap-2">
-                  {['PageView', 'ViewContent', 'AddToCart', 'InitiateCheckout', 'Purchase'].map((event) => (
-                    <Badge key={event} variant="outline">{event}</Badge>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* WEBHOOK SHOPIFY */}
+          {/* WEBHOOK SHOPIFY (RECOMENDADO) */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
