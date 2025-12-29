@@ -1497,64 +1497,260 @@ export default function PixelsUTMsPage() {
             </CardContent>
           </Card>
 
-          {/* SCRIPT COD SIMPLES BRL */}
-          <Card className="border-2 border-green-500/50 bg-gradient-to-br from-green-500/5 to-transparent">
+          {/* SCRIPTS POR MOEDA FIXA */}
+          <Card className="border-2 border-blue-500/50 bg-gradient-to-br from-blue-500/5 to-transparent">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-green-500/20">
-                    <CreditCard className="h-5 w-5 text-green-500" />
+                  <div className="p-2 rounded-lg bg-blue-500/20">
+                    <CreditCard className="h-5 w-5 text-blue-500" />
                   </div>
                   <div>
-                    <CardTitle>Script COD Simples (BRL)</CardTitle>
+                    <CardTitle>Scripts por Moeda Fixa</CardTitle>
                     <CardDescription>
-                      Script simplificado com moeda fixa em Real - para qualquer país
+                      Escolha o script com a moeda do país que você vende - sem detecção automática
                     </CardDescription>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => toggleScriptVisibility('brl-script')}
-                  >
-                    <Eye className="h-4 w-4" />
-                    {visibleScripts['brl-script'] ? 'Ocultar' : 'Ver Script'}
-                  </Button>
-                  <Button
-                    className="gap-2 bg-green-500 hover:bg-green-600"
-                    onClick={() => copyToClipboard(codSimpleBRLScript, 'brl-script')}
-                  >
-                    {copied === 'brl-script' ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        Copiar
-                      </>
-                    )}
-                  </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {visibleScripts['brl-script'] && (
-                <div className="relative">
+              {/* EXPLICACAO */}
+              <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <p className="text-sm font-semibold mb-2 text-blue-600 dark:text-blue-400">Quando usar script de moeda fixa?</p>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>• Quando você vende <span className="font-semibold text-foreground">apenas para um país</span></li>
+                  <li>• Quando seu domínio <span className="font-semibold text-foreground">não tem TLD do país</span> (ex: .com ao invés de .ma)</li>
+                  <li>• Quando quer <span className="font-semibold text-foreground">simplicidade</span> sem detecção automática</li>
+                </ul>
+              </div>
+
+              {/* PRINCIPAIS MOEDAS */}
+              <div>
+                <p className="text-sm font-semibold mb-3">Principais Moedas (mais usadas):</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { code: 'MAD', country: 'MA', name: 'Marrocos', flag: '🇲🇦' },
+                    { code: 'AED', country: 'AE', name: 'Emirados Árabes', flag: '🇦🇪' },
+                    { code: 'SAR', country: 'SA', name: 'Arábia Saudita', flag: '🇸🇦' },
+                    { code: 'EGP', country: 'EG', name: 'Egito', flag: '🇪🇬' },
+                    { code: 'BRL', country: 'BR', name: 'Brasil', flag: '🇧🇷' },
+                    { code: 'EUR', country: 'PT', name: 'Portugal/Europa', flag: '🇵🇹' },
+                    { code: 'PKR', country: 'PK', name: 'Paquistão', flag: '🇵🇰' },
+                    { code: 'INR', country: 'IN', name: 'Índia', flag: '🇮🇳' },
+                  ].map((currency) => (
+                    <div
+                      key={currency.code}
+                      className="p-3 rounded-lg border bg-card hover:bg-blue-500/10 cursor-pointer transition-colors group"
+                      onClick={() => copyToClipboard(
+                        codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${currency.code}'`),
+                        `script-${currency.code}`
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-mono font-bold text-blue-500">{currency.code}</p>
+                          <p className="text-xs text-muted-foreground">{currency.flag} {currency.name}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          {copied === `script-${currency.code}` ? (
+                            <Check className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* VER TODOS OS PAISES */}
+              <div>
+                <Button
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={() => toggleScriptVisibility('all-countries')}
+                >
+                  <Eye className="h-4 w-4" />
+                  {visibleScripts['all-countries'] ? 'Ocultar Lista Completa' : 'Ver Todos os Países (+30)'}
+                </Button>
+
+                {visibleScripts['all-countries'] && (
+                  <div className="mt-4 p-4 rounded-lg bg-muted/50 border">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {/* AFRICA */}
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">África</p>
+                        <div className="space-y-1">
+                          {[
+                            { code: 'MAD', country: 'MA', name: 'Marrocos', flag: '🇲🇦' },
+                            { code: 'DZD', country: 'DZ', name: 'Argélia', flag: '🇩🇿' },
+                            { code: 'TND', country: 'TN', name: 'Tunísia', flag: '🇹🇳' },
+                            { code: 'EGP', country: 'EG', name: 'Egito', flag: '🇪🇬' },
+                            { code: 'NGN', country: 'NG', name: 'Nigéria', flag: '🇳🇬' },
+                            { code: 'ZAR', country: 'ZA', name: 'África do Sul', flag: '🇿🇦' },
+                          ].map((c) => (
+                            <div
+                              key={c.code}
+                              className="flex items-center justify-between p-2 rounded hover:bg-background cursor-pointer text-xs"
+                              onClick={() => copyToClipboard(
+                                codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${c.code}'`),
+                                `script-${c.code}`
+                              )}
+                            >
+                              <span>{c.flag} {c.name} ({c.country})</span>
+                              <span className="font-mono font-bold text-blue-500">{c.code}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* ORIENTE MEDIO */}
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">Oriente Médio</p>
+                        <div className="space-y-1">
+                          {[
+                            { code: 'AED', country: 'AE', name: 'Emirados Árabes', flag: '🇦🇪' },
+                            { code: 'SAR', country: 'SA', name: 'Arábia Saudita', flag: '🇸🇦' },
+                            { code: 'KWD', country: 'KW', name: 'Kuwait', flag: '🇰🇼' },
+                            { code: 'QAR', country: 'QA', name: 'Qatar', flag: '🇶🇦' },
+                            { code: 'BHD', country: 'BH', name: 'Bahrein', flag: '🇧🇭' },
+                            { code: 'OMR', country: 'OM', name: 'Omã', flag: '🇴🇲' },
+                            { code: 'JOD', country: 'JO', name: 'Jordânia', flag: '🇯🇴' },
+                            { code: 'IQD', country: 'IQ', name: 'Iraque', flag: '🇮🇶' },
+                          ].map((c) => (
+                            <div
+                              key={c.code}
+                              className="flex items-center justify-between p-2 rounded hover:bg-background cursor-pointer text-xs"
+                              onClick={() => copyToClipboard(
+                                codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${c.code}'`),
+                                `script-${c.code}`
+                              )}
+                            >
+                              <span>{c.flag} {c.name} ({c.country})</span>
+                              <span className="font-mono font-bold text-blue-500">{c.code}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* EUROPA */}
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">Europa</p>
+                        <div className="space-y-1">
+                          {[
+                            { code: 'EUR', country: 'PT', name: 'Portugal', flag: '🇵🇹' },
+                            { code: 'EUR', country: 'ES', name: 'Espanha', flag: '🇪🇸' },
+                            { code: 'EUR', country: 'FR', name: 'França', flag: '🇫🇷' },
+                            { code: 'EUR', country: 'DE', name: 'Alemanha', flag: '🇩🇪' },
+                            { code: 'EUR', country: 'IT', name: 'Itália', flag: '🇮🇹' },
+                            { code: 'GBP', country: 'GB', name: 'Reino Unido', flag: '🇬🇧' },
+                          ].map((c) => (
+                            <div
+                              key={`${c.code}-${c.country}`}
+                              className="flex items-center justify-between p-2 rounded hover:bg-background cursor-pointer text-xs"
+                              onClick={() => copyToClipboard(
+                                codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${c.code}'`),
+                                `script-${c.code}-${c.country}`
+                              )}
+                            >
+                              <span>{c.flag} {c.name} ({c.country})</span>
+                              <span className="font-mono font-bold text-blue-500">{c.code}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* AMERICAS */}
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">Américas</p>
+                        <div className="space-y-1">
+                          {[
+                            { code: 'BRL', country: 'BR', name: 'Brasil', flag: '🇧🇷' },
+                            { code: 'MXN', country: 'MX', name: 'México', flag: '🇲🇽' },
+                            { code: 'COP', country: 'CO', name: 'Colômbia', flag: '🇨🇴' },
+                            { code: 'ARS', country: 'AR', name: 'Argentina', flag: '🇦🇷' },
+                            { code: 'CLP', country: 'CL', name: 'Chile', flag: '🇨🇱' },
+                            { code: 'PEN', country: 'PE', name: 'Peru', flag: '🇵🇪' },
+                          ].map((c) => (
+                            <div
+                              key={c.code}
+                              className="flex items-center justify-between p-2 rounded hover:bg-background cursor-pointer text-xs"
+                              onClick={() => copyToClipboard(
+                                codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${c.code}'`),
+                                `script-${c.code}`
+                              )}
+                            >
+                              <span>{c.flag} {c.name} ({c.country})</span>
+                              <span className="font-mono font-bold text-blue-500">{c.code}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* ASIA */}
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">Ásia</p>
+                        <div className="space-y-1">
+                          {[
+                            { code: 'PKR', country: 'PK', name: 'Paquistão', flag: '🇵🇰' },
+                            { code: 'INR', country: 'IN', name: 'Índia', flag: '🇮🇳' },
+                            { code: 'IDR', country: 'ID', name: 'Indonésia', flag: '🇮🇩' },
+                            { code: 'MYR', country: 'MY', name: 'Malásia', flag: '🇲🇾' },
+                            { code: 'PHP', country: 'PH', name: 'Filipinas', flag: '🇵🇭' },
+                            { code: 'THB', country: 'TH', name: 'Tailândia', flag: '🇹🇭' },
+                            { code: 'VND', country: 'VN', name: 'Vietnã', flag: '🇻🇳' },
+                          ].map((c) => (
+                            <div
+                              key={c.code}
+                              className="flex items-center justify-between p-2 rounded hover:bg-background cursor-pointer text-xs"
+                              onClick={() => copyToClipboard(
+                                codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${c.code}'`),
+                                `script-${c.code}`
+                              )}
+                            >
+                              <span>{c.flag} {c.name} ({c.country})</span>
+                              <span className="font-mono font-bold text-blue-500">{c.code}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* VER SCRIPT */}
+              <div className="pt-2 border-t">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold">Código do Script</p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => toggleScriptVisibility('currency-script')}
+                    >
+                      <Eye className="h-4 w-4" />
+                      {visibleScripts['currency-script'] ? 'Ocultar' : 'Ver Script'}
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Clique em qualquer moeda acima para copiar o script com a moeda já configurada
+                </p>
+                {visibleScripts['currency-script'] && (
                   <Textarea
                     value={codSimpleBRLScript}
                     readOnly
                     className="font-mono text-xs min-h-[200px] bg-muted"
                   />
-                </div>
-              )}
-              <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                <p className="text-xs text-muted-foreground">
-                  Este script usa <span className="font-semibold text-green-600">BRL (Real)</span> como moeda fixa.
-                  Funciona para qualquer país - ideal se você quer trackear tudo em Real.
-                </p>
+                )}
               </div>
             </CardContent>
           </Card>
