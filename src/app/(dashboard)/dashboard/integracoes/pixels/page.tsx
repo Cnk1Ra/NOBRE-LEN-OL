@@ -1484,51 +1484,6 @@ export default function PixelsUTMsPage() {
                 </p>
               </div>
 
-              {/* COMO USAR */}
-              <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
-                <p className="text-sm font-semibold mb-3 text-orange-600 dark:text-orange-400">Como usar no seu formulário:</p>
-
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-xs font-semibold text-muted-foreground mb-2">1. Quando abrir o formulário:</p>
-                    <pre className="p-2 rounded bg-background text-xs font-mono overflow-x-auto">
-{`DOD.formOpened({
-  id: '123',           // ID do produto
-  name: 'Produto XYZ', // Nome do produto
-  price: 99.90         // Preço (moeda é automática!)
-});`}
-                    </pre>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-semibold text-muted-foreground mb-2">2. Quando o pedido for confirmado (após enviar formulário):</p>
-                    <pre className="p-2 rounded bg-background text-xs font-mono overflow-x-auto">
-{`DOD.purchase({
-  order_id: 'PED-001',     // ID do pedido
-  product_id: '123',
-  product_name: 'Produto XYZ',
-  value: 99.90,            // Moeda é automática!
-  quantity: 1,
-  customer_name: 'Ahmed',
-  customer_phone: '+212600000000',
-  customer_city: 'Casablanca'
-});`}
-                    </pre>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-semibold text-muted-foreground mb-2">3. Para ver país/moeda detectado:</p>
-                    <pre className="p-2 rounded bg-background text-xs font-mono overflow-x-auto">
-{`console.log(DOD.getCountry());
-// { country: 'MA', currency: 'MAD', name: 'Marrocos' }
-
-console.log(DOD.getCurrency());
-// 'MAD'`}
-                    </pre>
-                  </div>
-                </div>
-              </div>
-
               {/* EVENTOS */}
               <div className="p-4 rounded-lg bg-muted/50">
                 <p className="text-sm font-semibold mb-2">Eventos disparados:</p>
