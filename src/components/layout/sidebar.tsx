@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -45,6 +46,7 @@ import {
   Music2,
   Activity,
   Target,
+  Crown,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -230,15 +232,26 @@ const systemNavItems = [
   },
 ]
 
+// MATRIX ADMIN - Only visible for Matrix users
+const matrixNavItem = {
+  title: 'Painel Matrix',
+  href: '/dashboard/admin',
+  icon: Crown,
+  color: 'text-purple-500',
+}
+
 interface SidebarProps {
   className?: string
 }
 
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname()
+  const { data: session } = useSession()
   const [collapsed, setCollapsed] = useState(false)
   const [controlOpen, setControlOpen] = useState(false)
   const [integracoesOpen, setIntegracoesOpen] = useState(false)
+
+  const isMatrix = session?.user?.role === 'MATRIX'
 
   const NavItem = ({ item }: { item: typeof mainNavItems[0] }) => {
     const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -427,6 +440,23 @@ export function Sidebar({ className }: SidebarProps) {
             <div className={cn('h-px bg-border/50', collapsed && 'mx-2')} />
 
             <NavSection title="Sistema" items={systemNavItems} />
+
+            {/* MATRIX ADMIN - Only visible for Matrix users */}
+            {isMatrix && (
+              <>
+                <div className={cn('h-px bg-border/50', collapsed && 'mx-2')} />
+                <div className="space-y-1">
+                  {!collapsed && (
+                    <h4 className="sidebar-section-title flex items-center gap-2">
+                      <Crown className="h-3.5 w-3.5 text-purple-500" />
+                      Matrix Admin
+                    </h4>
+                  )}
+                  {collapsed && <div className="h-2" />}
+                  <NavItem item={matrixNavItem} />
+                </div>
+              </>
+            )}
           </nav>
         </ScrollArea>
 
