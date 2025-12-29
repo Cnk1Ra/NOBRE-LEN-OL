@@ -45,6 +45,9 @@ import {
   ClipboardList,
   GitCompare,
   Megaphone,
+  Facebook,
+  Search,
+  Music2,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -73,11 +76,27 @@ const mainNavItems = [
     icon: Target,
     color: 'text-orange-500',
   },
+]
+
+// Trafego Pago - Traffic sources
+const trafficNavItems = [
   {
-    title: 'Campanhas',
-    href: '/dashboard/campaigns',
-    icon: TrendingUp,
-    color: 'text-pink-500',
+    title: 'Meta Ads',
+    href: '/dashboard/trafego/meta',
+    icon: Facebook,
+    color: 'text-[#1877F2]',
+  },
+  {
+    title: 'Google Ads',
+    href: '/dashboard/trafego/google',
+    icon: Search,
+    color: 'text-[#EA4335]',
+  },
+  {
+    title: 'TikTok Ads',
+    href: '/dashboard/trafego/tiktok',
+    icon: Music2,
+    color: 'text-black dark:text-white',
   },
 ]
 
@@ -313,6 +332,10 @@ export function Sidebar({ className }: SidebarProps) {
         <ScrollArea className="flex-1 py-4 px-3">
           <nav className="space-y-6">
             <NavSection title="Principal" items={mainNavItems} />
+
+            <div className={cn('h-px bg-border/50', collapsed && 'mx-2')} />
+
+            <NavSection title="Trafego Pago" items={trafficNavItems} />
 
             <div className={cn('h-px bg-border/50', collapsed && 'mx-2')} />
 
