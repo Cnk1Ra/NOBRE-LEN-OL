@@ -499,122 +499,132 @@ export default function PixelsUTMsPage() {
 
         {/* UTMS TAB */}
         <TabsContent value="utms" className="space-y-6">
-          {/* PARAMETROS UNIVERSAIS - PRINCIPAL */}
-          <Card className="border-2 border-lime-500/50 bg-gradient-to-br from-lime-500/5 to-transparent">
+          {/* META ADS */}
+          <Card className="border-2 border-[#1877F2]/50 bg-gradient-to-br from-[#1877F2]/5 to-transparent">
             <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-lime-500/20">
-                  <Zap className="h-5 w-5 text-lime-500" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[#1877F2]/20">
+                    <Facebook className="h-5 w-5 text-[#1877F2]" />
+                  </div>
+                  <div>
+                    <CardTitle>Meta Ads (Facebook/Instagram)</CardTitle>
+                    <CardDescription>
+                      Parâmetros UTM para campanhas do Meta Ads
+                    </CardDescription>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle>Parâmetros Universais - Copie e Cole</CardTitle>
-                  <CardDescription>
-                    Parâmetros completos para Meta Ads + Cloaker (The White Rabbit). Adicione após sua URL com ?
-                  </CardDescription>
-                </div>
+                <Button
+                  className="gap-2 bg-[#1877F2] hover:bg-[#1877F2]/90"
+                  onClick={() => copyToClipboard('utm_source=FB&utm_campaign={{campaign.name}}|{{campaign.id}}&utm_medium={{adset.name}}|{{adset.id}}&utm_content={{ad.name}}|{{ad.id}}&utm_term={{placement}}', 'meta-params')}
+                >
+                  {copied === 'meta-params' ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Copiar Parâmetros
+                    </>
+                  )}
+                </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* META ADS PARAMETERS */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-base font-semibold flex items-center gap-2">
-                    <Facebook className="h-4 w-4 text-[#1877F2]" />
-                    Parâmetros Meta Ads (UTMs)
-                  </Label>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => copyToClipboard('utm_source=FB&utm_campaign={{campaign.name}}|{{campaign.id}}&utm_medium={{adset.name}}|{{adset.id}}&utm_content={{ad.name}}|{{ad.id}}&utm_term={{placement}}', 'meta-params')}
-                  >
-                    {copied === 'meta-params' ? (
-                      <>
-                        <Check className="h-4 w-4 text-green-500" />
-                        Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        Copiar
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <div className="p-4 rounded-lg bg-[#1877F2]/10 border border-[#1877F2]/20 font-mono text-sm break-all">
-                  <span className="text-[#1877F2]">utm_source</span>=FB&<span className="text-[#1877F2]">utm_campaign</span>={'{{campaign.name}}|{{campaign.id}}'}&<span className="text-[#1877F2]">utm_medium</span>={'{{adset.name}}|{{adset.id}}'}&<span className="text-[#1877F2]">utm_content</span>={'{{ad.name}}|{{ad.id}}'}&<span className="text-[#1877F2]">utm_term</span>={'{{placement}}'}
-                </div>
+            <CardContent>
+              <div className="p-4 rounded-lg bg-[#1877F2]/10 border border-[#1877F2]/20 font-mono text-sm break-all">
+                utm_source=FB&utm_campaign={'{{campaign.name}}|{{campaign.id}}'}&utm_medium={'{{adset.name}}|{{adset.id}}'}&utm_content={'{{ad.name}}|{{ad.id}}'}&utm_term={'{{placement}}'}
               </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                Cole após a URL: <span className="font-mono text-foreground">https://sualoja.com?</span><span className="text-[#1877F2]">[parâmetros]</span>
+              </p>
+            </CardContent>
+          </Card>
 
-              {/* SEPARATOR */}
-              <div className="flex items-center gap-4">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-lg font-bold text-muted-foreground">&</span>
-                <div className="flex-1 h-px bg-border" />
+          {/* GOOGLE ADS */}
+          <Card className="border-2 border-[#EA4335]/50 bg-gradient-to-br from-[#EA4335]/5 to-transparent">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-[#EA4335]/20">
+                    <Search className="h-5 w-5 text-[#EA4335]" />
+                  </div>
+                  <div>
+                    <CardTitle>Google Ads</CardTitle>
+                    <CardDescription>
+                      Parâmetros UTM para campanhas do Google Ads
+                    </CardDescription>
+                  </div>
+                </div>
+                <Button
+                  className="gap-2 bg-[#EA4335] hover:bg-[#EA4335]/90"
+                  onClick={() => copyToClipboard('utm_source=google&utm_medium=cpc&utm_campaign={campaignid}&utm_content={creative}&utm_term={keyword}&gclid={gclid}', 'google-params')}
+                >
+                  {copied === 'google-params' ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Copiar Parâmetros
+                    </>
+                  )}
+                </Button>
               </div>
+            </CardHeader>
+            <CardContent>
+              <div className="p-4 rounded-lg bg-[#EA4335]/10 border border-[#EA4335]/20 font-mono text-sm break-all">
+                utm_source=google&utm_medium=cpc&utm_campaign={'{campaignid}'}&utm_content={'{creative}'}&utm_term={'{keyword}'}&gclid={'{gclid}'}
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                Cole após a URL: <span className="font-mono text-foreground">https://sualoja.com?</span><span className="text-[#EA4335]">[parâmetros]</span>
+              </p>
+            </CardContent>
+          </Card>
 
-              {/* CLOAKER PARAMETERS */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-base font-semibold flex items-center gap-2">
-                    <Target className="h-4 w-4 text-purple-500" />
-                    Parâmetros Cloaker (The White Rabbit)
-                  </Label>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => copyToClipboard('cwr={{campaign.id}}&cname={{campaign.name}}&domain={{domain}}&placement={{placement}}&adset={{adset.name}}&adname={{ad.name}}&site={{site_source_name}}&xid=cimauixn', 'cloaker-params')}
-                  >
-                    {copied === 'cloaker-params' ? (
-                      <>
-                        <Check className="h-4 w-4 text-green-500" />
-                        Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        Copiar
-                      </>
-                    )}
-                  </Button>
+          {/* TIKTOK ADS */}
+          <Card className="border-2 border-black/50 dark:border-white/50 bg-gradient-to-br from-black/5 dark:from-white/5 to-transparent">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-black/10 dark:bg-white/10">
+                    <Music2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <CardTitle>TikTok Ads</CardTitle>
+                    <CardDescription>
+                      Parâmetros UTM para campanhas do TikTok Ads
+                    </CardDescription>
+                  </div>
                 </div>
-                <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20 font-mono text-sm break-all">
-                  <span className="text-purple-500">cwr</span>={'{{campaign.id}}'}&<span className="text-purple-500">cname</span>={'{{campaign.name}}'}&<span className="text-purple-500">domain</span>={'{{domain}}'}&<span className="text-purple-500">placement</span>={'{{placement}}'}&<span className="text-purple-500">adset</span>={'{{adset.name}}'}&<span className="text-purple-500">adname</span>={'{{ad.name}}'}&<span className="text-purple-500">site</span>={'{{site_source_name}}'}&<span className="text-purple-500">xid</span>=cimauixn
-                </div>
+                <Button
+                  className="gap-2 bg-black hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                  onClick={() => copyToClipboard('utm_source=tiktok&utm_medium=cpc&utm_campaign=__CAMPAIGN_NAME__&utm_content=__AID_NAME__&ttclid=__CLICKID__', 'tiktok-params')}
+                >
+                  {copied === 'tiktok-params' ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Copiar Parâmetros
+                    </>
+                  )}
+                </Button>
               </div>
-
-              {/* FULL COMBINED */}
-              <div className="border-t pt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-base font-semibold flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-lime-500" />
-                    Parâmetros Completos (UTM + Cloaker)
-                  </Label>
-                  <Button
-                    className="gap-2 bg-lime-500 hover:bg-lime-600 text-black"
-                    onClick={() => copyToClipboard('utm_source=FB&utm_campaign={{campaign.name}}|{{campaign.id}}&utm_medium={{adset.name}}|{{adset.id}}&utm_content={{ad.name}}|{{ad.id}}&utm_term={{placement}}&cwr={{campaign.id}}&cname={{campaign.name}}&domain={{domain}}&placement={{placement}}&adset={{adset.name}}&adname={{ad.name}}&site={{site_source_name}}&xid=cimauixn', 'full-params')}
-                  >
-                    {copied === 'full-params' ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        Copiar Tudo
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <div className="p-4 rounded-lg bg-lime-500/10 border-2 border-lime-500/30 font-mono text-xs break-all">
-                  utm_source=FB&utm_campaign={'{{campaign.name}}|{{campaign.id}}'}&utm_medium={'{{adset.name}}|{{adset.id}}'}&utm_content={'{{ad.name}}|{{ad.id}}'}&utm_term={'{{placement}}'}<span className="text-lime-600 font-bold">&</span>cwr={'{{campaign.id}}'}&cname={'{{campaign.name}}'}&domain={'{{domain}}'}&placement={'{{placement}}'}&adset={'{{adset.name}}'}&adname={'{{ad.name}}'}&site={'{{site_source_name}}'}&xid=cimauixn
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Cole após a URL da sua landing page: <span className="font-mono text-foreground">https://sualoja.com?</span><span className="text-lime-500">[parâmetros]</span>
-                </p>
+            </CardHeader>
+            <CardContent>
+              <div className="p-4 rounded-lg bg-black/10 dark:bg-white/10 border border-black/20 dark:border-white/20 font-mono text-sm break-all">
+                utm_source=tiktok&utm_medium=cpc&utm_campaign=__CAMPAIGN_NAME__&utm_content=__AID_NAME__&ttclid=__CLICKID__
               </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                Cole após a URL: <span className="font-mono text-foreground">https://sualoja.com?</span><span>[parâmetros]</span>
+              </p>
             </CardContent>
           </Card>
 
@@ -623,97 +633,111 @@ export default function PixelsUTMsPage() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Eye className="h-4 w-4" />
-                Exemplo de URL Final
+                Exemplo de URL Final (Meta Ads)
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="p-4 rounded-lg bg-muted font-mono text-xs break-all">
                 <span className="text-foreground">https://sualoja.com/produto?</span>
-                <span className="text-[#1877F2]">utm_source=FB&utm_campaign=Campanha_Teste|123456&utm_medium=Conjunto_BR|789&utm_content=Video_01|456&utm_term=feed</span>
-                <span className="text-lime-600 font-bold">&</span>
-                <span className="text-purple-500">cwr=123456&cname=Campanha_Teste&domain=sualoja.com&placement=feed&adset=Conjunto_BR&adname=Video_01&site=facebook&xid=cimauixn</span>
+                <span className="text-[#1877F2]">utm_source=FB&utm_campaign=Campanha_COD|123456&utm_medium=Conjunto_BR|789&utm_content=Video_01|456&utm_term=feed</span>
               </div>
             </CardContent>
           </Card>
 
-          {/* OUTRAS PLATAFORMAS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Search className="h-4 w-4 text-[#EA4335]" />
-                  Google Ads
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="p-3 rounded-lg bg-muted font-mono text-xs break-all mb-3">
-                  utm_source=google&utm_medium=cpc&utm_campaign={'{campaignid}'}&utm_content={'{creative}'}&utm_term={'{keyword}'}&gclid={'{gclid}'}
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full gap-2"
-                  onClick={() => copyToClipboard('utm_source=google&utm_medium=cpc&utm_campaign={campaignid}&utm_content={creative}&utm_term={keyword}&gclid={gclid}', 'google-params')}
-                >
-                  {copied === 'google-params' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                  Copiar
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Music2 className="h-4 w-4" />
-                  TikTok Ads
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="p-3 rounded-lg bg-muted font-mono text-xs break-all mb-3">
-                  utm_source=tiktok&utm_medium=cpc&utm_campaign={'__CAMPAIGN_NAME__'}&utm_content={'__AID_NAME__'}&ttclid={'__CLICKID__'}
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full gap-2"
-                  onClick={() => copyToClipboard('utm_source=tiktok&utm_medium=cpc&utm_campaign=__CAMPAIGN_NAME__&utm_content=__AID_NAME__&ttclid=__CLICKID__', 'tiktok-params')}
-                >
-                  {copied === 'tiktok-params' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                  Copiar
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* VARIAVEIS DISPONIVEIS */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Variáveis Dinâmicas do Meta Ads</CardTitle>
+              <CardTitle className="text-base">Variáveis Dinâmicas por Plataforma</CardTitle>
               <CardDescription>
-                Clique para copiar. Use {'{{ }}'} no gerenciador de anúncios
+                Clique para copiar a variável
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {[
-                  { var: '{{campaign.id}}', desc: 'ID da Campanha' },
-                  { var: '{{campaign.name}}', desc: 'Nome da Campanha' },
-                  { var: '{{adset.id}}', desc: 'ID do Conjunto' },
-                  { var: '{{adset.name}}', desc: 'Nome do Conjunto' },
-                  { var: '{{ad.id}}', desc: 'ID do Anúncio' },
-                  { var: '{{ad.name}}', desc: 'Nome do Anúncio' },
-                  { var: '{{placement}}', desc: 'Posicionamento' },
-                  { var: '{{site_source_name}}', desc: 'Origem (fb/ig)' },
-                ].map((item) => (
-                  <div
-                    key={item.var}
-                    className="p-3 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={() => copyToClipboard(item.var, item.var)}
-                  >
-                    <p className="font-mono text-sm text-primary">{item.var}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
-                  </div>
-                ))}
+            <CardContent className="space-y-4">
+              {/* Meta Variables */}
+              <div>
+                <Label className="text-sm font-semibold flex items-center gap-2 mb-2">
+                  <Facebook className="h-4 w-4 text-[#1877F2]" />
+                  Meta Ads
+                </Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[
+                    { var: '{{campaign.id}}', desc: 'ID Campanha' },
+                    { var: '{{campaign.name}}', desc: 'Nome Campanha' },
+                    { var: '{{adset.id}}', desc: 'ID Conjunto' },
+                    { var: '{{adset.name}}', desc: 'Nome Conjunto' },
+                    { var: '{{ad.id}}', desc: 'ID Anúncio' },
+                    { var: '{{ad.name}}', desc: 'Nome Anúncio' },
+                    { var: '{{placement}}', desc: 'Posicionamento' },
+                    { var: '{{site_source_name}}', desc: 'Origem' },
+                  ].map((item) => (
+                    <div
+                      key={item.var}
+                      className="p-2 rounded-lg border bg-card hover:bg-[#1877F2]/10 cursor-pointer transition-colors"
+                      onClick={() => copyToClipboard(item.var, item.var)}
+                    >
+                      <p className="font-mono text-xs text-[#1877F2]">{item.var}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Google Variables */}
+              <div>
+                <Label className="text-sm font-semibold flex items-center gap-2 mb-2">
+                  <Search className="h-4 w-4 text-[#EA4335]" />
+                  Google Ads
+                </Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[
+                    { var: '{campaignid}', desc: 'ID Campanha' },
+                    { var: '{campaign}', desc: 'Nome Campanha' },
+                    { var: '{adgroupid}', desc: 'ID Grupo' },
+                    { var: '{creative}', desc: 'ID Criativo' },
+                    { var: '{keyword}', desc: 'Palavra-chave' },
+                    { var: '{matchtype}', desc: 'Tipo Match' },
+                    { var: '{device}', desc: 'Dispositivo' },
+                    { var: '{gclid}', desc: 'Click ID' },
+                  ].map((item) => (
+                    <div
+                      key={item.var}
+                      className="p-2 rounded-lg border bg-card hover:bg-[#EA4335]/10 cursor-pointer transition-colors"
+                      onClick={() => copyToClipboard(item.var, item.var)}
+                    >
+                      <p className="font-mono text-xs text-[#EA4335]">{item.var}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* TikTok Variables */}
+              <div>
+                <Label className="text-sm font-semibold flex items-center gap-2 mb-2">
+                  <Music2 className="h-4 w-4" />
+                  TikTok Ads
+                </Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[
+                    { var: '__CAMPAIGN_ID__', desc: 'ID Campanha' },
+                    { var: '__CAMPAIGN_NAME__', desc: 'Nome Campanha' },
+                    { var: '__AID__', desc: 'ID Anúncio' },
+                    { var: '__AID_NAME__', desc: 'Nome Anúncio' },
+                    { var: '__CID__', desc: 'ID Criativo' },
+                    { var: '__CID_NAME__', desc: 'Nome Criativo' },
+                    { var: '__PLACEMENT__', desc: 'Posicionamento' },
+                    { var: '__CLICKID__', desc: 'Click ID' },
+                  ].map((item) => (
+                    <div
+                      key={item.var}
+                      className="p-2 rounded-lg border bg-card hover:bg-muted cursor-pointer transition-colors"
+                      onClick={() => copyToClipboard(item.var, item.var)}
+                    >
+                      <p className="font-mono text-xs">{item.var}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
