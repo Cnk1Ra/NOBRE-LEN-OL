@@ -499,6 +499,29 @@ export default function PixelsUTMsPage() {
 
         {/* UTMS TAB */}
         <TabsContent value="utms" className="space-y-6">
+          {/* INSTRUCAO */}
+          <Card className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/20">
+                  <AlertCircle className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="font-semibold text-amber-600 dark:text-amber-400">Como usar:</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Cole estes parâmetros na seção <span className="font-semibold text-foreground">"Parâmetros de URL"</span> do seu anúncio no gerenciador.
+                    Depois adicione <span className="font-mono bg-muted px-1 rounded">&</span> + seus parâmetros do cloaker.
+                  </p>
+                  <div className="mt-3 p-3 rounded-lg bg-background/50 font-mono text-xs">
+                    <span className="text-[#1877F2]">[parâmetros do dash]</span>
+                    <span className="text-amber-500 font-bold">&</span>
+                    <span className="text-purple-500">[parâmetros do cloaker]</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* META ADS */}
           <Card className="border-2 border-[#1877F2]/50 bg-gradient-to-br from-[#1877F2]/5 to-transparent">
             <CardHeader>
@@ -510,7 +533,7 @@ export default function PixelsUTMsPage() {
                   <div>
                     <CardTitle>Meta Ads (Facebook/Instagram)</CardTitle>
                     <CardDescription>
-                      Parâmetros UTM para campanhas do Meta Ads
+                      Cole na seção "Parâmetros de URL" do anúncio
                     </CardDescription>
                   </div>
                 </div>
@@ -526,7 +549,7 @@ export default function PixelsUTMsPage() {
                   ) : (
                     <>
                       <Copy className="h-4 w-4" />
-                      Copiar Parâmetros
+                      Copiar
                     </>
                   )}
                 </Button>
@@ -536,9 +559,6 @@ export default function PixelsUTMsPage() {
               <div className="p-4 rounded-lg bg-[#1877F2]/10 border border-[#1877F2]/20 font-mono text-sm break-all">
                 utm_source=FB&utm_campaign={'{{campaign.name}}|{{campaign.id}}'}&utm_medium={'{{adset.name}}|{{adset.id}}'}&utm_content={'{{ad.name}}|{{ad.id}}'}&utm_term={'{{placement}}'}
               </div>
-              <p className="text-xs text-muted-foreground mt-3">
-                Cole após a URL: <span className="font-mono text-foreground">https://sualoja.com?</span><span className="text-[#1877F2]">[parâmetros]</span>
-              </p>
             </CardContent>
           </Card>
 
@@ -553,7 +573,7 @@ export default function PixelsUTMsPage() {
                   <div>
                     <CardTitle>Google Ads</CardTitle>
                     <CardDescription>
-                      Parâmetros UTM para campanhas do Google Ads
+                      Cole na seção "Sufixo de URL final" do anúncio
                     </CardDescription>
                   </div>
                 </div>
@@ -569,7 +589,7 @@ export default function PixelsUTMsPage() {
                   ) : (
                     <>
                       <Copy className="h-4 w-4" />
-                      Copiar Parâmetros
+                      Copiar
                     </>
                   )}
                 </Button>
@@ -579,9 +599,6 @@ export default function PixelsUTMsPage() {
               <div className="p-4 rounded-lg bg-[#EA4335]/10 border border-[#EA4335]/20 font-mono text-sm break-all">
                 utm_source=google&utm_medium=cpc&utm_campaign={'{campaignid}'}&utm_content={'{creative}'}&utm_term={'{keyword}'}&gclid={'{gclid}'}
               </div>
-              <p className="text-xs text-muted-foreground mt-3">
-                Cole após a URL: <span className="font-mono text-foreground">https://sualoja.com?</span><span className="text-[#EA4335]">[parâmetros]</span>
-              </p>
             </CardContent>
           </Card>
 
@@ -596,7 +613,7 @@ export default function PixelsUTMsPage() {
                   <div>
                     <CardTitle>TikTok Ads</CardTitle>
                     <CardDescription>
-                      Parâmetros UTM para campanhas do TikTok Ads
+                      Cole na seção "URL parameters" do anúncio
                     </CardDescription>
                   </div>
                 </div>
@@ -612,7 +629,7 @@ export default function PixelsUTMsPage() {
                   ) : (
                     <>
                       <Copy className="h-4 w-4" />
-                      Copiar Parâmetros
+                      Copiar
                     </>
                   )}
                 </Button>
@@ -622,25 +639,31 @@ export default function PixelsUTMsPage() {
               <div className="p-4 rounded-lg bg-black/10 dark:bg-white/10 border border-black/20 dark:border-white/20 font-mono text-sm break-all">
                 utm_source=tiktok&utm_medium=cpc&utm_campaign=__CAMPAIGN_NAME__&utm_content=__AID_NAME__&ttclid=__CLICKID__
               </div>
-              <p className="text-xs text-muted-foreground mt-3">
-                Cole após a URL: <span className="font-mono text-foreground">https://sualoja.com?</span><span>[parâmetros]</span>
-              </p>
             </CardContent>
           </Card>
 
-          {/* EXEMPLO DE USO */}
-          <Card>
+          {/* EXEMPLO COMPLETO */}
+          <Card className="border-2 border-lime-500/50">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <Eye className="h-4 w-4" />
-                Exemplo de URL Final (Meta Ads)
+                <Eye className="h-4 w-4 text-lime-500" />
+                Exemplo: Parâmetros do Dash + Cloaker
               </CardTitle>
+              <CardDescription>
+                Como fica na seção "Parâmetros de URL" do Meta Ads
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="p-4 rounded-lg bg-muted font-mono text-xs break-all">
-                <span className="text-foreground">https://sualoja.com/produto?</span>
-                <span className="text-[#1877F2]">utm_source=FB&utm_campaign=Campanha_COD|123456&utm_medium=Conjunto_BR|789&utm_content=Video_01|456&utm_term=feed</span>
+                <span className="text-[#1877F2]">utm_source=FB&utm_campaign={'{{campaign.name}}|{{campaign.id}}'}&utm_medium={'{{adset.name}}|{{adset.id}}'}&utm_content={'{{ad.name}}|{{ad.id}}'}&utm_term={'{{placement}}'}</span>
+                <span className="text-lime-500 font-bold text-base">&</span>
+                <span className="text-purple-500">cwr={'{{campaign.id}}'}&cname={'{{campaign.name}}'}&domain={'{{domain}}'}&placement={'{{placement}}'}&adset={'{{adset.name}}'}&adname={'{{ad.name}}'}&site={'{{site_source_name}}'}&xid=seutoken</span>
               </div>
+              <p className="text-xs text-muted-foreground mt-3 flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded bg-[#1877F2]"></span> Parâmetros do Dash
+                <span className="inline-block w-3 h-3 rounded bg-lime-500 ml-2"></span> Separador &
+                <span className="inline-block w-3 h-3 rounded bg-purple-500 ml-2"></span> Parâmetros do Cloaker
+              </p>
             </CardContent>
           </Card>
 
