@@ -1536,7 +1536,7 @@ console.log(DOD.getCurrency());
                   <div>
                     <CardTitle>Script COD Simples (BRL)</CardTitle>
                     <CardDescription>
-                      Script simplificado para lojas brasileiras - moeda fixa em Real
+                      Script simplificado com moeda fixa em Real - para qualquer país
                     </CardDescription>
                   </div>
                 </div>
@@ -1569,7 +1569,7 @@ console.log(DOD.getCurrency());
               <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
                 <p className="text-xs text-muted-foreground">
                   Este script usa <span className="font-semibold text-green-600">BRL (Real)</span> como moeda fixa.
-                  Ideal para lojas que vendem apenas no Brasil.
+                  Funciona para qualquer país - ideal se você quer trackear tudo em Real.
                 </p>
               </div>
             </CardContent>
