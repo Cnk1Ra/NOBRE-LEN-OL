@@ -184,6 +184,209 @@ export default function PixelsUTMsPage() {
     name: '',
   })
 
+  // Script de tracking para COD (Formulário na página)
+  const codFormTrackingScript = `<!-- DOD COD TRACKING - Cole antes do </head> -->
+<script>
+(function() {
+  'use strict';
+
+  // ============================================
+  // CONFIGURAÇÃO - ALTERE AQUI
+  // ============================================
+  const DOD_CONFIG = {
+    webhookUrl: 'https://seu-dashboard.com/api/webhook/tracking',
+    debug: false
+  };
+
+  // ============================================
+  // FUNÇÕES UTILITÁRIAS
+  // ============================================
+  const DOD = {
+    log: function(msg, data) {
+      if (DOD_CONFIG.debug) console.log('[DOD]', msg, data || '');
+    },
+    generateId: function() {
+      return 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    },
+    getVisitorId: function() {
+      let id = localStorage.getItem('dod_visitor_id');
+      if (!id) {
+        id = this.generateId();
+        localStorage.setItem('dod_visitor_id', id);
+      }
+      return id;
+    },
+    getCookie: function(name) {
+      const value = '; ' + document.cookie;
+      const parts = value.split('; ' + name + '=');
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    },
+    setCookie: function(name, value, days) {
+      const d = new Date();
+      d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+      document.cookie = name + '=' + value + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+    }
+  };
+
+  // ============================================
+  // CAPTURA DE PARÂMETROS DA URL
+  // ============================================
+  const Params = {
+    capture: function() {
+      const p = new URLSearchParams(window.location.search);
+      return {
+        utm_source: p.get('utm_source'),
+        utm_campaign: p.get('utm_campaign'),
+        utm_medium: p.get('utm_medium'),
+        utm_content: p.get('utm_content'),
+        utm_term: p.get('utm_term'),
+        fbclid: p.get('fbclid'),
+        gclid: p.get('gclid'),
+        ttclid: p.get('ttclid'),
+        cwr: p.get('cwr'),
+        cname: p.get('cname'),
+        adset: p.get('adset'),
+        adname: p.get('adname'),
+        placement: p.get('placement'),
+        site: p.get('site'),
+        xid: p.get('xid'),
+        visitor_id: DOD.getVisitorId(),
+        fbp: DOD.getCookie('_fbp'),
+        fbc: DOD.getCookie('_fbc'),
+        landing_page: window.location.href,
+        timestamp: new Date().toISOString()
+      };
+    },
+    save: function(data) {
+      const clean = {};
+      for (const k in data) { if (data[k]) clean[k] = data[k]; }
+      localStorage.setItem('dod_tracking', JSON.stringify(clean));
+      DOD.setCookie('dod_tracking', btoa(JSON.stringify(clean)), 30);
+      return clean;
+    },
+    get: function() {
+      try {
+        const s = localStorage.getItem('dod_tracking');
+        if (s) return JSON.parse(s);
+      } catch (e) {}
+      return {};
+    }
+  };
+
+  // ============================================
+  // ENVIO DE EVENTOS
+  // ============================================
+  const Events = {
+    send: function(eventName, eventData) {
+      const payload = {
+        event: eventName,
+        timestamp: new Date().toISOString(),
+        tracking: Params.get(),
+        data: eventData,
+        page: { url: window.location.href, title: document.title }
+      };
+
+      // Webhook
+      if (!DOD_CONFIG.webhookUrl.includes('seu-dashboard')) {
+        fetch(DOD_CONFIG.webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          keepalive: true
+        }).catch(function(e) { DOD.log('Erro:', e); });
+      }
+
+      // Meta Pixel
+      if (typeof fbq !== 'undefined') {
+        const tracking = Params.get();
+        fbq('track', eventName, {
+          ...eventData,
+          external_id: tracking.visitor_id
+        });
+      }
+
+      // Google
+      if (typeof gtag !== 'undefined') {
+        gtag('event', eventName, eventData);
+      }
+
+      // TikTok
+      if (typeof ttq !== 'undefined') {
+        ttq.track(eventName, eventData);
+      }
+
+      DOD.log(eventName, eventData);
+    }
+  };
+
+  // ============================================
+  // INICIALIZAÇÃO
+  // ============================================
+  const data = Params.capture();
+  if (data.utm_source || data.fbclid || data.gclid || data.ttclid) {
+    Params.save(data);
+  }
+
+  // PageView automático
+  Events.send('PageView', { page_type: window.location.pathname });
+
+  // ============================================
+  // FUNÇÕES GLOBAIS PARA CHAMAR NO FORMULÁRIO
+  // ============================================
+  window.DOD = {
+    // Chame quando abrir o formulário
+    formOpened: function(productData) {
+      Events.send('InitiateCheckout', {
+        content_type: 'product',
+        content_ids: [productData.id || ''],
+        content_name: productData.name || '',
+        value: productData.price || 0,
+        currency: productData.currency || 'BRL',
+        num_items: 1
+      });
+    },
+
+    // Chame quando o formulário for enviado com sucesso
+    purchase: function(orderData) {
+      // Evita duplicação
+      const orderId = orderData.order_id || DOD.generateId();
+      const tracked = JSON.parse(localStorage.getItem('dod_tracked') || '[]');
+      if (tracked.includes(orderId)) return;
+
+      Events.send('Purchase', {
+        content_type: 'product',
+        content_ids: [orderData.product_id || ''],
+        content_name: orderData.product_name || '',
+        value: orderData.value || 0,
+        currency: orderData.currency || 'BRL',
+        order_id: orderId,
+        customer_name: orderData.customer_name || '',
+        customer_phone: orderData.customer_phone || '',
+        customer_city: orderData.customer_city || '',
+        num_items: orderData.quantity || 1
+      });
+
+      tracked.push(orderId);
+      localStorage.setItem('dod_tracked', JSON.stringify(tracked));
+    },
+
+    // Chame para Lead (quando preencher telefone/whatsapp)
+    lead: function(data) {
+      Events.send('Lead', {
+        content_name: data.product_name || '',
+        value: data.value || 0,
+        currency: data.currency || 'BRL'
+      });
+    },
+
+    // Para tracking manual
+    track: Events.send
+  };
+})();
+</script>
+<!-- FIM DOD COD TRACKING -->`
+
   // Script de tracking para Shopify
   const shopifyTrackingScript = `<!-- DOD TRACKING SCRIPT - Cole antes do </head> -->
 <script>
@@ -956,26 +1159,26 @@ export default function PixelsUTMsPage() {
             </CardContent>
           </Card>
 
-          {/* SCRIPT PRINCIPAL */}
-          <Card className="border-2 border-primary/50">
+          {/* SCRIPT COD - FORMULÁRIO NA PÁGINA */}
+          <Card className="border-2 border-orange-500/50 bg-gradient-to-br from-orange-500/5 to-transparent">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/20">
-                    <Code className="h-5 w-5 text-primary" />
+                  <div className="p-2 rounded-lg bg-orange-500/20">
+                    <ShoppingCart className="h-5 w-5 text-orange-500" />
                   </div>
                   <div>
-                    <CardTitle>Script de Tracking - Shopify</CardTitle>
+                    <CardTitle>Script COD - Formulário na Página</CardTitle>
                     <CardDescription>
-                      Cole no theme.liquid antes do {'</head>'}
+                      Para lojas com formulário de pedido na própria página do produto
                     </CardDescription>
                   </div>
                 </div>
                 <Button
-                  className="gap-2"
-                  onClick={() => copyToClipboard(shopifyTrackingScript, 'shopify-script')}
+                  className="gap-2 bg-orange-500 hover:bg-orange-600"
+                  onClick={() => copyToClipboard(codFormTrackingScript, 'cod-script')}
                 >
-                  {copied === 'shopify-script' ? (
+                  {copied === 'cod-script' ? (
                     <>
                       <Check className="h-4 w-4" />
                       Copiado!
@@ -989,40 +1192,108 @@ export default function PixelsUTMsPage() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="relative">
                 <Textarea
-                  value={shopifyTrackingScript}
+                  value={codFormTrackingScript}
                   readOnly
-                  className="font-mono text-xs min-h-[400px] bg-muted"
+                  className="font-mono text-xs min-h-[300px] bg-muted"
                 />
               </div>
-              <div className="mt-4 p-4 rounded-lg bg-muted/50">
-                <p className="text-sm font-semibold mb-2">O que esse script faz:</p>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Captura UTMs, fbclid, gclid, ttclid e parâmetros do cloaker
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Salva em cookie e localStorage (funciona no checkout)
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Dispara eventos: PageView, ViewContent, AddToCart, InitiateCheckout, Purchase
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Envia dados para webhook do seu dashboard
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Evita duplicação de eventos de Purchase
-                  </li>
-                </ul>
+
+              {/* COMO USAR */}
+              <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                <p className="text-sm font-semibold mb-3 text-orange-600 dark:text-orange-400">Como usar no seu formulário:</p>
+
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">1. Quando abrir o formulário:</p>
+                    <pre className="p-2 rounded bg-background text-xs font-mono overflow-x-auto">
+{`DOD.formOpened({
+  id: '123',           // ID do produto
+  name: 'Produto XYZ', // Nome do produto
+  price: 99.90,        // Preço
+  currency: 'BRL'
+});`}
+                    </pre>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">2. Quando o pedido for confirmado (após enviar formulário):</p>
+                    <pre className="p-2 rounded bg-background text-xs font-mono overflow-x-auto">
+{`DOD.purchase({
+  order_id: 'PED-001',     // ID do pedido
+  product_id: '123',
+  product_name: 'Produto XYZ',
+  value: 99.90,
+  currency: 'BRL',
+  quantity: 1,
+  customer_name: 'João Silva',
+  customer_phone: '11999999999',
+  customer_city: 'São Paulo'
+});`}
+                    </pre>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">3. Para Lead (quando preencher telefone):</p>
+                    <pre className="p-2 rounded bg-background text-xs font-mono overflow-x-auto">
+{`DOD.lead({
+  product_name: 'Produto XYZ',
+  value: 99.90
+});`}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+
+              {/* EVENTOS */}
+              <div className="p-4 rounded-lg bg-muted/50">
+                <p className="text-sm font-semibold mb-2">Eventos disparados:</p>
+                <div className="flex flex-wrap gap-2">
+                  <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">PageView</Badge>
+                  <Badge className="bg-purple-500/10 text-purple-500 border-purple-500/20">InitiateCheckout</Badge>
+                  <Badge className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20">Lead</Badge>
+                  <Badge className="bg-green-500/10 text-green-500 border-green-500/20">Purchase</Badge>
+                </div>
               </div>
             </CardContent>
+          </Card>
+
+          {/* SCRIPT SHOPIFY TRADICIONAL */}
+          <Card className="border border-muted">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/20">
+                    <Code className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Script Shopify Tradicional</CardTitle>
+                    <CardDescription>
+                      Para lojas com checkout padrão da Shopify
+                    </CardDescription>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => copyToClipboard(shopifyTrackingScript, 'shopify-script')}
+                >
+                  {copied === 'shopify-script' ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Copiar
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardHeader>
           </Card>
 
           {/* CONFIGURACAO DO WEBHOOK */}
