@@ -1410,18 +1410,21 @@ export default function PixelsUTMsPage() {
             </CardContent>
           </Card>
 
-          {/* SCRIPT COD - FORMULÁRIO NA PÁGINA */}
-          <Card className="border-2 border-orange-500/50 bg-gradient-to-br from-orange-500/5 to-transparent">
+          {/* SCRIPT COD - DETECÇÃO AUTOMÁTICA */}
+          <Card className="border-2 border-lime-500/50 bg-gradient-to-br from-lime-500/5 to-transparent">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-orange-500/20">
-                    <ShoppingCart className="h-5 w-5 text-orange-500" />
+                  <div className="p-2 rounded-lg bg-lime-500/20">
+                    <ShoppingCart className="h-5 w-5 text-lime-500" />
                   </div>
                   <div>
-                    <CardTitle>Script COD - Formulário na Página</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      Script Universal (Detecção Automática)
+                      <Badge className="bg-lime-500 text-white">RECOMENDADO</Badge>
+                    </CardTitle>
                     <CardDescription>
-                      Para lojas com formulário de pedido na própria página do produto
+                      Um único script para todas as lojas - detecta país/moeda automaticamente pelo domínio
                     </CardDescription>
                   </div>
                 </div>
@@ -1435,7 +1438,7 @@ export default function PixelsUTMsPage() {
                     {visibleScripts['cod-script'] ? 'Ocultar' : 'Ver Script'}
                   </Button>
                   <Button
-                    className="gap-2 bg-orange-500 hover:bg-orange-600"
+                    className="gap-2 bg-lime-500 hover:bg-lime-600"
                     onClick={() => copyToClipboard(codFormTrackingScript, 'cod-script')}
                   >
                     {copied === 'cod-script' ? (
@@ -1465,23 +1468,63 @@ export default function PixelsUTMsPage() {
               )}
 
               {/* DETECCAO AUTOMATICA */}
-              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-                <p className="text-sm font-semibold mb-2 text-green-600 dark:text-green-400">Detecção Automática de País/Moeda</p>
+              <div className="p-4 rounded-lg bg-lime-500/10 border border-lime-500/20">
+                <p className="text-sm font-semibold mb-2 text-lime-600 dark:text-lime-400">Como funciona a detecção automática?</p>
                 <p className="text-xs text-muted-foreground mb-3">
-                  O script detecta automaticamente o país e moeda pelo domínio da loja:
+                  Cole o <span className="font-semibold text-foreground">mesmo script</span> em todas as suas lojas. Ele detecta a moeda pelo domínio:
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">.ma</span> → MAD</div>
-                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">.ae</span> → AED</div>
-                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">.sa</span> → SAR</div>
-                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">.eg</span> → EGP</div>
-                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">.br</span> → BRL</div>
-                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">.pt</span> → EUR</div>
-                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">.pk</span> → PKR</div>
-                  <div className="p-2 rounded bg-background"><span className="font-mono text-green-500">+30 países</span></div>
+                  <div className="p-2 rounded bg-background flex items-center gap-2">
+                    <span>🇮🇹</span>
+                    <span className="font-mono text-lime-600">.it</span>
+                    <span className="text-muted-foreground">→</span>
+                    <span className="font-bold">EUR</span>
+                  </div>
+                  <div className="p-2 rounded bg-background flex items-center gap-2">
+                    <span>🇵🇱</span>
+                    <span className="font-mono text-lime-600">.pl</span>
+                    <span className="text-muted-foreground">→</span>
+                    <span className="font-bold">PLN</span>
+                  </div>
+                  <div className="p-2 rounded bg-background flex items-center gap-2">
+                    <span>🇦🇪</span>
+                    <span className="font-mono text-lime-600">.ae</span>
+                    <span className="text-muted-foreground">→</span>
+                    <span className="font-bold">AED</span>
+                  </div>
+                  <div className="p-2 rounded bg-background flex items-center gap-2">
+                    <span>🇲🇦</span>
+                    <span className="font-mono text-lime-600">.ma</span>
+                    <span className="text-muted-foreground">→</span>
+                    <span className="font-bold">MAD</span>
+                  </div>
+                  <div className="p-2 rounded bg-background flex items-center gap-2">
+                    <span>🇸🇦</span>
+                    <span className="font-mono text-lime-600">.sa</span>
+                    <span className="text-muted-foreground">→</span>
+                    <span className="font-bold">SAR</span>
+                  </div>
+                  <div className="p-2 rounded bg-background flex items-center gap-2">
+                    <span>🇪🇬</span>
+                    <span className="font-mono text-lime-600">.eg</span>
+                    <span className="text-muted-foreground">→</span>
+                    <span className="font-bold">EGP</span>
+                  </div>
+                  <div className="p-2 rounded bg-background flex items-center gap-2">
+                    <span>🇧🇷</span>
+                    <span className="font-mono text-lime-600">.br</span>
+                    <span className="text-muted-foreground">→</span>
+                    <span className="font-bold">BRL</span>
+                  </div>
+                  <div className="p-2 rounded bg-background flex items-center gap-2">
+                    <span>🇵🇰</span>
+                    <span className="font-mono text-lime-600">.pk</span>
+                    <span className="text-muted-foreground">→</span>
+                    <span className="font-bold">PKR</span>
+                  </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-3">
-                  Também funciona com: <span className="font-mono">?country=MA</span> na URL ou subdomínio <span className="font-mono">ma.loja.com</span>
+                  <span className="font-semibold text-lime-600">+30 países suportados</span> - Detecta também por subdomínio (ma.loja.com) ou parâmetro (?country=MA)
                 </p>
               </div>
 
