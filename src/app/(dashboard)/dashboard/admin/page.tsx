@@ -58,7 +58,7 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/use-toast'
 
 interface User {
   id: string
@@ -167,7 +167,7 @@ export default function AdminPage() {
         setStats(data)
       } else if (res.status === 403) {
         router.push('/dashboard')
-        toast.error('Acesso negado. Apenas usuários Matrix.')
+        toast({ title: 'Acesso negado', description: 'Apenas usuários Matrix.', variant: 'destructive' })
       }
     } catch (error) {
       console.error('Erro ao buscar estatísticas:', error)
@@ -210,17 +210,17 @@ export default function AdminPage() {
       })
 
       if (res.ok) {
-        toast.success('Usuário criado com sucesso!')
+        toast({ title: 'Usuário criado com sucesso!' })
         setIsCreateUserOpen(false)
         setFormData({ name: '', email: '', password: '', role: 'MEMBER' })
         fetchUsers()
         fetchStats()
       } else {
         const data = await res.json()
-        toast.error(data.error || 'Erro ao criar usuário')
+        toast({ title: 'Erro', description: data.error || 'Erro ao criar usuário', variant: 'destructive' })
       }
     } catch (error) {
-      toast.error('Erro ao criar usuário')
+      toast({ title: 'Erro', description: 'Erro ao criar usuário', variant: 'destructive' })
     }
   }
 
@@ -240,17 +240,17 @@ export default function AdminPage() {
       })
 
       if (res.ok) {
-        toast.success('Usuário atualizado com sucesso!')
+        toast({ title: 'Usuário atualizado com sucesso!' })
         setIsEditUserOpen(false)
         setSelectedUser(null)
         setFormData({ name: '', email: '', password: '', role: 'MEMBER' })
         fetchUsers()
       } else {
         const data = await res.json()
-        toast.error(data.error || 'Erro ao atualizar usuário')
+        toast({ title: 'Erro', description: data.error || 'Erro ao atualizar usuário', variant: 'destructive' })
       }
     } catch (error) {
-      toast.error('Erro ao atualizar usuário')
+      toast({ title: 'Erro', description: 'Erro ao atualizar usuário', variant: 'destructive' })
     }
   }
 
@@ -263,17 +263,17 @@ export default function AdminPage() {
       })
 
       if (res.ok) {
-        toast.success('Usuário excluído com sucesso!')
+        toast({ title: 'Usuário excluído com sucesso!' })
         setIsDeleteUserOpen(false)
         setSelectedUser(null)
         fetchUsers()
         fetchStats()
       } else {
         const data = await res.json()
-        toast.error(data.error || 'Erro ao excluir usuário')
+        toast({ title: 'Erro', description: data.error || 'Erro ao excluir usuário', variant: 'destructive' })
       }
     } catch (error) {
-      toast.error('Erro ao excluir usuário')
+      toast({ title: 'Erro', description: 'Erro ao excluir usuário', variant: 'destructive' })
     }
   }
 

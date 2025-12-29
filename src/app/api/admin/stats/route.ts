@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
         orders: totalOrders,
         products: totalProducts,
       },
-      usersByRole: usersByRole.reduce((acc, item) => {
+      usersByRole: usersByRole.reduce((acc: Record<string, number>, item: { role: string; _count: number }) => {
         acc[item.role] = item._count
         return acc
       }, {} as Record<string, number>),
