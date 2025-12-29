@@ -184,6 +184,174 @@ export default function PixelsUTMsPage() {
     name: '',
   })
 
+  // Script de tracking para Shopify
+  const shopifyTrackingScript = `<!-- DOD TRACKING SCRIPT - Cole antes do </head> -->
+<script>
+(function() {
+  'use strict';
+
+  // ============================================
+  // CONFIGURAÇÃO
+  // ============================================
+  const DOD_CONFIG = {
+    webhookUrl: 'https://seu-dashboard.com/api/webhook/tracking',
+    debug: false
+  };
+
+  const DOD = {
+    log: function(msg, data) {
+      if (DOD_CONFIG.debug) console.log('[DOD]', msg, data || '');
+    },
+    generateVisitorId: function() {
+      return 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    },
+    getVisitorId: function() {
+      let id = localStorage.getItem('dod_visitor_id');
+      if (!id) {
+        id = this.generateVisitorId();
+        localStorage.setItem('dod_visitor_id', id);
+      }
+      return id;
+    },
+    getCookie: function(name) {
+      const value = '; ' + document.cookie;
+      const parts = value.split('; ' + name + '=');
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    },
+    setCookie: function(name, value, days) {
+      const d = new Date();
+      d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+      document.cookie = name + '=' + value + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+    }
+  };
+
+  // ============================================
+  // CAPTURA DE PARÂMETROS
+  // ============================================
+  const Params = {
+    capture: function() {
+      const p = new URLSearchParams(window.location.search);
+      return {
+        // UTMs
+        utm_source: p.get('utm_source'),
+        utm_campaign: p.get('utm_campaign'),
+        utm_medium: p.get('utm_medium'),
+        utm_content: p.get('utm_content'),
+        utm_term: p.get('utm_term'),
+        // Click IDs
+        fbclid: p.get('fbclid'),
+        gclid: p.get('gclid'),
+        ttclid: p.get('ttclid'),
+        // Cloaker
+        cwr: p.get('cwr'),
+        cname: p.get('cname'),
+        adset: p.get('adset'),
+        adname: p.get('adname'),
+        placement: p.get('placement'),
+        site: p.get('site'),
+        xid: p.get('xid'),
+        // Meta
+        visitor_id: DOD.getVisitorId(),
+        fbp: DOD.getCookie('_fbp'),
+        fbc: DOD.getCookie('_fbc'),
+        landing_page: window.location.href,
+        timestamp: new Date().toISOString()
+      };
+    },
+    save: function(data) {
+      const clean = {};
+      for (const k in data) {
+        if (data[k]) clean[k] = data[k];
+      }
+      localStorage.setItem('dod_tracking', JSON.stringify(clean));
+      DOD.setCookie('dod_tracking', btoa(JSON.stringify(clean)), 30);
+      return clean;
+    },
+    get: function() {
+      try {
+        const s = localStorage.getItem('dod_tracking');
+        if (s) return JSON.parse(s);
+        const c = DOD.getCookie('dod_tracking');
+        if (c) return JSON.parse(atob(c));
+      } catch (e) {}
+      return {};
+    }
+  };
+
+  // ============================================
+  // ENVIO DE EVENTOS
+  // ============================================
+  const Events = {
+    send: function(eventName, eventData) {
+      if (!DOD_CONFIG.webhookUrl.includes('seu-dashboard')) {
+        fetch(DOD_CONFIG.webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: eventName,
+            timestamp: new Date().toISOString(),
+            tracking: Params.get(),
+            data: eventData,
+            page: { url: window.location.href, title: document.title }
+          }),
+          keepalive: true
+        }).catch(function(e) { DOD.log('Erro:', e); });
+      }
+      // Meta Pixel
+      if (typeof fbq !== 'undefined') {
+        fbq('track', eventName, eventData);
+      }
+      // Google
+      if (typeof gtag !== 'undefined') {
+        gtag('event', eventName, eventData);
+      }
+      // TikTok
+      if (typeof ttq !== 'undefined') {
+        ttq.track(eventName, eventData);
+      }
+      DOD.log(eventName, eventData);
+    }
+  };
+
+  // ============================================
+  // INIT
+  // ============================================
+  function init() {
+    const data = Params.capture();
+    if (data.utm_source || data.fbclid || data.gclid || data.ttclid) {
+      Params.save(data);
+    }
+    Events.send('PageView', { page_type: window.location.pathname });
+  }
+
+  window.DOD_Track = Events.send;
+  init();
+})();
+</script>
+{% if template contains 'product' %}
+<script>
+  DOD_Track('ViewContent', {
+    content_type: 'product',
+    content_ids: ['{{ product.id }}'],
+    content_name: '{{ product.title | escape }}',
+    value: {{ product.price | divided_by: 100.0 }},
+    currency: '{{ shop.currency }}'
+  });
+</script>
+{% endif %}
+{% if template contains 'cart' %}
+<script>
+  DOD_Track('ViewCart', {
+    content_ids: [{% for item in cart.items %}'{{ item.product_id }}'{% unless forloop.last %},{% endunless %}{% endfor %}],
+    num_items: {{ cart.item_count }},
+    value: {{ cart.total_price | divided_by: 100.0 }},
+    currency: '{{ shop.currency }}'
+  });
+</script>
+{% endif %}
+<!-- FIM DOD TRACKING -->`
+
   const getPlatformIcon = (platform: string) => {
     switch (platform) {
       case 'meta':
@@ -768,99 +936,181 @@ export default function PixelsUTMsPage() {
 
         {/* SCRIPTS TAB */}
         <TabsContent value="scripts" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Code className="h-5 w-5" />
-                Script de Tracking Universal
-              </CardTitle>
-              <CardDescription>
-                Copie e cole este script na seção {'<head>'} do seu site para ativar o tracking de todos os pixels configurados
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="relative">
-                <Textarea
-                  value={generateTrackingScript()}
-                  readOnly
-                  className="font-mono text-xs min-h-[300px] bg-muted"
-                />
-                <Button
-                  size="sm"
-                  className="absolute top-2 right-2 gap-2"
-                  onClick={() => copyToClipboard(generateTrackingScript(), 'script')}
-                >
-                  {copied === 'script' ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Copiado
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      Copiar
-                    </>
-                  )}
-                </Button>
+          {/* INSTRUCOES */}
+          <Card className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/30">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-green-500/20">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <p className="font-semibold text-green-600 dark:text-green-400">Como instalar na Shopify:</p>
+                  <ol className="text-sm text-muted-foreground mt-2 space-y-1 list-decimal list-inside">
+                    <li>Vá em <span className="font-mono bg-muted px-1 rounded">Online Store → Themes → Edit Code</span></li>
+                    <li>Abra o arquivo <span className="font-mono bg-muted px-1 rounded">theme.liquid</span></li>
+                    <li>Cole o script <span className="font-semibold text-foreground">antes do {'</head>'}</span></li>
+                    <li>Salve e pronto!</li>
+                  </ol>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <MousePointerClick className="h-4 w-4 text-blue-500" />
-                  Landing Page
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Script para captura de UTMs e PageView
-                </p>
-                <Button variant="outline" className="w-full gap-2">
-                  <Copy className="h-4 w-4" />
-                  Copiar Script
+          {/* SCRIPT PRINCIPAL */}
+          <Card className="border-2 border-primary/50">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/20">
+                    <Code className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle>Script de Tracking - Shopify</CardTitle>
+                    <CardDescription>
+                      Cole no theme.liquid antes do {'</head>'}
+                    </CardDescription>
+                  </div>
+                </div>
+                <Button
+                  className="gap-2"
+                  onClick={() => copyToClipboard(shopifyTrackingScript, 'shopify-script')}
+                >
+                  {copied === 'shopify-script' ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Copiar Script
+                    </>
+                  )}
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="relative">
+                <Textarea
+                  value={shopifyTrackingScript}
+                  readOnly
+                  className="font-mono text-xs min-h-[400px] bg-muted"
+                />
+              </div>
+              <div className="mt-4 p-4 rounded-lg bg-muted/50">
+                <p className="text-sm font-semibold mb-2">O que esse script faz:</p>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    Captura UTMs, fbclid, gclid, ttclid e parâmetros do cloaker
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    Salva em cookie e localStorage (funciona no checkout)
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    Dispara eventos: PageView, ViewContent, AddToCart, InitiateCheckout, Purchase
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    Envia dados para webhook do seu dashboard
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    Evita duplicação de eventos de Purchase
+                  </li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <ShoppingCart className="h-4 w-4 text-orange-500" />
-                  Checkout
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Script para InitiateCheckout e AddPaymentInfo
+          {/* CONFIGURACAO DO WEBHOOK */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Configuração do Webhook
+              </CardTitle>
+              <CardDescription>
+                Configure a URL do webhook para receber os eventos no dashboard
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>URL do Webhook</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="https://seu-dashboard.com/api/webhook/tracking"
+                    className="font-mono text-sm"
+                  />
+                  <Button variant="outline">Salvar</Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Esta URL receberá todos os eventos de tracking via POST
                 </p>
-                <Button variant="outline" className="w-full gap-2">
-                  <Copy className="h-4 w-4" />
-                  Copiar Script
-                </Button>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="p-4 rounded-lg bg-muted">
+                <p className="text-sm font-semibold mb-2">Eventos enviados:</p>
+                <div className="flex flex-wrap gap-2">
+                  {['PageView', 'ViewContent', 'AddToCart', 'InitiateCheckout', 'Purchase'].map((event) => (
+                    <Badge key={event} variant="outline">{event}</Badge>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <PackageCheck className="h-4 w-4 text-green-500" />
-                  Thank You
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Script para Purchase e Lead
+          {/* WEBHOOK SHOPIFY */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Zap className="h-4 w-4 text-green-500" />
+                Webhooks da Shopify (Recomendado)
+              </CardTitle>
+              <CardDescription>
+                Configure webhooks na Shopify para receber atualizações de pedidos em tempo real
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                <p className="text-sm mb-3">
+                  <span className="font-semibold text-green-600 dark:text-green-400">Webhooks são melhores que API</span> porque você recebe os dados instantaneamente quando:
                 </p>
-                <Button variant="outline" className="w-full gap-2">
-                  <Copy className="h-4 w-4" />
-                  Copiar Script
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+                <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                  <li>• Pedido criado</li>
+                  <li>• Pedido pago</li>
+                  <li>• Pedido enviado (fulfillment)</li>
+                  <li>• Pedido cancelado/reembolsado</li>
+                </ul>
+              </div>
+              <div className="space-y-2">
+                <Label>URL para Webhooks da Shopify</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value="https://seu-dashboard.com/api/shopify/webhook"
+                    readOnly
+                    className="font-mono text-sm bg-muted"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => copyToClipboard('https://seu-dashboard.com/api/shopify/webhook', 'shopify-webhook')}
+                  >
+                    {copied === 'shopify-webhook' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <p className="font-semibold mb-2">Configure na Shopify:</p>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Settings → Notifications → Webhooks</li>
+                  <li>Clique em "Create webhook"</li>
+                  <li>Selecione: Order creation, Order payment, Fulfillment creation</li>
+                  <li>Cole a URL acima</li>
+                </ol>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* TESTES TAB */}

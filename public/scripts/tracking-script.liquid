@@ -1,0 +1,477 @@
+<!-- DOD TRACKING SCRIPT - Cole no theme.liquid antes do </head> -->
+<!-- Versão: 1.0 | Dashboard: DOD -->
+
+<script>
+(function() {
+  'use strict';
+
+  // ============================================
+  // CONFIGURAÇÃO - ALTERE AQUI
+  // ============================================
+  const DOD_CONFIG = {
+    // Webhook URL do seu dashboard (será configurado depois)
+    webhookUrl: 'https://seu-dashboard.com/api/webhook/tracking',
+
+    // Seus Pixel IDs
+    metaPixelId: '',      // Ex: '1234567890123456'
+    googleTagId: '',      // Ex: 'AW-123456789'
+    tiktokPixelId: '',    // Ex: 'CPIX123456789'
+
+    // Ativar debug no console
+    debug: false
+  };
+
+  // ============================================
+  // UTILITÁRIOS
+  // ============================================
+  const DOD = {
+    log: function(msg, data) {
+      if (DOD_CONFIG.debug) {
+        console.log('[DOD]', msg, data || '');
+      }
+    },
+
+    // Gera ID único para visitante
+    generateVisitorId: function() {
+      return 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    },
+
+    // Pega ou cria visitor ID
+    getVisitorId: function() {
+      let visitorId = localStorage.getItem('dod_visitor_id');
+      if (!visitorId) {
+        visitorId = this.generateVisitorId();
+        localStorage.setItem('dod_visitor_id', visitorId);
+      }
+      return visitorId;
+    },
+
+    // Pega cookie por nome
+    getCookie: function(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    },
+
+    // Seta cookie
+    setCookie: function(name, value, days) {
+      const d = new Date();
+      d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+      document.cookie = `${name}=${value};expires=${d.toUTCString()};path=/;SameSite=Lax`;
+    }
+  };
+
+  // ============================================
+  // CAPTURA DE PARÂMETROS
+  // ============================================
+  const TrackingParams = {
+    // Captura todos os parâmetros da URL
+    capture: function() {
+      const params = new URLSearchParams(window.location.search);
+      const data = {
+        // UTMs
+        utm_source: params.get('utm_source'),
+        utm_campaign: params.get('utm_campaign'),
+        utm_medium: params.get('utm_medium'),
+        utm_content: params.get('utm_content'),
+        utm_term: params.get('utm_term'),
+
+        // Click IDs das plataformas
+        fbclid: params.get('fbclid'),
+        gclid: params.get('gclid'),
+        ttclid: params.get('ttclid'),
+
+        // Parâmetros do cloaker (se houver)
+        cwr: params.get('cwr'),
+        cname: params.get('cname'),
+        adset: params.get('adset'),
+        adname: params.get('adname'),
+        placement: params.get('placement'),
+        site: params.get('site'),
+        xid: params.get('xid'),
+
+        // SubIDs genéricos
+        sub1: params.get('sub1'),
+        sub2: params.get('sub2'),
+        sub3: params.get('sub3'),
+        sub4: params.get('sub4'),
+        sub5: params.get('sub5'),
+
+        // Metadados
+        visitor_id: DOD.getVisitorId(),
+        landing_page: window.location.href,
+        referrer: document.referrer,
+        timestamp: new Date().toISOString(),
+        user_agent: navigator.userAgent
+      };
+
+      // Captura _fbp e _fbc (cookies do Meta Pixel)
+      data.fbp = DOD.getCookie('_fbp');
+      data.fbc = DOD.getCookie('_fbc');
+
+      // Se tem fbclid mas não tem _fbc, cria o _fbc
+      if (data.fbclid && !data.fbc) {
+        data.fbc = `fb.1.${Date.now()}.${data.fbclid}`;
+      }
+
+      return data;
+    },
+
+    // Salva os parâmetros
+    save: function(data) {
+      // Remove valores null/undefined
+      const cleanData = {};
+      for (const key in data) {
+        if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
+          cleanData[key] = data[key];
+        }
+      }
+
+      // Salva no localStorage
+      localStorage.setItem('dod_tracking', JSON.stringify(cleanData));
+
+      // Salva em cookie também (para checkout em outro domínio)
+      DOD.setCookie('dod_tracking', btoa(JSON.stringify(cleanData)), 30);
+
+      DOD.log('Parâmetros salvos:', cleanData);
+      return cleanData;
+    },
+
+    // Recupera parâmetros salvos
+    get: function() {
+      try {
+        const stored = localStorage.getItem('dod_tracking');
+        if (stored) {
+          return JSON.parse(stored);
+        }
+        // Tenta do cookie
+        const cookieData = DOD.getCookie('dod_tracking');
+        if (cookieData) {
+          return JSON.parse(atob(cookieData));
+        }
+      } catch (e) {
+        DOD.log('Erro ao recuperar dados:', e);
+      }
+      return {};
+    },
+
+    // Detecta a plataforma de origem
+    detectPlatform: function(data) {
+      if (data.fbclid || data.utm_source === 'FB' || data.utm_source === 'facebook' || data.utm_source === 'ig') {
+        return 'meta';
+      }
+      if (data.gclid || data.utm_source === 'google') {
+        return 'google';
+      }
+      if (data.ttclid || data.utm_source === 'tiktok') {
+        return 'tiktok';
+      }
+      return 'direct';
+    }
+  };
+
+  // ============================================
+  // ENVIO DE EVENTOS
+  // ============================================
+  const EventSender = {
+    // Envia evento para o webhook do dashboard
+    sendToWebhook: function(eventName, eventData) {
+      if (!DOD_CONFIG.webhookUrl || DOD_CONFIG.webhookUrl.includes('seu-dashboard')) {
+        DOD.log('Webhook não configurado');
+        return;
+      }
+
+      const payload = {
+        event: eventName,
+        timestamp: new Date().toISOString(),
+        tracking: TrackingParams.get(),
+        data: eventData,
+        page: {
+          url: window.location.href,
+          title: document.title,
+          referrer: document.referrer
+        }
+      };
+
+      fetch(DOD_CONFIG.webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        keepalive: true
+      }).then(response => {
+        DOD.log(`Evento ${eventName} enviado`, response.status);
+      }).catch(error => {
+        DOD.log(`Erro ao enviar ${eventName}:`, error);
+      });
+    },
+
+    // Envia para Meta Pixel
+    sendToMeta: function(eventName, eventData) {
+      if (typeof fbq === 'undefined' || !DOD_CONFIG.metaPixelId) return;
+
+      const tracking = TrackingParams.get();
+      const params = {
+        ...eventData,
+        external_id: tracking.visitor_id,
+        fbp: tracking.fbp,
+        fbc: tracking.fbc
+      };
+
+      fbq('track', eventName, params);
+      DOD.log(`Meta Pixel: ${eventName}`, params);
+    },
+
+    // Envia para Google
+    sendToGoogle: function(eventName, eventData) {
+      if (typeof gtag === 'undefined' || !DOD_CONFIG.googleTagId) return;
+
+      gtag('event', eventName, eventData);
+      DOD.log(`Google Tag: ${eventName}`, eventData);
+    },
+
+    // Envia para TikTok
+    sendToTikTok: function(eventName, eventData) {
+      if (typeof ttq === 'undefined' || !DOD_CONFIG.tiktokPixelId) return;
+
+      ttq.track(eventName, eventData);
+      DOD.log(`TikTok Pixel: ${eventName}`, eventData);
+    },
+
+    // Envia para todas as plataformas
+    track: function(eventName, eventData = {}) {
+      DOD.log(`Tracking: ${eventName}`, eventData);
+
+      // Webhook (seu dashboard)
+      this.sendToWebhook(eventName, eventData);
+
+      // Pixels
+      this.sendToMeta(eventName, eventData);
+      this.sendToGoogle(eventName, eventData);
+      this.sendToTikTok(eventName, eventData);
+    }
+  };
+
+  // ============================================
+  // EVENTOS DO SHOPIFY
+  // ============================================
+  const ShopifyEvents = {
+    init: function() {
+      // Detecta tipo de página
+      const pageType = this.getPageType();
+      DOD.log('Tipo de página:', pageType);
+
+      // PageView em todas as páginas
+      EventSender.track('PageView', { page_type: pageType });
+
+      // Eventos específicos por página
+      switch(pageType) {
+        case 'product':
+          this.trackViewContent();
+          this.setupAddToCart();
+          break;
+        case 'collection':
+          this.trackViewCategory();
+          break;
+        case 'cart':
+          this.trackViewCart();
+          break;
+        case 'checkout':
+          this.trackInitiateCheckout();
+          break;
+        case 'thank_you':
+          this.trackPurchase();
+          break;
+      }
+    },
+
+    getPageType: function() {
+      const url = window.location.pathname;
+
+      if (url.includes('/thank_you') || url.includes('/orders/')) {
+        return 'thank_you';
+      }
+      if (url.includes('/checkouts/')) {
+        return 'checkout';
+      }
+      if (url.includes('/cart')) {
+        return 'cart';
+      }
+      if (url.includes('/products/')) {
+        return 'product';
+      }
+      if (url.includes('/collections/')) {
+        return 'collection';
+      }
+      if (url === '/' || url === '') {
+        return 'home';
+      }
+      return 'other';
+    },
+
+    // ViewContent - Página de produto
+    trackViewContent: function() {
+      {% if product %}
+      const productData = {
+        content_type: 'product',
+        content_ids: ['{{ product.id }}'],
+        content_name: '{{ product.title | escape }}',
+        content_category: '{{ product.type | escape }}',
+        value: {{ product.price | divided_by: 100.0 }},
+        currency: '{{ shop.currency }}'
+      };
+      EventSender.track('ViewContent', productData);
+      {% endif %}
+    },
+
+    // ViewCategory - Página de coleção
+    trackViewCategory: function() {
+      {% if collection %}
+      EventSender.track('ViewCategory', {
+        content_type: 'product_group',
+        content_name: '{{ collection.title | escape }}',
+        content_category: '{{ collection.title | escape }}'
+      });
+      {% endif %}
+    },
+
+    // AddToCart
+    setupAddToCart: function() {
+      document.addEventListener('click', function(e) {
+        const addToCartBtn = e.target.closest('[name="add"], .add-to-cart, [data-add-to-cart]');
+        if (addToCartBtn) {
+          {% if product %}
+          const productData = {
+            content_type: 'product',
+            content_ids: ['{{ product.id }}'],
+            content_name: '{{ product.title | escape }}',
+            value: {{ product.price | divided_by: 100.0 }},
+            currency: '{{ shop.currency }}'
+          };
+          EventSender.track('AddToCart', productData);
+          {% endif %}
+        }
+      });
+    },
+
+    // ViewCart
+    trackViewCart: function() {
+      {% if cart %}
+      EventSender.track('ViewCart', {
+        content_type: 'product',
+        content_ids: [{% for item in cart.items %}'{{ item.product_id }}'{% unless forloop.last %},{% endunless %}{% endfor %}],
+        num_items: {{ cart.item_count }},
+        value: {{ cart.total_price | divided_by: 100.0 }},
+        currency: '{{ shop.currency }}'
+      });
+      {% endif %}
+    },
+
+    // InitiateCheckout
+    trackInitiateCheckout: function() {
+      {% if checkout %}
+      EventSender.track('InitiateCheckout', {
+        content_type: 'product',
+        content_ids: [{% for item in checkout.line_items %}'{{ item.product_id }}'{% unless forloop.last %},{% endunless %}{% endfor %}],
+        num_items: {{ checkout.line_items.size }},
+        value: {{ checkout.total_price | divided_by: 100.0 }},
+        currency: '{{ shop.currency }}'
+      });
+      {% endif %}
+    },
+
+    // Purchase - Thank You Page
+    trackPurchase: function() {
+      {% if checkout or order %}
+      {% assign order_data = checkout | default: order %}
+
+      // Verifica se já trackamos esse pedido
+      const orderId = '{{ order_data.order_number | default: order_data.id }}';
+      const trackedOrders = JSON.parse(localStorage.getItem('dod_tracked_orders') || '[]');
+
+      if (trackedOrders.includes(orderId)) {
+        DOD.log('Pedido já trackeado:', orderId);
+        return;
+      }
+
+      const purchaseData = {
+        content_type: 'product',
+        content_ids: [{% for item in order_data.line_items %}'{{ item.product_id }}'{% unless forloop.last %},{% endunless %}{% endfor %}],
+        content_name: '{% for item in order_data.line_items %}{{ item.title | escape }}{% unless forloop.last %}, {% endunless %}{% endfor %}',
+        num_items: {{ order_data.line_items.size }},
+        value: {{ order_data.total_price | divided_by: 100.0 }},
+        currency: '{{ shop.currency }}',
+        order_id: orderId,
+
+        // Dados do cliente (para CAPI)
+        customer: {
+          email_hash: '{{ order_data.email | downcase | sha256 }}',
+          phone_hash: '{{ order_data.billing_address.phone | remove: " " | remove: "-" | remove: "(" | remove: ")" | sha256 }}',
+          first_name: '{{ order_data.billing_address.first_name | escape }}',
+          last_name: '{{ order_data.billing_address.last_name | escape }}',
+          city: '{{ order_data.billing_address.city | escape }}',
+          state: '{{ order_data.billing_address.province_code }}',
+          country: '{{ order_data.billing_address.country_code }}',
+          zip: '{{ order_data.billing_address.zip }}'
+        },
+
+        // Itens do pedido
+        items: [
+          {% for item in order_data.line_items %}
+          {
+            id: '{{ item.product_id }}',
+            name: '{{ item.title | escape }}',
+            quantity: {{ item.quantity }},
+            price: {{ item.price | divided_by: 100.0 }}
+          }{% unless forloop.last %},{% endunless %}
+          {% endfor %}
+        ]
+      };
+
+      EventSender.track('Purchase', purchaseData);
+
+      // Marca como trackeado
+      trackedOrders.push(orderId);
+      localStorage.setItem('dod_tracked_orders', JSON.stringify(trackedOrders));
+
+      DOD.log('Purchase trackeado:', orderId);
+      {% endif %}
+    }
+  };
+
+  // ============================================
+  // INICIALIZAÇÃO
+  // ============================================
+  function init() {
+    DOD.log('DOD Tracking iniciado');
+
+    // Captura e salva parâmetros da URL (se houver)
+    const urlParams = TrackingParams.capture();
+    if (urlParams.utm_source || urlParams.fbclid || urlParams.gclid || urlParams.ttclid) {
+      TrackingParams.save(urlParams);
+    }
+
+    // Inicializa eventos do Shopify
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        ShopifyEvents.init();
+      });
+    } else {
+      ShopifyEvents.init();
+    }
+  }
+
+  // Expõe funções globalmente para uso manual
+  window.DOD_Tracking = {
+    track: EventSender.track.bind(EventSender),
+    getParams: TrackingParams.get,
+    getVisitorId: DOD.getVisitorId.bind(DOD)
+  };
+
+  init();
+})();
+</script>
+
+<!-- FIM DOD TRACKING SCRIPT -->
