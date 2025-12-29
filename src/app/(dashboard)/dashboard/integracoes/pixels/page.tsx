@@ -224,14 +224,28 @@ export default function PixelsUTMsPage() {
     'om': { country: 'OM', currency: 'OMR', name: 'Omã' },
     'jo': { country: 'JO', currency: 'JOD', name: 'Jordânia' },
     'iq': { country: 'IQ', currency: 'IQD', name: 'Iraque' },
-    // Europa
+    // Europa Ocidental
     'pt': { country: 'PT', currency: 'EUR', name: 'Portugal' },
     'es': { country: 'ES', currency: 'EUR', name: 'Espanha' },
     'fr': { country: 'FR', currency: 'EUR', name: 'França' },
     'de': { country: 'DE', currency: 'EUR', name: 'Alemanha' },
     'it': { country: 'IT', currency: 'EUR', name: 'Itália' },
-    'pl': { country: 'PL', currency: 'PLN', name: 'Polônia' },
+    'at': { country: 'AT', currency: 'EUR', name: 'Áustria' },
+    'gr': { country: 'GR', currency: 'EUR', name: 'Grécia' },
     'uk': { country: 'GB', currency: 'GBP', name: 'Reino Unido' },
+    // Europa Central e Oriental
+    'pl': { country: 'PL', currency: 'PLN', name: 'Polônia' },
+    'cz': { country: 'CZ', currency: 'CZK', name: 'República Tcheca' },
+    'sk': { country: 'SK', currency: 'EUR', name: 'Eslováquia' },
+    'hu': { country: 'HU', currency: 'HUF', name: 'Hungria' },
+    'ro': { country: 'RO', currency: 'RON', name: 'Romênia' },
+    'bg': { country: 'BG', currency: 'BGN', name: 'Bulgária' },
+    'hr': { country: 'HR', currency: 'EUR', name: 'Croácia' },
+    'si': { country: 'SI', currency: 'EUR', name: 'Eslovênia' },
+    // Bálticos
+    'ee': { country: 'EE', currency: 'EUR', name: 'Estônia' },
+    'lv': { country: 'LV', currency: 'EUR', name: 'Letônia' },
+    'lt': { country: 'LT', currency: 'EUR', name: 'Lituânia' },
     // Américas
     'br': { country: 'BR', currency: 'BRL', name: 'Brasil' },
     'mx': { country: 'MX', currency: 'MXN', name: 'México' },
@@ -1683,9 +1697,9 @@ export default function PixelsUTMsPage() {
                         </div>
                       </div>
 
-                      {/* EUROPA */}
+                      {/* EUROPA OCIDENTAL */}
                       <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">Europa</p>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">Europa Ocidental</p>
                         <div className="space-y-1">
                           {[
                             { code: 'EUR', country: 'PT', name: 'Portugal', flag: '🇵🇹' },
@@ -1693,8 +1707,62 @@ export default function PixelsUTMsPage() {
                             { code: 'EUR', country: 'FR', name: 'França', flag: '🇫🇷' },
                             { code: 'EUR', country: 'DE', name: 'Alemanha', flag: '🇩🇪' },
                             { code: 'EUR', country: 'IT', name: 'Itália', flag: '🇮🇹' },
-                            { code: 'PLN', country: 'PL', name: 'Polônia', flag: '🇵🇱' },
+                            { code: 'EUR', country: 'AT', name: 'Áustria', flag: '🇦🇹' },
+                            { code: 'EUR', country: 'GR', name: 'Grécia', flag: '🇬🇷' },
                             { code: 'GBP', country: 'GB', name: 'Reino Unido', flag: '🇬🇧' },
+                          ].map((c) => (
+                            <div
+                              key={`${c.code}-${c.country}`}
+                              className="flex items-center justify-between p-2 rounded hover:bg-background cursor-pointer text-xs"
+                              onClick={() => copyToClipboard(
+                                codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${c.code}'`),
+                                `script-${c.code}-${c.country}`
+                              )}
+                            >
+                              <span>{c.flag} {c.name} ({c.country})</span>
+                              <span className="font-mono font-bold text-blue-500">{c.code}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* EUROPA CENTRAL E ORIENTAL */}
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">Europa Central/Oriental</p>
+                        <div className="space-y-1">
+                          {[
+                            { code: 'PLN', country: 'PL', name: 'Polônia', flag: '🇵🇱' },
+                            { code: 'CZK', country: 'CZ', name: 'Rep. Tcheca', flag: '🇨🇿' },
+                            { code: 'EUR', country: 'SK', name: 'Eslováquia', flag: '🇸🇰' },
+                            { code: 'HUF', country: 'HU', name: 'Hungria', flag: '🇭🇺' },
+                            { code: 'RON', country: 'RO', name: 'Romênia', flag: '🇷🇴' },
+                            { code: 'BGN', country: 'BG', name: 'Bulgária', flag: '🇧🇬' },
+                            { code: 'EUR', country: 'HR', name: 'Croácia', flag: '🇭🇷' },
+                            { code: 'EUR', country: 'SI', name: 'Eslovênia', flag: '🇸🇮' },
+                          ].map((c) => (
+                            <div
+                              key={`${c.code}-${c.country}`}
+                              className="flex items-center justify-between p-2 rounded hover:bg-background cursor-pointer text-xs"
+                              onClick={() => copyToClipboard(
+                                codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${c.code}'`),
+                                `script-${c.code}-${c.country}`
+                              )}
+                            >
+                              <span>{c.flag} {c.name} ({c.country})</span>
+                              <span className="font-mono font-bold text-blue-500">{c.code}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* BÁLTICOS */}
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2">Bálticos</p>
+                        <div className="space-y-1">
+                          {[
+                            { code: 'EUR', country: 'EE', name: 'Estônia', flag: '🇪🇪' },
+                            { code: 'EUR', country: 'LV', name: 'Letônia', flag: '🇱🇻' },
+                            { code: 'EUR', country: 'LT', name: 'Lituânia', flag: '🇱🇹' },
                           ].map((c) => (
                             <div
                               key={`${c.code}-${c.country}`}
