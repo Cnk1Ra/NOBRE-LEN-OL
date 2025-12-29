@@ -1483,63 +1483,73 @@ export default function PixelsUTMsPage() {
 
               {/* DETECCAO AUTOMATICA */}
               <div className="p-4 rounded-lg bg-lime-500/10 border border-lime-500/20">
-                <p className="text-sm font-semibold mb-2 text-lime-600 dark:text-lime-400">Como funciona a detecção automática?</p>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Cole o <span className="font-semibold text-foreground">mesmo script</span> em todas as suas lojas. Ele detecta a moeda pelo domínio:
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                  <div className="p-2 rounded bg-background flex items-center gap-2">
-                    <span>🇮🇹</span>
-                    <span className="font-mono text-lime-600">.it</span>
-                    <span className="text-muted-foreground">→</span>
-                    <span className="font-bold">EUR</span>
-                  </div>
-                  <div className="p-2 rounded bg-background flex items-center gap-2">
-                    <span>🇵🇱</span>
-                    <span className="font-mono text-lime-600">.pl</span>
-                    <span className="text-muted-foreground">→</span>
-                    <span className="font-bold">PLN</span>
-                  </div>
-                  <div className="p-2 rounded bg-background flex items-center gap-2">
-                    <span>🇦🇪</span>
-                    <span className="font-mono text-lime-600">.ae</span>
-                    <span className="text-muted-foreground">→</span>
-                    <span className="font-bold">AED</span>
-                  </div>
-                  <div className="p-2 rounded bg-background flex items-center gap-2">
-                    <span>🇲🇦</span>
-                    <span className="font-mono text-lime-600">.ma</span>
-                    <span className="text-muted-foreground">→</span>
-                    <span className="font-bold">MAD</span>
-                  </div>
-                  <div className="p-2 rounded bg-background flex items-center gap-2">
-                    <span>🇸🇦</span>
-                    <span className="font-mono text-lime-600">.sa</span>
-                    <span className="text-muted-foreground">→</span>
-                    <span className="font-bold">SAR</span>
-                  </div>
-                  <div className="p-2 rounded bg-background flex items-center gap-2">
-                    <span>🇪🇬</span>
-                    <span className="font-mono text-lime-600">.eg</span>
-                    <span className="text-muted-foreground">→</span>
-                    <span className="font-bold">EGP</span>
-                  </div>
-                  <div className="p-2 rounded bg-background flex items-center gap-2">
-                    <span>🇧🇷</span>
-                    <span className="font-mono text-lime-600">.br</span>
-                    <span className="text-muted-foreground">→</span>
-                    <span className="font-bold">BRL</span>
-                  </div>
-                  <div className="p-2 rounded bg-background flex items-center gap-2">
-                    <span>🇵🇰</span>
-                    <span className="font-mono text-lime-600">.pk</span>
-                    <span className="text-muted-foreground">→</span>
-                    <span className="font-bold">PKR</span>
-                  </div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold text-lime-600 dark:text-lime-400">Detecção automática por domínio</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs gap-1"
+                    onClick={() => toggleScriptVisibility('universal-countries')}
+                  >
+                    <Eye className="h-3 w-3" />
+                    {visibleScripts['universal-countries'] ? 'Ocultar Países' : 'Ver Países Suportados'}
+                  </Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-3">
-                  <span className="font-semibold text-lime-600">+30 países suportados</span> - Detecta também por subdomínio (ma.loja.com) ou parâmetro (?country=MA)
+                <p className="text-xs text-muted-foreground">
+                  Cole o <span className="font-semibold text-foreground">mesmo script</span> em todas as suas lojas. Detecta moeda pelo TLD (.it, .pl, .ae, .ma...)
                 </p>
+
+                {visibleScripts['universal-countries'] && (
+                  <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                    <div className="p-2 rounded bg-background flex items-center gap-2">
+                      <span>🇮🇹</span>
+                      <span className="font-mono text-lime-600">.it</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="font-bold">EUR</span>
+                    </div>
+                    <div className="p-2 rounded bg-background flex items-center gap-2">
+                      <span>🇵🇱</span>
+                      <span className="font-mono text-lime-600">.pl</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="font-bold">PLN</span>
+                    </div>
+                    <div className="p-2 rounded bg-background flex items-center gap-2">
+                      <span>🇦🇪</span>
+                      <span className="font-mono text-lime-600">.ae</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="font-bold">AED</span>
+                    </div>
+                    <div className="p-2 rounded bg-background flex items-center gap-2">
+                      <span>🇲🇦</span>
+                      <span className="font-mono text-lime-600">.ma</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="font-bold">MAD</span>
+                    </div>
+                    <div className="p-2 rounded bg-background flex items-center gap-2">
+                      <span>🇸🇦</span>
+                      <span className="font-mono text-lime-600">.sa</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="font-bold">SAR</span>
+                    </div>
+                    <div className="p-2 rounded bg-background flex items-center gap-2">
+                      <span>🇪🇬</span>
+                      <span className="font-mono text-lime-600">.eg</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="font-bold">EGP</span>
+                    </div>
+                    <div className="p-2 rounded bg-background flex items-center gap-2">
+                      <span>🇧🇷</span>
+                      <span className="font-mono text-lime-600">.br</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="font-bold">BRL</span>
+                    </div>
+                    <div className="p-2 rounded bg-background flex items-center gap-2">
+                      <span>🌍</span>
+                      <span className="font-mono text-lime-600">+40</span>
+                      <span className="text-muted-foreground">países</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* EVENTOS */}
@@ -1555,8 +1565,64 @@ export default function PixelsUTMsPage() {
             </CardContent>
           </Card>
 
+          {/* SCRIPT PADRÃO BRL */}
+          <Card className="border-2 border-green-500/50 bg-gradient-to-br from-green-500/5 to-transparent">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-green-500/20">
+                    <CreditCard className="h-5 w-5 text-green-500" />
+                  </div>
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      Script Padrão (BRL)
+                    </CardTitle>
+                    <CardDescription>
+                      Script simples com moeda fixa em Real brasileiro
+                    </CardDescription>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => toggleScriptVisibility('brl-script')}
+                  >
+                    <Eye className="h-4 w-4" />
+                    {visibleScripts['brl-script'] ? 'Ocultar' : 'Ver Script'}
+                  </Button>
+                  <Button
+                    className="gap-2 bg-green-500 hover:bg-green-600"
+                    onClick={() => copyToClipboard(codSimpleBRLScript, 'brl-script')}
+                  >
+                    {copied === 'brl-script' ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Copiar
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            {visibleScripts['brl-script'] && (
+              <CardContent>
+                <Textarea
+                  value={codSimpleBRLScript}
+                  readOnly
+                  className="font-mono text-xs min-h-[200px] bg-muted"
+                />
+              </CardContent>
+            )}
+          </Card>
+
           {/* SCRIPTS POR MOEDA FIXA */}
-          <Card className="border-2 border-blue-500/50 bg-gradient-to-br from-blue-500/5 to-transparent">
+          <Card className="border border-muted">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -1564,81 +1630,73 @@ export default function PixelsUTMsPage() {
                     <CreditCard className="h-5 w-5 text-blue-500" />
                   </div>
                   <div>
-                    <CardTitle>Scripts por Moeda Fixa</CardTitle>
+                    <CardTitle className="text-base">Scripts por Moeda Fixa</CardTitle>
                     <CardDescription>
-                      Escolha o script com a moeda do país que você vende - sem detecção automática
+                      Para outros países - clique na moeda para copiar o script
                     </CardDescription>
                   </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* EXPLICACAO */}
-              <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                <p className="text-sm font-semibold mb-2 text-blue-600 dark:text-blue-400">Quando usar script de moeda fixa?</p>
-                <ul className="text-xs text-muted-foreground space-y-1">
-                  <li>• Quando você vende <span className="font-semibold text-foreground">apenas para um país</span></li>
-                  <li>• Quando seu domínio <span className="font-semibold text-foreground">não tem TLD do país</span> (ex: .com ao invés de .ma)</li>
-                  <li>• Quando quer <span className="font-semibold text-foreground">simplicidade</span> sem detecção automática</li>
-                </ul>
-              </div>
-
-              {/* PRINCIPAIS MOEDAS */}
-              <div>
-                <p className="text-sm font-semibold mb-3">Principais Moedas (mais usadas):</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {[
-                    { code: 'MAD', country: 'MA', name: 'Marrocos', flag: '🇲🇦' },
-                    { code: 'AED', country: 'AE', name: 'Emirados Árabes', flag: '🇦🇪' },
-                    { code: 'SAR', country: 'SA', name: 'Arábia Saudita', flag: '🇸🇦' },
-                    { code: 'EGP', country: 'EG', name: 'Egito', flag: '🇪🇬' },
-                    { code: 'BRL', country: 'BR', name: 'Brasil', flag: '🇧🇷' },
-                    { code: 'EUR', country: 'PT', name: 'Portugal/Europa', flag: '🇵🇹' },
-                    { code: 'PKR', country: 'PK', name: 'Paquistão', flag: '🇵🇰' },
-                    { code: 'INR', country: 'IN', name: 'Índia', flag: '🇮🇳' },
-                  ].map((currency) => (
-                    <div
-                      key={currency.code}
-                      className="p-3 rounded-lg border bg-card hover:bg-blue-500/10 cursor-pointer transition-colors group"
-                      onClick={() => copyToClipboard(
-                        codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${currency.code}'`),
-                        `script-${currency.code}`
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-mono font-bold text-blue-500">{currency.code}</p>
-                          <p className="text-xs text-muted-foreground">{currency.flag} {currency.name}</p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          {copied === `script-${currency.code}` ? (
-                            <Check className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* VER TODOS OS PAISES */}
-              <div>
                 <Button
                   variant="outline"
-                  className="w-full gap-2"
+                  className="gap-2"
                   onClick={() => toggleScriptVisibility('all-countries')}
                 >
                   <Eye className="h-4 w-4" />
-                  {visibleScripts['all-countries'] ? 'Ocultar Lista Completa' : 'Ver Todos os Países (+30)'}
+                  {visibleScripts['all-countries'] ? 'Ocultar Países' : 'Ver Países'}
                 </Button>
+              </div>
+            </CardHeader>
+            {visibleScripts['all-countries'] && (
+              <CardContent className="space-y-4">
+                {/* PRINCIPAIS MOEDAS */}
+                <div>
+                  <p className="text-sm font-semibold mb-3">Principais Moedas:</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {[
+                      { code: 'MAD', country: 'MA', name: 'Marrocos', flag: '🇲🇦' },
+                      { code: 'AED', country: 'AE', name: 'Emirados', flag: '🇦🇪' },
+                      { code: 'SAR', country: 'SA', name: 'Arábia Saudita', flag: '🇸🇦' },
+                      { code: 'EGP', country: 'EG', name: 'Egito', flag: '🇪🇬' },
+                      { code: 'EUR', country: 'EU', name: 'Europa', flag: '🇪🇺' },
+                      { code: 'PLN', country: 'PL', name: 'Polônia', flag: '🇵🇱' },
+                      { code: 'PKR', country: 'PK', name: 'Paquistão', flag: '🇵🇰' },
+                      { code: 'INR', country: 'IN', name: 'Índia', flag: '🇮🇳' },
+                    ].map((currency) => (
+                      <div
+                        key={currency.code}
+                        className="p-3 rounded-lg border bg-card hover:bg-blue-500/10 cursor-pointer transition-colors group"
+                        onClick={() => copyToClipboard(
+                          codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${currency.code}'`),
+                          `script-${currency.code}`
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-mono font-bold text-blue-500">{currency.code}</p>
+                            <p className="text-xs text-muted-foreground">{currency.flag} {currency.name}</p>
+                          </div>
+                          {copied === `script-${currency.code}` && (
+                            <Check className="h-4 w-4 text-green-500" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-                {visibleScripts['all-countries'] && (
+                {/* VER TODOS OS PAISES */}
+                <div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2"
+                    onClick={() => toggleScriptVisibility('all-countries-expanded')}
+                  >
+                    <Eye className="h-4 w-4" />
+                    {visibleScripts['all-countries-expanded'] ? 'Ocultar Lista Completa' : 'Ver Todos os Países (+40)'}
+                  </Button>
+
+                {visibleScripts['all-countries-expanded'] && (
                   <div className="mt-4 p-4 rounded-lg bg-muted/50 border">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {/* AFRICA */}
@@ -1838,34 +1896,8 @@ export default function PixelsUTMsPage() {
                 )}
               </div>
 
-              {/* VER SCRIPT */}
-              <div className="pt-2 border-t">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-semibold">Código do Script</p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => toggleScriptVisibility('currency-script')}
-                    >
-                      <Eye className="h-4 w-4" />
-                      {visibleScripts['currency-script'] ? 'Ocultar' : 'Ver Script'}
-                    </Button>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Clique em qualquer moeda acima para copiar o script com a moeda já configurada
-                </p>
-                {visibleScripts['currency-script'] && (
-                  <Textarea
-                    value={codSimpleBRLScript}
-                    readOnly
-                    className="font-mono text-xs min-h-[200px] bg-muted"
-                  />
-                )}
-              </div>
-            </CardContent>
+              </CardContent>
+            )}
           </Card>
 
           {/* SCRIPT SHOPIFY TRADICIONAL */}
