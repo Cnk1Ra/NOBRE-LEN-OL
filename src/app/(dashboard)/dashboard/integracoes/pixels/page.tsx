@@ -1514,6 +1514,62 @@ export default function PixelsUTMsPage() {
             </CardContent>
           </Card>
 
+          {/* SCRIPT PADRÃO */}
+          <Card className="border-2 border-green-500/50 bg-gradient-to-br from-green-500/5 to-transparent">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-green-500/20">
+                    <CreditCard className="h-5 w-5 text-green-500" />
+                  </div>
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      Script Padrão
+                    </CardTitle>
+                    <CardDescription>
+                      Script simples com moeda fixa em Real (BRL)
+                    </CardDescription>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => toggleScriptVisibility('brl-script')}
+                  >
+                    <Eye className="h-4 w-4" />
+                    {visibleScripts['brl-script'] ? 'Ocultar' : 'Ver Script'}
+                  </Button>
+                  <Button
+                    className="gap-2 bg-green-500 hover:bg-green-600"
+                    onClick={() => copyToClipboard(codSimpleBRLScript, 'brl-script')}
+                  >
+                    {copied === 'brl-script' ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Copiar
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            {visibleScripts['brl-script'] && (
+              <CardContent>
+                <Textarea
+                  value={codSimpleBRLScript}
+                  readOnly
+                  className="font-mono text-xs min-h-[200px] bg-muted"
+                />
+              </CardContent>
+            )}
+          </Card>
+
           {/* SCRIPT COD - DETECÇÃO AUTOMÁTICA */}
           <Card className="border-2 border-lime-500/50 bg-gradient-to-br from-lime-500/5 to-transparent">
             <CardHeader>
@@ -1653,62 +1709,6 @@ export default function PixelsUTMsPage() {
                 </div>
               </div>
             </CardContent>
-          </Card>
-
-          {/* SCRIPT PADRÃO BRL */}
-          <Card className="border-2 border-green-500/50 bg-gradient-to-br from-green-500/5 to-transparent">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-green-500/20">
-                    <CreditCard className="h-5 w-5 text-green-500" />
-                  </div>
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      Script Padrão (BRL)
-                    </CardTitle>
-                    <CardDescription>
-                      Script simples com moeda fixa em Real brasileiro
-                    </CardDescription>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => toggleScriptVisibility('brl-script')}
-                  >
-                    <Eye className="h-4 w-4" />
-                    {visibleScripts['brl-script'] ? 'Ocultar' : 'Ver Script'}
-                  </Button>
-                  <Button
-                    className="gap-2 bg-green-500 hover:bg-green-600"
-                    onClick={() => copyToClipboard(codSimpleBRLScript, 'brl-script')}
-                  >
-                    {copied === 'brl-script' ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        Copiar
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            {visibleScripts['brl-script'] && (
-              <CardContent>
-                <Textarea
-                  value={codSimpleBRLScript}
-                  readOnly
-                  className="font-mono text-xs min-h-[200px] bg-muted"
-                />
-              </CardContent>
-            )}
           </Card>
 
           {/* SCRIPTS POR MOEDA FIXA */}
