@@ -19,11 +19,9 @@ import {
 import {
   LayoutDashboard,
   ShoppingCart,
-  TrendingUp,
   Package,
   Users,
   DollarSign,
-  Target,
   CheckSquare,
   Settings,
   BarChart3,
@@ -31,26 +29,26 @@ import {
   Truck,
   AlertCircle,
   PieChart,
-  Store,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
   Zap,
   HelpCircle,
-  LogOut,
   Shield,
   Warehouse,
   CreditCard,
   FileCheck,
-  ClipboardList,
   GitCompare,
   Megaphone,
   Facebook,
   Search,
   Music2,
+  Activity,
+  Target,
 } from 'lucide-react'
 import { useState } from 'react'
 
+// PRINCIPAL - Main navigation
 const mainNavItems = [
   {
     title: 'Dashboard',
@@ -70,15 +68,9 @@ const mainNavItems = [
     icon: Truck,
     color: 'text-emerald-500',
   },
-  {
-    title: 'Tracking',
-    href: '/dashboard/tracking',
-    icon: Target,
-    color: 'text-orange-500',
-  },
 ]
 
-// Trafego Pago - Traffic sources
+// TRAFEGO PAGO - Traffic sources with spend control
 const trafficNavItems = [
   {
     title: 'Meta Ads',
@@ -98,8 +90,15 @@ const trafficNavItems = [
     icon: Music2,
     color: 'text-black dark:text-white',
   },
+  {
+    title: 'Gastos & BMs',
+    href: '/dashboard/controle/anuncios',
+    icon: Megaphone,
+    color: 'text-pink-500',
+  },
 ]
 
+// GESTAO - Management
 const managementNavItems = [
   {
     title: 'Produtos',
@@ -121,9 +120,10 @@ const managementNavItems = [
   },
 ]
 
+// FINANCEIRO - Financial
 const financialNavItems = [
   {
-    title: 'Financeiro',
+    title: 'Visão Geral',
     href: '/dashboard/financial',
     icon: DollarSign,
     color: 'text-green-500',
@@ -142,6 +142,7 @@ const financialNavItems = [
   },
 ]
 
+// OPERACIONAL - Operational
 const operationalNavItems = [
   {
     title: 'Tarefas',
@@ -157,11 +158,40 @@ const operationalNavItems = [
   },
 ]
 
-const integrationNavItems = [
+// CONTROLE - Control (focused on warehouse/delivery)
+const controlNavItems = [
   {
-    title: 'Integrações',
+    title: 'N1 Warehouse',
+    href: '/dashboard/controle/n1',
+    icon: Warehouse,
+    color: 'text-blue-500',
+  },
+  {
+    title: 'Conferência',
+    href: '/dashboard/controle/conferencia',
+    icon: FileCheck,
+    color: 'text-orange-500',
+  },
+  {
+    title: 'Divergências',
+    href: '/dashboard/controle/divergencias',
+    icon: GitCompare,
+    color: 'text-red-500',
+  },
+  {
+    title: 'Pagamentos',
+    href: '/dashboard/controle/pagamentos',
+    icon: CreditCard,
+    color: 'text-purple-500',
+  },
+]
+
+// SISTEMA - System settings
+const systemNavItems = [
+  {
+    title: 'Integrações & Tracking',
     href: '/dashboard/integrations',
-    icon: Zap,
+    icon: Target,
     color: 'text-lime-500',
   },
   {
@@ -172,52 +202,6 @@ const integrationNavItems = [
   },
 ]
 
-// CONTROLE - Expandable section with sub-items
-const controlNavItems = [
-  {
-    title: 'Anuncios',
-    href: '/dashboard/controle/anuncios',
-    icon: Megaphone,
-    color: 'text-pink-500',
-    description: 'Gastos por BM e conta',
-  },
-  {
-    title: 'N1 Warehouse',
-    href: '/dashboard/controle/n1',
-    icon: Warehouse,
-    color: 'text-blue-500',
-    description: 'Comparar pedidos',
-  },
-  {
-    title: 'Financeiro',
-    href: '/dashboard/controle/financeiro',
-    icon: DollarSign,
-    color: 'text-green-500',
-    description: 'Controle financeiro',
-  },
-  {
-    title: 'Pagamentos',
-    href: '/dashboard/controle/pagamentos',
-    icon: CreditCard,
-    color: 'text-purple-500',
-    description: 'Controle de pagamentos',
-  },
-  {
-    title: 'Conferência',
-    href: '/dashboard/controle/conferencia',
-    icon: FileCheck,
-    color: 'text-orange-500',
-    description: 'Conferir entregas',
-  },
-  {
-    title: 'Divergências',
-    href: '/dashboard/controle/divergencias',
-    icon: GitCompare,
-    color: 'text-red-500',
-    description: 'Pedidos com problemas',
-  },
-]
-
 interface SidebarProps {
   className?: string
 }
@@ -225,7 +209,7 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
-  const [controlOpen, setControlOpen] = useState(true)
+  const [controlOpen, setControlOpen] = useState(false)
 
   const NavItem = ({ item }: { item: typeof mainNavItems[0] }) => {
     const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -335,7 +319,7 @@ export function Sidebar({ className }: SidebarProps) {
 
             <div className={cn('h-px bg-border/50', collapsed && 'mx-2')} />
 
-            <NavSection title="Trafego Pago" items={trafficNavItems} />
+            <NavSection title="Tráfego Pago" items={trafficNavItems} />
 
             <div className={cn('h-px bg-border/50', collapsed && 'mx-2')} />
 
@@ -383,7 +367,7 @@ export function Sidebar({ className }: SidebarProps) {
 
             <div className={cn('h-px bg-border/50', collapsed && 'mx-2')} />
 
-            <NavSection title="Integrações" items={integrationNavItems} />
+            <NavSection title="Sistema" items={systemNavItems} />
           </nav>
         </ScrollArea>
 
