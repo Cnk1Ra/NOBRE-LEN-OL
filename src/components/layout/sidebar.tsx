@@ -104,6 +104,34 @@ const trafficNavItems = [
   },
 ]
 
+// INTEGRACOES - Platform connections
+const integrationNavItems = [
+  {
+    title: 'Conectar Meta',
+    href: '/dashboard/integracoes/meta',
+    icon: Facebook,
+    color: 'text-[#1877F2]',
+  },
+  {
+    title: 'Conectar Google',
+    href: '/dashboard/integracoes/google',
+    icon: Search,
+    color: 'text-[#EA4335]',
+  },
+  {
+    title: 'Conectar TikTok',
+    href: '/dashboard/integracoes/tiktok',
+    icon: Music2,
+    color: 'text-black dark:text-white',
+  },
+  {
+    title: 'Pixels & UTMs',
+    href: '/dashboard/integracoes/pixels',
+    icon: Activity,
+    color: 'text-lime-500',
+  },
+]
+
 // GESTAO - Management
 const managementNavItems = [
   {
@@ -195,12 +223,6 @@ const controlNavItems = [
 // SISTEMA - System settings
 const systemNavItems = [
   {
-    title: 'Integrações & Tracking',
-    href: '/dashboard/integrations',
-    icon: Target,
-    color: 'text-lime-500',
-  },
-  {
     title: 'Configurações',
     href: '/dashboard/settings',
     icon: Settings,
@@ -216,6 +238,7 @@ export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [controlOpen, setControlOpen] = useState(false)
+  const [integracoesOpen, setIntegracoesOpen] = useState(false)
 
   const NavItem = ({ item }: { item: typeof mainNavItems[0] }) => {
     const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -326,6 +349,36 @@ export function Sidebar({ className }: SidebarProps) {
             <div className={cn('h-px bg-border/50', collapsed && 'mx-2')} />
 
             <NavSection title="Tráfego Pago" items={trafficNavItems} />
+
+            {/* INTEGRACOES - Expandable Section */}
+            <div className="space-y-1 mt-2">
+              {!collapsed ? (
+                <Collapsible open={integracoesOpen} onOpenChange={setIntegracoesOpen}>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full group">
+                    <h4 className="sidebar-section-title flex items-center gap-2 cursor-pointer hover:text-foreground transition-colors">
+                      <Zap className="h-3.5 w-3.5 text-lime-500" />
+                      Integrações
+                    </h4>
+                    <ChevronDown className={cn(
+                      "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                      integracoesOpen && "rotate-180"
+                    )} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-1 mt-1">
+                    {integrationNavItems.map((item) => (
+                      <NavItem key={item.href} item={item} />
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              ) : (
+                <>
+                  <div className="h-2" />
+                  {integrationNavItems.map((item) => (
+                    <NavItem key={item.href} item={item} />
+                  ))}
+                </>
+              )}
+            </div>
 
             <div className={cn('h-px bg-border/50', collapsed && 'mx-2')} />
 
