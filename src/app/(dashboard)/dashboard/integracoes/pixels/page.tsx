@@ -169,6 +169,11 @@ export default function PixelsUTMsPage() {
   const [copied, setCopied] = useState<string | null>(null)
   const [isAddingPixel, setIsAddingPixel] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
+  const [visibleScripts, setVisibleScripts] = useState<Record<string, boolean>>({})
+
+  const toggleScriptVisibility = (scriptId: string) => {
+    setVisibleScripts(prev => ({ ...prev, [scriptId]: !prev[scriptId] }))
+  }
 
   const [utmConfig, setUtmConfig] = useState<UTMConfig>({
     utm_source: '{platform}',
@@ -1419,32 +1424,44 @@ export default function PixelsUTMsPage() {
                     </CardDescription>
                   </div>
                 </div>
-                <Button
-                  className="gap-2 bg-orange-500 hover:bg-orange-600"
-                  onClick={() => copyToClipboard(codFormTrackingScript, 'cod-script')}
-                >
-                  {copied === 'cod-script' ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Copiado!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      Copiar Script
-                    </>
-                  )}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => toggleScriptVisibility('cod-script')}
+                  >
+                    <Eye className="h-4 w-4" />
+                    {visibleScripts['cod-script'] ? 'Ocultar' : 'Ver Script'}
+                  </Button>
+                  <Button
+                    className="gap-2 bg-orange-500 hover:bg-orange-600"
+                    onClick={() => copyToClipboard(codFormTrackingScript, 'cod-script')}
+                  >
+                    {copied === 'cod-script' ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Copiar
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="relative">
-                <Textarea
-                  value={codFormTrackingScript}
-                  readOnly
-                  className="font-mono text-xs min-h-[300px] bg-muted"
-                />
-              </div>
+              {visibleScripts['cod-script'] && (
+                <div className="relative">
+                  <Textarea
+                    value={codFormTrackingScript}
+                    readOnly
+                    className="font-mono text-xs min-h-[300px] bg-muted"
+                  />
+                </div>
+              )}
 
               {/* DETECCAO AUTOMATICA */}
               <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
@@ -1540,32 +1557,44 @@ console.log(DOD.getCurrency());
                     </CardDescription>
                   </div>
                 </div>
-                <Button
-                  className="gap-2 bg-green-500 hover:bg-green-600"
-                  onClick={() => copyToClipboard(codSimpleBRLScript, 'brl-script')}
-                >
-                  {copied === 'brl-script' ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Copiado!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      Copiar Script
-                    </>
-                  )}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => toggleScriptVisibility('brl-script')}
+                  >
+                    <Eye className="h-4 w-4" />
+                    {visibleScripts['brl-script'] ? 'Ocultar' : 'Ver Script'}
+                  </Button>
+                  <Button
+                    className="gap-2 bg-green-500 hover:bg-green-600"
+                    onClick={() => copyToClipboard(codSimpleBRLScript, 'brl-script')}
+                  >
+                    {copied === 'brl-script' ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Copiar
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="relative">
-                <Textarea
-                  value={codSimpleBRLScript}
-                  readOnly
-                  className="font-mono text-xs min-h-[200px] bg-muted"
-                />
-              </div>
+              {visibleScripts['brl-script'] && (
+                <div className="relative">
+                  <Textarea
+                    value={codSimpleBRLScript}
+                    readOnly
+                    className="font-mono text-xs min-h-[200px] bg-muted"
+                  />
+                </div>
+              )}
               <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
                 <p className="text-xs text-muted-foreground">
                   Este script usa <span className="font-semibold text-green-600">BRL (Real)</span> como moeda fixa.
@@ -1590,25 +1619,44 @@ console.log(DOD.getCurrency());
                     </CardDescription>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => copyToClipboard(shopifyTrackingScript, 'shopify-script')}
-                >
-                  {copied === 'shopify-script' ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Copiado!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      Copiar
-                    </>
-                  )}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => toggleScriptVisibility('shopify-script')}
+                  >
+                    <Eye className="h-4 w-4" />
+                    {visibleScripts['shopify-script'] ? 'Ocultar' : 'Ver Script'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => copyToClipboard(shopifyTrackingScript, 'shopify-script')}
+                  >
+                    {copied === 'shopify-script' ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Copiar
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
+            {visibleScripts['shopify-script'] && (
+              <CardContent>
+                <Textarea
+                  value={shopifyTrackingScript}
+                  readOnly
+                  className="font-mono text-xs min-h-[300px] bg-muted"
+                />
+              </CardContent>
+            )}
           </Card>
 
           {/* WEBHOOK SHOPIFY (RECOMENDADO) */}
