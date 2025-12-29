@@ -963,8 +963,16 @@ export default function PixelsUTMsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="pixels" className="space-y-6">
+      <Tabs defaultValue="webhooks" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4 max-w-xl">
+          <TabsTrigger value="webhooks" className="gap-2">
+            <Zap className="h-4 w-4" />
+            Webhook
+          </TabsTrigger>
+          <TabsTrigger value="scripts" className="gap-2">
+            <Code className="h-4 w-4" />
+            Scripts
+          </TabsTrigger>
           <TabsTrigger value="pixels" className="gap-2">
             <Target className="h-4 w-4" />
             Pixels
@@ -973,15 +981,97 @@ export default function PixelsUTMsPage() {
             <Link2 className="h-4 w-4" />
             UTMs
           </TabsTrigger>
-          <TabsTrigger value="scripts" className="gap-2">
-            <Code className="h-4 w-4" />
-            Scripts
-          </TabsTrigger>
-          <TabsTrigger value="testes" className="gap-2">
-            <FlaskConical className="h-4 w-4" />
-            Testes
-          </TabsTrigger>
         </TabsList>
+
+        {/* WEBHOOKS TAB */}
+        <TabsContent value="webhooks" className="space-y-6">
+          <Card className="border-2 border-green-500/50 bg-gradient-to-br from-green-500/5 to-transparent">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-500/20">
+                  <Zap className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    Webhooks da Shopify
+                    <Badge className="bg-green-500 text-white">RECOMENDADO</Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Receba atualizações de pedidos em tempo real na sua dashboard
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                <p className="text-sm font-semibold mb-2 text-green-600 dark:text-green-400">Por que usar Webhooks?</p>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Webhooks enviam dados instantaneamente para sua dashboard quando eventos acontecem:
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="p-2 rounded bg-background text-center">
+                    <p className="text-xs font-semibold">Pedido Criado</p>
+                  </div>
+                  <div className="p-2 rounded bg-background text-center">
+                    <p className="text-xs font-semibold">Pedido Pago</p>
+                  </div>
+                  <div className="p-2 rounded bg-background text-center">
+                    <p className="text-xs font-semibold">Pedido Enviado</p>
+                  </div>
+                  <div className="p-2 rounded bg-background text-center">
+                    <p className="text-xs font-semibold">Cancelado</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">URL do Webhook</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value="https://seu-dashboard.com/api/shopify/webhook"
+                    readOnly
+                    className="font-mono text-sm bg-muted"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => copyToClipboard('https://seu-dashboard.com/api/shopify/webhook', 'webhook-url')}
+                  >
+                    {copied === 'webhook-url' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg bg-muted/50">
+                <p className="text-sm font-semibold mb-2">Como configurar na Shopify:</p>
+                <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+                  <li>Acesse <span className="font-mono bg-background px-1 rounded">Settings → Notifications</span></li>
+                  <li>Role até <span className="font-mono bg-background px-1 rounded">Webhooks</span> e clique em "Create webhook"</li>
+                  <li>Selecione o evento (Order creation, Order payment, etc.)</li>
+                  <li>Cole a URL acima e salve</li>
+                </ol>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  Order creation
+                </Badge>
+                <Badge variant="outline" className="gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  Order payment
+                </Badge>
+                <Badge variant="outline" className="gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  Fulfillment creation
+                </Badge>
+                <Badge variant="outline" className="gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  Order cancelled
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* PIXELS TAB */}
         <TabsContent value="pixels" className="space-y-6">
@@ -1955,234 +2045,8 @@ export default function PixelsUTMsPage() {
             )}
           </Card>
 
-          {/* WEBHOOK SHOPIFY (RECOMENDADO) */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Zap className="h-4 w-4 text-green-500" />
-                Webhooks da Shopify (Recomendado)
-              </CardTitle>
-              <CardDescription>
-                Configure webhooks na Shopify para receber atualizações de pedidos em tempo real
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-                <p className="text-sm mb-3">
-                  <span className="font-semibold text-green-600 dark:text-green-400">Webhooks são melhores que API</span> porque você recebe os dados instantaneamente quando:
-                </p>
-                <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-                  <li>• Pedido criado</li>
-                  <li>• Pedido pago</li>
-                  <li>• Pedido enviado (fulfillment)</li>
-                  <li>• Pedido cancelado/reembolsado</li>
-                </ul>
-              </div>
-              <div className="space-y-2">
-                <Label>URL para Webhooks da Shopify</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value="https://seu-dashboard.com/api/shopify/webhook"
-                    readOnly
-                    className="font-mono text-sm bg-muted"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => copyToClipboard('https://seu-dashboard.com/api/shopify/webhook', 'shopify-webhook')}
-                  >
-                    {copied === 'shopify-webhook' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <p className="font-semibold mb-2">Configure na Shopify:</p>
-                <ol className="list-decimal list-inside space-y-1">
-                  <li>Settings → Notifications → Webhooks</li>
-                  <li>Clique em "Create webhook"</li>
-                  <li>Selecione: Order creation, Order payment, Fulfillment creation</li>
-                  <li>Cole a URL acima</li>
-                </ol>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
-        {/* TESTES TAB */}
-        <TabsContent value="testes" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <FlaskConical className="h-5 w-5" />
-                    Testar Integrações
-                  </CardTitle>
-                  <CardDescription>
-                    Dispare eventos de teste para verificar se os pixels estão funcionando corretamente
-                  </CardDescription>
-                </div>
-                <Button onClick={runTest} disabled={isTesting} className="gap-2">
-                  {isTesting ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Testando...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4" />
-                      Iniciar Teste
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <Card className="bg-muted/50">
-                  <CardContent className="pt-4 text-center">
-                    <MousePointerClick className="h-8 w-8 mx-auto text-blue-500 mb-2" />
-                    <p className="font-medium">PageView</p>
-                    <p className="text-xs text-muted-foreground">Visualização de página</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-muted/50">
-                  <CardContent className="pt-4 text-center">
-                    <ShoppingCart className="h-8 w-8 mx-auto text-orange-500 mb-2" />
-                    <p className="font-medium">InitiateCheckout</p>
-                    <p className="text-xs text-muted-foreground">Início do checkout</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-muted/50">
-                  <CardContent className="pt-4 text-center">
-                    <CreditCard className="h-8 w-8 mx-auto text-purple-500 mb-2" />
-                    <p className="font-medium">Purchase</p>
-                    <p className="text-xs text-muted-foreground">Compra realizada</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-muted/50">
-                  <CardContent className="pt-4 text-center">
-                    <Truck className="h-8 w-8 mx-auto text-green-500 mb-2" />
-                    <p className="font-medium">Delivered</p>
-                    <p className="text-xs text-muted-foreground">Entrega confirmada</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Evento</TableHead>
-                    <TableHead>Hora</TableHead>
-                    <TableHead>Plataforma</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Detalhes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {testEvents.map((event) => (
-                    <TableRow key={event.id}>
-                      <TableCell className="font-medium">{event.event_name}</TableCell>
-                      <TableCell className="font-mono text-sm">{event.timestamp}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{event.platform}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {event.status === 'success' && (
-                          <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Sucesso
-                          </Badge>
-                        )}
-                        {event.status === 'failed' && (
-                          <Badge variant="destructive">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Falhou
-                          </Badge>
-                        )}
-                        {event.status === 'pending' && (
-                          <Badge variant="outline">
-                            <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                            Pendente
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {event.details}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Ferramentas de Debug</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <a
-                  href="https://www.facebook.com/events_manager"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <Facebook className="h-5 w-5 text-[#1877F2]" />
-                    <div>
-                      <h4 className="font-medium group-hover:text-primary transition-colors">
-                        Meta Events Manager
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Verificar eventos do Pixel
-                      </p>
-                    </div>
-                    <ExternalLink className="h-4 w-4 ml-auto text-muted-foreground" />
-                  </div>
-                </a>
-                <a
-                  href="https://tagassistant.google.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <Search className="h-5 w-5 text-[#EA4335]" />
-                    <div>
-                      <h4 className="font-medium group-hover:text-primary transition-colors">
-                        Google Tag Assistant
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Debug de tags Google
-                      </p>
-                    </div>
-                    <ExternalLink className="h-4 w-4 ml-auto text-muted-foreground" />
-                  </div>
-                </a>
-                <a
-                  href="https://ads.tiktok.com/help"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    <Music2 className="h-5 w-5" />
-                    <div>
-                      <h4 className="font-medium group-hover:text-primary transition-colors">
-                        TikTok Pixel Helper
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Debug do Pixel TikTok
-                      </p>
-                    </div>
-                    <ExternalLink className="h-4 w-4 ml-auto text-muted-foreground" />
-                  </div>
-                </a>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   )
