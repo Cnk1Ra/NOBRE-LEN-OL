@@ -230,6 +230,7 @@ export default function PixelsUTMsPage() {
     'fr': { country: 'FR', currency: 'EUR', name: 'França' },
     'de': { country: 'DE', currency: 'EUR', name: 'Alemanha' },
     'it': { country: 'IT', currency: 'EUR', name: 'Itália' },
+    'pl': { country: 'PL', currency: 'PLN', name: 'Polônia' },
     'uk': { country: 'GB', currency: 'GBP', name: 'Reino Unido' },
     // Américas
     'br': { country: 'BR', currency: 'BRL', name: 'Brasil' },
@@ -1649,6 +1650,7 @@ export default function PixelsUTMsPage() {
                             { code: 'EUR', country: 'FR', name: 'França', flag: '🇫🇷' },
                             { code: 'EUR', country: 'DE', name: 'Alemanha', flag: '🇩🇪' },
                             { code: 'EUR', country: 'IT', name: 'Itália', flag: '🇮🇹' },
+                            { code: 'PLN', country: 'PL', name: 'Polônia', flag: '🇵🇱' },
                             { code: 'GBP', country: 'GB', name: 'Reino Unido', flag: '🇬🇧' },
                           ].map((c) => (
                             <div
