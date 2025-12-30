@@ -7,7 +7,7 @@ async function main() {
   console.log('🌱 Iniciando seed...')
 
   // Criar usuário Matrix (Super Admin)
-  const matrixEmail = 'matrix@admin.com'
+  const matrixEmail = 'itssnobre@gmail.com'
   const matrixPassword = 'matrix123' // Troque depois!
 
   const existingMatrix = await prisma.user.findUnique({
