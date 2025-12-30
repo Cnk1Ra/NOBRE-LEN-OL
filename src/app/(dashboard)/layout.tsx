@@ -1,5 +1,6 @@
 'use client'
 
+import { SessionProvider } from 'next-auth/react'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
 import { Toaster } from '@/components/ui/toaster'
@@ -17,29 +18,31 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <LanguageProvider>
-      <UserProvider>
-        <DateFilterProvider>
-          <NotificationsProvider>
-            <CountryProvider>
-              <MetaProvider>
-              <TrackingProvider>
-                <div className="flex h-screen overflow-hidden">
-                  <Sidebar />
-                  <div className="flex flex-1 flex-col overflow-hidden">
-                    <Header />
-                    <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
-                      {children}
-                    </main>
+    <SessionProvider>
+      <LanguageProvider>
+        <UserProvider>
+          <DateFilterProvider>
+            <NotificationsProvider>
+              <CountryProvider>
+                <MetaProvider>
+                <TrackingProvider>
+                  <div className="flex h-screen overflow-hidden">
+                    <Sidebar />
+                    <div className="flex flex-1 flex-col overflow-hidden">
+                      <Header />
+                      <main className="flex-1 overflow-y-auto bg-muted/30 p-6">
+                        {children}
+                      </main>
+                    </div>
                   </div>
-                </div>
-                <Toaster />
-              </TrackingProvider>
-              </MetaProvider>
-            </CountryProvider>
-          </NotificationsProvider>
-        </DateFilterProvider>
-      </UserProvider>
-    </LanguageProvider>
+                  <Toaster />
+                </TrackingProvider>
+                </MetaProvider>
+              </CountryProvider>
+            </NotificationsProvider>
+          </DateFilterProvider>
+        </UserProvider>
+      </LanguageProvider>
+    </SessionProvider>
   )
 }

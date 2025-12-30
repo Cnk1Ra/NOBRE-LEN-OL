@@ -1,13 +1,14 @@
 'use client'
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 
 export interface UserProfile {
   firstName: string
   lastName: string
   email: string
   phone: string
-  avatar?: string // Base64 encoded image
+  avatar?: string
 }
 
 interface UserContextType {
@@ -16,47 +17,71 @@ interface UserContextType {
   updateAvatar: (avatar: string | null) => void
   getInitials: () => string
   getFullName: () => string
+  isLoading: boolean
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
 
 const defaultProfile: UserProfile = {
-  firstName: 'Admin',
-  lastName: 'DOD',
-  email: 'admin@dashondelivery.com',
-  phone: '11 99999-9999',
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
   avatar: undefined,
 }
 
 export function UserProvider({ children }: { children: ReactNode }) {
+  const { data: session, status } = useSession()
   const [profile, setProfile] = useState<UserProfile>(defaultProfile)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Load profile from localStorage on mount
+  // Sync profile with NextAuth session
   useEffect(() => {
-    const savedProfile = localStorage.getItem('dod-profile')
-    if (savedProfile) {
-      try {
-        const parsed = JSON.parse(savedProfile)
-        // Clean phone number - remove country code prefix if present
-        if (parsed.phone && parsed.phone.startsWith('+')) {
-          // Remove +XX prefix (e.g., +55, +351, +1)
-          parsed.phone = parsed.phone.replace(/^\+\d{1,3}\s*/, '')
+    if (status === 'loading') {
+      setIsLoading(true)
+      return
+    }
+
+    if (session?.user) {
+      // Parse name from session
+      const nameParts = (session.user.name || '').split(' ')
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || ''
+
+      setProfile({
+        firstName,
+        lastName,
+        email: session.user.email || '',
+        phone: localStorage.getItem('dod-phone') || '',
+        avatar: session.user.image || localStorage.getItem('dod-avatar') || undefined,
+      })
+    } else {
+      // Not logged in - check localStorage for backwards compatibility
+      const savedProfile = localStorage.getItem('dod-profile')
+      if (savedProfile) {
+        try {
+          const parsed = JSON.parse(savedProfile)
+          if (parsed.phone && parsed.phone.startsWith('+')) {
+            parsed.phone = parsed.phone.replace(/^\+\d{1,3}\s*/, '')
+          }
+          setProfile(parsed)
+        } catch {
+          setProfile(defaultProfile)
         }
-        setProfile(parsed)
-      } catch {
-        // Invalid JSON, use default
+      }
+      const savedAvatar = localStorage.getItem('dod-avatar')
+      if (savedAvatar) {
+        setProfile(prev => ({ ...prev, avatar: savedAvatar }))
       }
     }
-    // Load avatar separately (can be large)
-    const savedAvatar = localStorage.getItem('dod-avatar')
-    if (savedAvatar) {
-      setProfile(prev => ({ ...prev, avatar: savedAvatar }))
-    }
-  }, [])
+    setIsLoading(false)
+  }, [session, status])
 
   const updateProfile = useCallback((newProfile: UserProfile) => {
     setProfile(prev => ({ ...newProfile, avatar: prev.avatar }))
-    // Save to localStorage (without avatar to keep profile data small)
+    // Save phone to localStorage (will be migrated to DB later)
+    localStorage.setItem('dod-phone', newProfile.phone || '')
+    // Save profile for offline/non-logged users
     const { avatar, ...profileWithoutAvatar } = newProfile
     localStorage.setItem('dod-profile', JSON.stringify(profileWithoutAvatar))
   }, [])
@@ -71,13 +96,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const getInitials = useCallback(() => {
-    const firstInitial = profile.firstName.charAt(0).toUpperCase()
-    const lastInitial = profile.lastName.charAt(0).toUpperCase()
-    return `${firstInitial}${lastInitial}`
+    const firstInitial = (profile.firstName || 'U').charAt(0).toUpperCase()
+    const lastInitial = (profile.lastName || '').charAt(0).toUpperCase()
+    return lastInitial ? `${firstInitial}${lastInitial}` : firstInitial
   }, [profile])
 
   const getFullName = useCallback(() => {
-    return `${profile.firstName} ${profile.lastName}`
+    if (!profile.firstName && !profile.lastName) {
+      return 'Usuário'
+    }
+    return `${profile.firstName} ${profile.lastName}`.trim()
   }, [profile])
 
   return (
@@ -88,6 +116,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         updateAvatar,
         getInitials,
         getFullName,
+        isLoading,
       }}
     >
       {children}
