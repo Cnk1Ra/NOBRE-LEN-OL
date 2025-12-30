@@ -16,12 +16,14 @@ import {
   Edit,
   Trash2,
   Eye,
+  EyeOff,
   RefreshCw,
   AlertTriangle,
   CheckCircle2,
   X,
   UserPlus,
   Crown,
+  Key,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -136,6 +138,8 @@ export default function AdminPage() {
   const [isEditUserOpen, setIsEditUserOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isDeleteUserOpen, setIsDeleteUserOpen] = useState(false)
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   // Form states
   const [formData, setFormData] = useState({
@@ -144,6 +148,7 @@ export default function AdminPage() {
     password: '',
     role: 'MEMBER',
   })
+  const [newPassword, setNewPassword] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -285,7 +290,48 @@ export default function AdminPage() {
       password: '',
       role: user.role,
     })
+    setShowPassword(false)
     setIsEditUserOpen(true)
+  }
+
+  const handleResetPassword = async () => {
+    if (!selectedUser || !newPassword) return
+
+    if (newPassword.length < 6) {
+      toast({ title: 'Erro', description: 'A senha deve ter pelo menos 6 caracteres', variant: 'destructive' })
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/admin/users/${selectedUser.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPassword }),
+      })
+
+      if (res.ok) {
+        toast({ title: 'Senha redefinida com sucesso!' })
+        setIsResetPasswordOpen(false)
+        setSelectedUser(null)
+        setNewPassword('')
+        setShowPassword(false)
+      } else {
+        const data = await res.json()
+        toast({ title: 'Erro', description: data.error || 'Erro ao redefinir senha', variant: 'destructive' })
+      }
+    } catch (error) {
+      toast({ title: 'Erro', description: 'Erro ao redefinir senha', variant: 'destructive' })
+    }
+  }
+
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%'
+    let password = ''
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    setNewPassword(password)
+    setShowPassword(true)
   }
 
   const getRoleBadge = (role: string) => {
@@ -502,8 +548,23 @@ export default function AdminPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => openEditUser(user)}
+                          title="Editar usuário"
                         >
                           <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser(user)
+                            setNewPassword('')
+                            setShowPassword(false)
+                            setIsResetPasswordOpen(true)
+                          }}
+                          title="Redefinir senha"
+                          className="text-orange-500"
+                        >
+                          <Key className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -513,6 +574,7 @@ export default function AdminPage() {
                             setIsDeleteUserOpen(true)
                           }}
                           className="text-destructive"
+                          title="Excluir usuário"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -691,14 +753,30 @@ export default function AdminPage() {
             </div>
             <div className="space-y-2">
               <Label>Nova Senha (deixe em branco para manter)</Label>
-              <Input
-                type="password"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                placeholder="Nova senha"
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  placeholder="Nova senha"
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Role</Label>
@@ -754,6 +832,90 @@ export default function AdminPage() {
             </Button>
             <Button variant="destructive" onClick={handleDeleteUser}>
               Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={isResetPasswordOpen} onOpenChange={(open) => {
+        setIsResetPasswordOpen(open)
+        if (!open) {
+          setNewPassword('')
+          setShowPassword(false)
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5 text-orange-500" />
+              Redefinir Senha
+            </DialogTitle>
+            <DialogDescription>
+              Defina uma nova senha para{' '}
+              <strong>{selectedUser?.name || selectedUser?.email}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nova Senha</Label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Digite a nova senha"
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={generatePassword}
+              className="w-full"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Gerar Senha Aleatória
+            </Button>
+            {showPassword && newPassword && (
+              <div className="p-3 bg-muted rounded-md">
+                <p className="text-sm text-muted-foreground mb-1">Senha gerada:</p>
+                <code className="text-sm font-mono">{newPassword}</code>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsResetPasswordOpen(false)
+                setNewPassword('')
+                setShowPassword(false)
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleResetPassword}
+              disabled={!newPassword || newPassword.length < 6}
+            >
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Redefinir Senha
             </Button>
           </DialogFooter>
         </DialogContent>
