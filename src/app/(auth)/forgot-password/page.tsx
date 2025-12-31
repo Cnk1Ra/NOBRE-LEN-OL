@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
-import { Loader2, ArrowLeft, Mail, CheckCircle2, AlertTriangle, Copy, ExternalLink } from 'lucide-react'
+import { Loader2, ArrowLeft, Mail, CheckCircle2, AlertTriangle, Copy, ExternalLink, AlertCircle } from 'lucide-react'
 
 export default function ForgotPasswordPage() {
   const { toast } = useToast()
@@ -16,11 +16,14 @@ export default function ForgotPasswordPage() {
   const [submitted, setSubmitted] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const [resetLink, setResetLink] = useState<string | null>(null)
-  const [warning, setWarning] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [errorDetails, setErrorDetails] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setErrorMessage(null)
+    setErrorDetails(null)
 
     try {
       const res = await fetch('/api/auth/forgot-password', {
@@ -33,14 +36,15 @@ export default function ForgotPasswordPage() {
 
       if (res.ok) {
         setSubmitted(true)
-        setEmailSent(data.sent)
+        setEmailSent(data.sent === true)
         if (data.resetLink) {
           setResetLink(data.resetLink)
         }
-        if (data.warning) {
-          setWarning(data.warning)
-        }
       } else {
+        // Mostrar erro na página em vez de apenas toast
+        setErrorMessage(data.error || 'Erro ao processar solicitação')
+        setErrorDetails(data.details || null)
+
         toast({
           title: 'Erro',
           description: data.error || 'Erro ao processar solicitação',
@@ -48,6 +52,7 @@ export default function ForgotPasswordPage() {
         })
       }
     } catch (error) {
+      setErrorMessage('Erro de conexão. Verifique sua internet.')
       toast({
         title: 'Erro',
         description: 'Ocorreu um erro ao processar sua solicitação',
@@ -74,16 +79,16 @@ export default function ForgotPasswordPage() {
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
-              <div className={`flex h-14 w-14 items-center justify-center rounded-xl ${emailSent ? 'bg-green-500' : 'bg-orange-500'} text-white`}>
+              <div className={`flex h-14 w-14 items-center justify-center rounded-xl ${emailSent ? 'bg-green-500' : 'bg-blue-500'} text-white`}>
                 {emailSent ? (
                   <CheckCircle2 className="h-8 w-8" />
                 ) : (
-                  <AlertTriangle className="h-8 w-8" />
+                  <Mail className="h-8 w-8" />
                 )}
               </div>
             </div>
             <CardTitle className="text-2xl font-bold">
-              {emailSent ? 'Email Enviado!' : 'Solicitação Processada'}
+              {emailSent ? 'Email Enviado!' : 'Link Gerado'}
             </CardTitle>
             <CardDescription>
               {emailSent ? (
@@ -91,13 +96,7 @@ export default function ForgotPasswordPage() {
                   Enviamos um email para <strong>{email}</strong> com instruções para redefinir sua senha.
                 </>
               ) : (
-                <>
-                  {warning ? (
-                    <span className="text-orange-600">{warning}</span>
-                  ) : (
-                    <>Se o email <strong>{email}</strong> estiver cadastrado, você receberá instruções para redefinir sua senha.</>
-                  )}
-                </>
+                <>Use o link abaixo para redefinir sua senha</>
               )}
             </CardDescription>
           </CardHeader>
@@ -119,9 +118,9 @@ export default function ForgotPasswordPage() {
             )}
 
             {resetLink && (
-              <div className="p-4 bg-muted rounded-lg space-y-3">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground font-medium">
+                  <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
                     Link de redefinição:
                   </p>
                   <div className="flex gap-2">
@@ -129,7 +128,7 @@ export default function ForgotPasswordPage() {
                       variant="ghost"
                       size="sm"
                       onClick={copyToClipboard}
-                      className="h-8 px-2"
+                      className="h-8 px-2 hover:bg-blue-100 dark:hover:bg-blue-900"
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -137,22 +136,38 @@ export default function ForgotPasswordPage() {
                       variant="ghost"
                       size="sm"
                       asChild
-                      className="h-8 px-2"
+                      className="h-8 px-2 hover:bg-blue-100 dark:hover:bg-blue-900"
                     >
-                      <Link href={resetLink}>
+                      <Link href={resetLink} target="_blank">
                         <ExternalLink className="h-4 w-4" />
                       </Link>
                     </Button>
                   </div>
                 </div>
-                <code className="text-xs text-primary break-all block bg-background p-2 rounded border">
+                <code className="text-xs text-blue-700 dark:text-blue-300 break-all block bg-blue-100 dark:bg-blue-900/50 p-2 rounded border border-blue-200 dark:border-blue-700">
                   {resetLink}
                 </code>
-                <Button asChild className="w-full">
+                <Button asChild className="w-full bg-blue-600 hover:bg-blue-700">
                   <Link href={resetLink}>
                     Redefinir Senha Agora
                   </Link>
                 </Button>
+              </div>
+            )}
+
+            {!emailSent && !resetLink && (
+              <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                      Verifique seu email
+                    </p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Se o email existir em nosso sistema, você receberá as instruções.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -186,6 +201,24 @@ export default function ForgotPasswordPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {errorMessage && (
+            <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                    {errorMessage}
+                  </p>
+                  {errorDetails && (
+                    <p className="text-xs text-red-600 dark:text-red-400">
+                      {errorDetails}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
