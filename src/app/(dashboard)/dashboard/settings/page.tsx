@@ -2,12 +2,6 @@
 
 export const dynamic = 'force-dynamic'
 
-export const dynamic = 'force-dynamic'
-
-'use client'
-
-export const dynamic = 'force-dynamic'
-
 import { useState, useRef, useEffect } from 'react'
 import { useUser } from '@/contexts/user-context'
 import { useToast } from '@/hooks/use-toast'
