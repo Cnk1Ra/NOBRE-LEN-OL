@@ -4,51 +4,30 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Iniciando seed...')
-
-  // Criar usuário Matrix (Super Admin)
-  const matrixEmail = 'itssnobre@gmail.com'
-  const matrixPassword = 'matrix123' // Troque depois!
-
-  const existingMatrix = await prisma.user.findUnique({
-    where: { email: matrixEmail }
+  // Criar conta MATRIX (super admin)
+  const matrixPassword = await bcrypt.hash('Matrix@2024!Secure', 12)
+  
+  const matrixUser = await prisma.user.upsert({
+    where: { email: 'matrix@dashondelivery.com' },
+    update: {},
+    create: {
+      name: 'Matrix Admin',
+      email: 'matrix@dashondelivery.com',
+      password: matrixPassword,
+      role: 'MATRIX',
+    },
   })
 
-  if (existingMatrix) {
-    console.log('⚠️  Usuário Matrix já existe:', matrixEmail)
-
-    // Atualizar para MATRIX se não for
-    if (existingMatrix.role !== 'MATRIX') {
-      await prisma.user.update({
-        where: { email: matrixEmail },
-        data: { role: 'MATRIX' }
-      })
-      console.log('✅ Usuário atualizado para role MATRIX')
-    }
-  } else {
-    const hashedPassword = await bcrypt.hash(matrixPassword, 12)
-
-    await prisma.user.create({
-      data: {
-        name: 'Matrix Admin',
-        email: matrixEmail,
-        password: hashedPassword,
-        role: 'MATRIX',
-      }
-    })
-
-    console.log('✅ Usuário Matrix criado!')
-    console.log('📧 Email:', matrixEmail)
-    console.log('🔑 Senha:', matrixPassword)
-    console.log('⚠️  TROQUE A SENHA APÓS O PRIMEIRO LOGIN!')
-  }
-
-  console.log('🌱 Seed concluído!')
+  console.log('✅ Conta MATRIX criada:', matrixUser.email)
+  console.log('📧 Email: matrix@dashondelivery.com')
+  console.log('🔑 Senha: Matrix@2024!Secure')
+  console.log('')
+  console.log('⚠️  IMPORTANTE: Mude a senha após o primeiro login!')
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Erro no seed:', e)
+    console.error(e)
     process.exit(1)
   })
   .finally(async () => {
