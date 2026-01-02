@@ -25,7 +25,7 @@ export async function GET() {
         role: true,
         createdAt: true,
         updatedAt: true,
-        workspaceMembers: {
+        workspaces: {
           select: {
             role: true,
             workspace: {
@@ -61,7 +61,7 @@ export async function GET() {
       role: user.role,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      workspaces: user.workspaceMembers.map(wm => ({
+      workspaces: user.workspaces.map(wm => ({
         id: wm.workspace.id,
         name: wm.workspace.name,
         slug: wm.workspace.slug,
