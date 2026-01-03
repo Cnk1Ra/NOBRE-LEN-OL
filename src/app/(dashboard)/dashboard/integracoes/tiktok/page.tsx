@@ -1,640 +1,258 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import {
-  Music2,
-  Link2,
-  Unlink,
-  RefreshCw,
-  CheckCircle2,
-  AlertCircle,
-  Plus,
-  Copy,
-  ExternalLink,
-  Settings,
-  Activity,
-  Users,
-  Target,
-  Zap,
-  BarChart3,
-  TrendingUp,
-  Eye,
-  EyeOff,
-  Video,
-  Sparkles,
-} from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Music2, Link2, Unlink, RefreshCw, AlertCircle, Plus, Trash2, Eye, EyeOff, TrendingUp, DollarSign, Target, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
-interface ConnectedAccount {
+interface AdConnection {
   id: string
+  platform: string
   name: string
-  email: string
-  advertiser_id: string
-  business_center_id: string
-  ad_accounts: TikTokAdAccount[]
-  pixels: TikTokPixel[]
-  connected_at: string
-  status: 'active' | 'expired' | 'error'
-  last_sync: string
+  email: string | null
+  businessId: string | null
+  businessName: string | null
+  status: string
+  lastSyncAt: string | null
+  errorMessage: string | null
+  totalSpend: number
+  totalSpendToday: number
+  selectedAccounts: number
+  adAccounts: AdAccount[]
 }
 
-interface TikTokAdAccount {
+interface AdAccount {
   id: string
-  name: string
+  accountId: string
+  accountName: string
   currency: string
   timezone: string
-  status: 'active' | 'disabled' | 'pending'
-  balance: number
-  amount_spent: number
-  selected: boolean
+  status: string
+  isSelected: boolean
+  spendToday: number
+  spendTotal: number
 }
 
-interface TikTokPixel {
-  id: string
-  name: string
-  events_24h: number
-  match_rate: number
-  status: 'active' | 'inactive'
-  selected: boolean
-}
-
-const mockAccounts: ConnectedAccount[] = [
-  {
-    id: '1',
-    name: 'TikTok Business',
-    email: 'business@example.com',
-    advertiser_id: '7123456789012345678',
-    business_center_id: 'BC123456789',
-    ad_accounts: [
-      {
-        id: '7111111111111111111',
-        name: 'COD Brasil - Videos',
-        currency: 'BRL',
-        timezone: 'America/Sao_Paulo',
-        status: 'active',
-        balance: 5000,
-        amount_spent: 18500,
-        selected: true,
-      },
-      {
-        id: '7222222222222222222',
-        name: 'COD Marrocos - Spark Ads',
-        currency: 'MAD',
-        timezone: 'Africa/Casablanca',
-        status: 'active',
-        balance: 2500,
-        amount_spent: 12000,
-        selected: true,
-      },
-    ],
-    pixels: [
-      {
-        id: 'CPIX111111111',
-        name: 'Pixel Principal',
-        events_24h: 2850,
-        match_rate: 78.5,
-        status: 'active',
-        selected: true,
-      },
-      {
-        id: 'CPIX222222222',
-        name: 'Pixel Landing COD',
-        events_24h: 1420,
-        match_rate: 82.3,
-        status: 'active',
-        selected: true,
-      },
-    ],
-    connected_at: '2024-02-15',
-    status: 'active',
-    last_sync: '3 min atrás',
-  },
-]
+const WORKSPACE_ID = 'default-workspace'
 
 export default function TikTokIntegrationPage() {
   const { toast } = useToast()
-  const [accounts, setAccounts] = useState<ConnectedAccount[]>(mockAccounts)
-  const [isConnecting, setIsConnecting] = useState(false)
-  const [showTokenDialog, setShowTokenDialog] = useState(false)
-  const [accessToken, setAccessToken] = useState('')
+  const [connections, setConnections] = useState<AdConnection[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [showAddConnection, setShowAddConnection] = useState(false)
   const [showToken, setShowToken] = useState(false)
 
-  const handleConnectTikTok = () => {
-    setIsConnecting(true)
-    setTimeout(() => {
-      setIsConnecting(false)
-      toast({
-        title: 'Conta conectada!',
-        description: 'Sua conta do TikTok Ads foi conectada com sucesso.',
+  const [newConnection, setNewConnection] = useState({
+    name: '', email: '', accessToken: '', businessId: '', businessName: '',
+    adAccounts: [] as { accountId: string; accountName: string; currency: string }[],
+  })
+
+  const fetchConnections = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/integrations/connections?workspaceId=${WORKSPACE_ID}&platform=TIKTOK`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao buscar conexões')
+      setConnections(data.connections || [])
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchConnections() }, [fetchConnections])
+
+  const handleAddConnection = async () => {
+    if (!newConnection.name || !newConnection.accessToken) {
+      toast({ title: 'Erro', description: 'Nome e Access Token são obrigatórios', variant: 'destructive' })
+      return
+    }
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/integrations/connections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspaceId: WORKSPACE_ID, platform: 'TIKTOK', ...newConnection }),
       })
-    }, 2000)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao criar conexão')
+      toast({ title: 'Sucesso!', description: 'Conexão TikTok criada com sucesso' })
+      setShowAddConnection(false)
+      setNewConnection({ name: '', email: '', accessToken: '', businessId: '', businessName: '', adAccounts: [] })
+      fetchConnections()
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const handleDisconnect = (accountId: string) => {
-    setAccounts(accounts.filter(a => a.id !== accountId))
-    toast({
-      title: 'Conta desconectada',
-      description: 'A conta foi removida das integrações.',
-    })
+  const handleDeleteConnection = async (id: string) => {
+    if (!confirm('Tem certeza que deseja desconectar esta conta?')) return
+    try {
+      const res = await fetch(`/api/integrations/connections?id=${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Erro ao desconectar')
+      toast({ title: 'Desconectado', description: 'Conta TikTok desconectada' })
+      fetchConnections()
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
+    }
   }
 
-  const handleRefresh = (accountId: string) => {
-    toast({
-      title: 'Sincronizando...',
-      description: 'Atualizando dados do TikTok Ads.',
-    })
+  const handleToggleAdAccount = async (connectionId: string, adAccount: AdAccount) => {
+    try {
+      await fetch('/api/integrations/connections', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: connectionId, adAccounts: [{ id: adAccount.id, isSelected: !adAccount.isSelected }] }),
+      })
+      fetchConnections()
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
+    }
   }
 
-  const toggleAdAccount = (accountId: string, adAccountId: string) => {
-    setAccounts(accounts.map(acc => {
-      if (acc.id === accountId) {
-        return {
-          ...acc,
-          ad_accounts: acc.ad_accounts.map(aa =>
-            aa.id === adAccountId ? { ...aa, selected: !aa.selected } : aa
-          )
-        }
-      }
-      return acc
-    }))
+  const formatCurrency = (value: number, currency: string = 'BRL') => new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value)
+  const formatDate = (d: string | null) => {
+    if (!d) return 'Nunca'
+    const diff = Math.floor((Date.now() - new Date(d).getTime()) / 60000)
+    if (diff < 60) return `${diff}min atrás`
+    if (diff < 1440) return `${Math.floor(diff / 60)}h atrás`
+    return `${Math.floor(diff / 1440)}d atrás`
   }
 
-  const togglePixel = (accountId: string, pixelId: string) => {
-    setAccounts(accounts.map(acc => {
-      if (acc.id === accountId) {
-        return {
-          ...acc,
-          pixels: acc.pixels.map(px =>
-            px.id === pixelId ? { ...px, selected: !px.selected } : px
-          )
-        }
-      }
-      return acc
-    }))
+  const getStatusBadge = (status: string) => {
+    if (status === 'ACTIVE') return <Badge className="bg-green-100 text-green-800">Ativo</Badge>
+    if (status === 'EXPIRED') return <Badge className="bg-yellow-100 text-yellow-800">Expirado</Badge>
+    if (status === 'ERROR') return <Badge variant="destructive">Erro</Badge>
+    return <Badge variant="outline">{status}</Badge>
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    toast({
-      title: 'Copiado!',
-      description: 'ID copiado para a área de transferência.',
-    })
-  }
+  const totalSpend = connections.reduce((s, c) => s + c.totalSpend, 0)
+  const totalSpendToday = connections.reduce((s, c) => s + c.totalSpendToday, 0)
+  const totalAccounts = connections.reduce((s, c) => s + c.adAccounts.length, 0)
+  const activeAccounts = connections.reduce((s, c) => s + c.selectedAccounts, 0)
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-[#00f2ea]/10 to-[#ff0050]/10 border border-black/10 dark:border-white/10">
-              <Music2 className="h-6 w-6" />
-            </div>
-            Integração TikTok Ads
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Conecte suas contas do TikTok Ads para importar dados de campanhas
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-gradient-to-r from-pink-100 to-cyan-100 rounded-lg"><Music2 className="h-6 w-6 text-pink-600" /></div>
+          <div>
+            <h1 className="text-2xl font-bold">TikTok Ads</h1>
+            <p className="text-muted-foreground">Gerencie suas conexões com TikTok Ads Manager</p>
+          </div>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Conectar Conta
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Conectar conta do TikTok</DialogTitle>
-              <DialogDescription>
-                Autorize o acesso à sua conta TikTok for Business
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <Button
-                className="w-full gap-2 h-12 bg-black hover:bg-black/90 text-white"
-                onClick={handleConnectTikTok}
-                disabled={isConnecting}
-              >
-                {isConnecting ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Music2 className="h-5 w-5" />
-                )}
-                {isConnecting ? 'Conectando...' : 'Conectar com TikTok'}
-              </Button>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={fetchConnections}><RefreshCw className="h-4 w-4 mr-2" />Atualizar</Button>
+          <Dialog open={showAddConnection} onOpenChange={setShowAddConnection}>
+            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Conectar Conta</Button></DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Conectar Conta TikTok</DialogTitle>
+                <DialogDescription>Adicione uma conta do TikTok Ads para sincronizar dados</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div><Label>Nome *</Label><Input placeholder="Ex: TikTok Ads Principal" value={newConnection.name} onChange={(e) => setNewConnection({ ...newConnection, name: e.target.value })} /></div>
+                  <div><Label>Email</Label><Input placeholder="email@exemplo.com" value={newConnection.email} onChange={(e) => setNewConnection({ ...newConnection, email: e.target.value })} /></div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">ou</span>
+                <div>
+                  <Label>Access Token *</Label>
+                  <div className="flex gap-2">
+                    <Input type={showToken ? 'text' : 'password'} placeholder="Token de acesso" value={newConnection.accessToken} onChange={(e) => setNewConnection({ ...newConnection, accessToken: e.target.value })} />
+                    <Button variant="outline" size="icon" onClick={() => setShowToken(!showToken)}>{showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</Button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><Label>Advertiser ID</Label><Input placeholder="7123456789012345678" value={newConnection.businessId} onChange={(e) => setNewConnection({ ...newConnection, businessId: e.target.value })} /></div>
+                  <div><Label>Business Center</Label><Input placeholder="BC123456789" value={newConnection.businessName} onChange={(e) => setNewConnection({ ...newConnection, businessName: e.target.value })} /></div>
                 </div>
               </div>
-
-              <Button
-                variant="outline"
-                className="w-full gap-2 h-12"
-                onClick={() => setShowTokenDialog(true)}
-              >
-                <Settings className="h-4 w-4" />
-                Usar Access Token Manual
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowAddConnection(false)}>Cancelar</Button>
+                <Button onClick={handleAddConnection} disabled={submitting}>{submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Conectar</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-[#00f2ea]/10 to-transparent border-[#00f2ea]/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-[#00f2ea]/20">
-                <Users className="h-5 w-5 text-[#00f2ea]" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Contas Conectadas</p>
-                <p className="text-2xl font-bold">{accounts.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-[#ff0050]/10 to-transparent border-[#ff0050]/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-[#ff0050]/20">
-                <Video className="h-5 w-5 text-[#ff0050]" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Ad Accounts Ativos</p>
-                <p className="text-2xl font-bold">
-                  {accounts.reduce((acc, a) => acc + a.ad_accounts.filter(aa => aa.selected).length, 0)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-purple-500/20">
-                <Target className="h-5 w-5 text-purple-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Pixels Ativos</p>
-                <p className="text-2xl font-bold">
-                  {accounts.reduce((acc, a) => acc + a.pixels.filter(px => px.selected).length, 0)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-500/10 to-transparent border-orange-500/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-orange-500/20">
-                <Sparkles className="h-5 w-5 text-orange-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Eventos (24h)</p>
-                <p className="text-2xl font-bold">
-                  {accounts.reduce((acc, a) => acc + a.pixels.reduce((sum, px) => sum + px.events_24h, 0), 0).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Conexões</p><p className="text-2xl font-bold">{connections.length}</p></div><Link2 className="h-8 w-8 text-pink-500" /></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Contas Ativas</p><p className="text-2xl font-bold">{activeAccounts} / {totalAccounts}</p></div><Target className="h-8 w-8 text-green-500" /></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Gasto Hoje</p><p className="text-2xl font-bold">{formatCurrency(totalSpendToday)}</p></div><DollarSign className="h-8 w-8 text-yellow-500" /></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Gasto Total</p><p className="text-2xl font-bold">{formatCurrency(totalSpend)}</p></div><TrendingUp className="h-8 w-8 text-purple-500" /></div></CardContent></Card>
       </div>
 
-      {/* Connected Accounts */}
-      {accounts.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="p-4 rounded-full bg-gradient-to-br from-[#00f2ea]/20 to-[#ff0050]/20 mb-4">
-              <Music2 className="h-8 w-8" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Nenhuma conta conectada</h3>
-            <p className="text-muted-foreground text-center mb-4 max-w-md">
-              Conecte sua conta do TikTok for Business para importar dados de campanhas
-            </p>
-            <Button className="gap-2 bg-black hover:bg-black/90">
-              <Music2 className="h-4 w-4" />
-              Conectar primeira conta
-            </Button>
-          </CardContent>
-        </Card>
+      {error && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Erro</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+
+      {loading ? (
+        <div className="flex items-center justify-center p-12"><Loader2 className="h-8 w-8 animate-spin" /></div>
+      ) : connections.length === 0 ? (
+        <Card><CardContent className="flex flex-col items-center justify-center p-12 text-center">
+          <Music2 className="h-16 w-16 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Nenhuma conta conectada</h3>
+          <p className="text-muted-foreground mb-4">Conecte sua conta do TikTok Ads</p>
+          <Button onClick={() => setShowAddConnection(true)}><Plus className="h-4 w-4 mr-2" />Conectar</Button>
+        </CardContent></Card>
       ) : (
-        <div className="space-y-6">
-          {accounts.map((account) => (
-            <Card key={account.id}>
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#00f2ea] to-[#ff0050] flex items-center justify-center text-white font-bold text-lg">
-                      <Music2 className="h-6 w-6" />
-                    </div>
+        <div className="space-y-4">
+          {connections.map((conn) => (
+            <Card key={conn.id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gradient-to-r from-pink-100 to-cyan-100 rounded-lg"><Music2 className="h-5 w-5 text-pink-600" /></div>
                     <div>
-                      <CardTitle className="flex items-center gap-2">
-                        {account.name}
-                        {account.status === 'active' && (
-                          <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Ativo
-                          </Badge>
-                        )}
-                      </CardTitle>
-                      <CardDescription className="mt-1">
-                        {account.email} • Advertiser ID: {account.advertiser_id}
-                      </CardDescription>
+                      <CardTitle className="text-lg flex items-center gap-2">{conn.name} {getStatusBadge(conn.status)}</CardTitle>
+                      <CardDescription>{conn.email || 'Sem email'} | ID: {conn.businessId || 'N/A'} | Sync: {formatDate(conn.lastSyncAt)}</CardDescription>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleRefresh(account.id)}>
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                      onClick={() => handleDisconnect(account.id)}
-                    >
-                      <Unlink className="h-4 w-4" />
-                    </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="icon" onClick={fetchConnections}><RefreshCw className="h-4 w-4" /></Button>
+                    <Button variant="outline" size="icon" onClick={() => handleDeleteConnection(conn.id)}><Unlink className="h-4 w-4 text-red-500" /></Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="ad_accounts">
-                  <TabsList className="grid w-full grid-cols-3 mb-4">
-                    <TabsTrigger value="ad_accounts">Ad Accounts</TabsTrigger>
-                    <TabsTrigger value="pixels">Pixels</TabsTrigger>
-                    <TabsTrigger value="settings">Configurações</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="ad_accounts" className="space-y-3">
-                    {account.ad_accounts.map((adAccount) => (
-                      <div
-                        key={adAccount.id}
-                        className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-4">
-                          <Switch
-                            checked={adAccount.selected}
-                            onCheckedChange={() => toggleAdAccount(account.id, adAccount.id)}
-                          />
-                          <div>
-                            <p className="font-medium flex items-center gap-2">
-                              {adAccount.name}
-                              {adAccount.status === 'active' && (
-                                <span className="h-2 w-2 rounded-full bg-green-500" />
-                              )}
-                            </p>
-                            <p className="text-sm text-muted-foreground flex items-center gap-2">
-                              <span>ID: {adAccount.id}</span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5"
-                                onClick={() => copyToClipboard(adAccount.id)}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            </p>
-                          </div>
+              {conn.errorMessage && <CardContent className="pt-0"><Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{conn.errorMessage}</AlertDescription></Alert></CardContent>}
+              {conn.adAccounts.length > 0 && (
+                <CardContent>
+                  <h4 className="font-medium mb-3">Contas de Anúncios</h4>
+                  <div className="space-y-2">
+                    {conn.adAccounts.map((acc) => (
+                      <div key={acc.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Switch checked={acc.isSelected} onCheckedChange={() => handleToggleAdAccount(conn.id, acc)} />
+                          <div><p className="font-medium">{acc.accountName}</p><p className="text-sm text-muted-foreground">{acc.accountId} | {acc.currency}</p></div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium">
-                            {adAccount.currency} {adAccount.amount_spent.toLocaleString()}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Saldo: {adAccount.currency} {adAccount.balance.toLocaleString()}
-                          </p>
-                        </div>
+                        <div className="text-right"><p className="font-medium">{formatCurrency(acc.spendTotal, acc.currency)}</p><p className="text-sm text-muted-foreground">Hoje: {formatCurrency(acc.spendToday, acc.currency)}</p></div>
                       </div>
                     ))}
-                  </TabsContent>
-
-                  <TabsContent value="pixels" className="space-y-3">
-                    {account.pixels.map((pixel) => (
-                      <div
-                        key={pixel.id}
-                        className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-4">
-                          <Switch
-                            checked={pixel.selected}
-                            onCheckedChange={() => togglePixel(account.id, pixel.id)}
-                          />
-                          <div>
-                            <p className="font-medium flex items-center gap-2">
-                              {pixel.name}
-                              {pixel.status === 'active' && (
-                                <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
-                                  Ativo
-                                </Badge>
-                              )}
-                            </p>
-                            <p className="text-sm text-muted-foreground flex items-center gap-2">
-                              <span>{pixel.id}</span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5"
-                                onClick={() => copyToClipboard(pixel.id)}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium text-green-500 flex items-center gap-1">
-                            <Activity className="h-4 w-4" />
-                            {pixel.events_24h.toLocaleString()} eventos
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Match rate: {pixel.match_rate}%
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </TabsContent>
-
-                  <TabsContent value="settings" className="space-y-4">
-                    <div className="grid gap-4">
-                      <div className="flex items-center justify-between p-4 rounded-lg border">
-                        <div>
-                          <p className="font-medium">Sincronização automática</p>
-                          <p className="text-sm text-muted-foreground">
-                            Atualizar dados a cada 15 minutos
-                          </p>
-                        </div>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between p-4 rounded-lg border">
-                        <div>
-                          <p className="font-medium">Events API</p>
-                          <p className="text-sm text-muted-foreground">
-                            Enviar eventos server-side para melhor tracking
-                          </p>
-                        </div>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between p-4 rounded-lg border">
-                        <div>
-                          <p className="font-medium">Advanced Matching</p>
-                          <p className="text-sm text-muted-foreground">
-                            Usar dados de cliente para melhor atribuição
-                          </p>
-                        </div>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between p-4 rounded-lg border">
-                        <div>
-                          <p className="font-medium">Importar Spark Ads</p>
-                          <p className="text-sm text-muted-foreground">
-                            Incluir métricas de Spark Ads na análise
-                          </p>
-                        </div>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="p-4 rounded-lg border">
-                        <p className="font-medium mb-2">Access Token</p>
-                        <div className="flex gap-2">
-                          <Input
-                            type={showToken ? 'text' : 'password'}
-                            value="tk_live_xxx...XYZ"
-                            readOnly
-                            className="font-mono text-sm"
-                          />
-                          <Button variant="outline" size="icon" onClick={() => setShowToken(!showToken)}>
-                            {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                          <Button variant="outline" size="icon">
-                            <RefreshCw className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Conectado em {account.connected_at} • Última sync: {account.last_sync}
-                        </p>
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
+                  </div>
+                </CardContent>
+              )}
             </Card>
           ))}
         </div>
       )}
 
-      {/* Manual Token Dialog */}
-      <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Configurar Access Token Manual</DialogTitle>
-            <DialogDescription>
-              Cole seu token de acesso do TikTok Marketing API
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Access Token</Label>
-              <Input
-                type="password"
-                placeholder="tk_live_xxx..."
-                value={accessToken}
-                onChange={(e) => setAccessToken(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Obtenha seu token em{' '}
-                <a
-                  href="https://ads.tiktok.com/marketing_api/apps"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline inline-flex items-center gap-1"
-                >
-                  TikTok for Developers
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label>Advertiser ID</Label>
-              <Input
-                placeholder="7123456789012345678"
-              />
-            </div>
-            <Button className="w-full" onClick={() => setShowTokenDialog(false)}>
-              Salvar Token
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Documentation */}
-      <Card className="bg-muted/50">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <ExternalLink className="h-4 w-4" />
-            Documentação e Recursos
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <a
-              href="#"
-              className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors group"
-            >
-              <h4 className="font-medium group-hover:text-primary transition-colors">
-                Guia de Configuração
-              </h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                Como conectar TikTok Ads ao DOD
-              </p>
-            </a>
-            <a
-              href="#"
-              className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors group"
-            >
-              <h4 className="font-medium group-hover:text-primary transition-colors">
-                Events API (S2S)
-              </h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                Configurar tracking server-side para COD
-              </p>
-            </a>
-            <a
-              href="#"
-              className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors group"
-            >
-              <h4 className="font-medium group-hover:text-primary transition-colors">
-                Spark Ads Integration
-              </h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                Otimizar campanhas com conteúdo orgânico
-              </p>
-            </a>
-          </div>
+      <Card>
+        <CardHeader><CardTitle className="text-lg">Como Conectar</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div><h4 className="font-medium">1. Obtenha o Access Token</h4><p className="text-sm text-muted-foreground">Acesse <a href="https://ads.tiktok.com/marketing_api/docs" target="_blank" className="text-blue-600 hover:underline">TikTok Marketing API</a> e crie um app para obter o token</p></div>
+          <div><h4 className="font-medium">2. Encontre seu Advertiser ID</h4><p className="text-sm text-muted-foreground">O Advertiser ID está nas configurações do TikTok Ads Manager</p></div>
         </CardContent>
       </Card>
     </div>

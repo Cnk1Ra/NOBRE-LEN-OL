@@ -1,20 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -22,606 +14,478 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/ui/alert'
 import {
   Facebook,
   Link2,
   Unlink,
   RefreshCw,
-  CheckCircle2,
   AlertCircle,
   Plus,
   Trash2,
   Eye,
   EyeOff,
-  Copy,
-  ExternalLink,
-  Settings,
-  Activity,
   TrendingUp,
   DollarSign,
-  Users,
   Target,
-  Zap,
+  Loader2,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
-interface ConnectedAccount {
+interface AdConnection {
   id: string
+  platform: string
   name: string
-  email: string
-  business_manager_id: string
-  business_manager_name: string
-  ad_accounts: AdAccount[]
-  pixels: Pixel[]
-  connected_at: string
-  status: 'active' | 'expired' | 'error'
-  last_sync: string
+  email: string | null
+  businessId: string | null
+  businessName: string | null
+  status: string
+  lastSyncAt: string | null
+  errorMessage: string | null
+  totalSpend: number
+  totalSpendToday: number
+  selectedAccounts: number
+  adAccounts: AdAccount[]
+  createdAt: string
 }
 
 interface AdAccount {
   id: string
-  name: string
+  accountId: string
+  accountName: string
   currency: string
   timezone: string
-  status: 'active' | 'disabled'
-  spend_cap?: number
-  amount_spent: number
-  selected: boolean
+  status: string
+  isSelected: boolean
+  spendToday: number
+  spendTotal: number
 }
 
-interface Pixel {
-  id: string
-  name: string
-  last_fired: string
-  events_today: number
-  selected: boolean
-}
-
-// Mock connected accounts
-const mockAccounts: ConnectedAccount[] = [
-  {
-    id: '1',
-    name: 'João Silva',
-    email: 'joao@example.com',
-    business_manager_id: '123456789',
-    business_manager_name: 'Empresa ABC',
-    ad_accounts: [
-      {
-        id: 'act_111111111',
-        name: 'Conta Principal - BR',
-        currency: 'BRL',
-        timezone: 'America/Sao_Paulo',
-        status: 'active',
-        spend_cap: 50000,
-        amount_spent: 12500,
-        selected: true,
-      },
-      {
-        id: 'act_222222222',
-        name: 'Conta COD - MA',
-        currency: 'MAD',
-        timezone: 'Africa/Casablanca',
-        status: 'active',
-        amount_spent: 8500,
-        selected: true,
-      },
-    ],
-    pixels: [
-      {
-        id: 'px_111111111',
-        name: 'Pixel Principal',
-        last_fired: '2 min atrás',
-        events_today: 1250,
-        selected: true,
-      },
-      {
-        id: 'px_222222222',
-        name: 'Pixel Landing Page',
-        last_fired: '5 min atrás',
-        events_today: 890,
-        selected: true,
-      },
-    ],
-    connected_at: '2024-01-15',
-    status: 'active',
-    last_sync: '2 min atrás',
-  },
-]
+const WORKSPACE_ID = 'default-workspace'
 
 export default function MetaIntegrationPage() {
   const { toast } = useToast()
-  const [accounts, setAccounts] = useState<ConnectedAccount[]>(mockAccounts)
-  const [isConnecting, setIsConnecting] = useState(false)
-  const [showTokenDialog, setShowTokenDialog] = useState(false)
-  const [accessToken, setAccessToken] = useState('')
+
+  const [connections, setConnections] = useState<AdConnection[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [showAddConnection, setShowAddConnection] = useState(false)
   const [showToken, setShowToken] = useState(false)
 
-  const handleConnectFacebook = () => {
-    setIsConnecting(true)
-    // Simulate OAuth flow
-    setTimeout(() => {
-      setIsConnecting(false)
-      toast({
-        title: 'Conta conectada!',
-        description: 'Sua conta do Facebook foi conectada com sucesso.',
+  const [newConnection, setNewConnection] = useState({
+    name: '',
+    email: '',
+    accessToken: '',
+    businessId: '',
+    businessName: '',
+    adAccounts: [] as { accountId: string; accountName: string; currency: string }[],
+  })
+
+  const [newAdAccount, setNewAdAccount] = useState({
+    accountId: '',
+    accountName: '',
+    currency: 'BRL',
+  })
+
+  const fetchConnections = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/integrations/connections?workspaceId=${WORKSPACE_ID}&platform=META`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao buscar conexões')
+      setConnections(data.connections || [])
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchConnections()
+  }, [fetchConnections])
+
+  const handleAddAdAccountToForm = () => {
+    if (!newAdAccount.accountId || !newAdAccount.accountName) {
+      toast({ title: 'Erro', description: 'Preencha ID e nome da conta', variant: 'destructive' })
+      return
+    }
+    setNewConnection({
+      ...newConnection,
+      adAccounts: [...newConnection.adAccounts, { ...newAdAccount }],
+    })
+    setNewAdAccount({ accountId: '', accountName: '', currency: 'BRL' })
+  }
+
+  const handleRemoveAdAccountFromForm = (index: number) => {
+    setNewConnection({
+      ...newConnection,
+      adAccounts: newConnection.adAccounts.filter((_, i) => i !== index),
+    })
+  }
+
+  const handleAddConnection = async () => {
+    if (!newConnection.name || !newConnection.accessToken) {
+      toast({ title: 'Erro', description: 'Nome e Access Token são obrigatórios', variant: 'destructive' })
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/integrations/connections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: WORKSPACE_ID,
+          platform: 'META',
+          name: newConnection.name,
+          email: newConnection.email || null,
+          accessToken: newConnection.accessToken,
+          businessId: newConnection.businessId || null,
+          businessName: newConnection.businessName || null,
+          adAccounts: newConnection.adAccounts,
+        }),
       })
-    }, 2000)
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Erro ao criar conexão')
+
+      toast({ title: 'Sucesso!', description: 'Conexão Meta criada com sucesso' })
+      setShowAddConnection(false)
+      setNewConnection({ name: '', email: '', accessToken: '', businessId: '', businessName: '', adAccounts: [] })
+      fetchConnections()
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const handleDisconnect = (accountId: string) => {
-    setAccounts(accounts.filter(a => a.id !== accountId))
-    toast({
-      title: 'Conta desconectada',
-      description: 'A conta foi removida das integrações.',
-    })
+  const handleDeleteConnection = async (id: string) => {
+    if (!confirm('Tem certeza que deseja desconectar esta conta?')) return
+
+    try {
+      const res = await fetch(`/api/integrations/connections?id=${id}`, { method: 'DELETE' })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Erro ao desconectar')
+
+      toast({ title: 'Desconectado', description: 'Conta Meta desconectada com sucesso' })
+      fetchConnections()
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
+    }
   }
 
-  const handleRefresh = (accountId: string) => {
-    toast({
-      title: 'Sincronizando...',
-      description: 'Atualizando dados da conta do Meta.',
-    })
+  const handleToggleAdAccount = async (connectionId: string, adAccount: AdAccount) => {
+    try {
+      const res = await fetch('/api/integrations/connections', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: connectionId,
+          adAccounts: [{ id: adAccount.id, isSelected: !adAccount.isSelected }],
+        }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Erro ao atualizar')
+
+      fetchConnections()
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
+    }
   }
 
-  const toggleAdAccount = (accountId: string, adAccountId: string) => {
-    setAccounts(accounts.map(acc => {
-      if (acc.id === accountId) {
-        return {
-          ...acc,
-          ad_accounts: acc.ad_accounts.map(aa =>
-            aa.id === adAccountId ? { ...aa, selected: !aa.selected } : aa
-          )
-        }
-      }
-      return acc
-    }))
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return <Badge className="bg-green-100 text-green-800">Ativo</Badge>
+      case 'EXPIRED':
+        return <Badge className="bg-yellow-100 text-yellow-800">Token Expirado</Badge>
+      case 'ERROR':
+        return <Badge variant="destructive">Erro</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
+    }
   }
 
-  const togglePixel = (accountId: string, pixelId: string) => {
-    setAccounts(accounts.map(acc => {
-      if (acc.id === accountId) {
-        return {
-          ...acc,
-          pixels: acc.pixels.map(px =>
-            px.id === pixelId ? { ...px, selected: !px.selected } : px
-          )
-        }
-      }
-      return acc
-    }))
+  const formatCurrency = (value: number, currency: string = 'BRL') => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value)
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    toast({
-      title: 'Copiado!',
-      description: 'ID copiado para a área de transferência.',
-    })
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Nunca'
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffMins < 60) return `${diffMins}min atrás`
+    if (diffHours < 24) return `${diffHours}h atrás`
+    return `${Math.floor(diffHours / 24)}d atrás`
   }
+
+  const totalSpend = connections.reduce((sum, c) => sum + c.totalSpend, 0)
+  const totalSpendToday = connections.reduce((sum, c) => sum + c.totalSpendToday, 0)
+  const totalAccounts = connections.reduce((sum, c) => sum + c.adAccounts.length, 0)
+  const activeAccounts = connections.reduce((sum, c) => sum + c.selectedAccounts, 0)
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-[#1877F2]/10">
-              <Facebook className="h-6 w-6 text-[#1877F2]" />
-            </div>
-            Integração Meta Ads
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Conecte suas contas do Facebook/Instagram para importar dados de campanhas
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <Facebook className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Meta Ads</h1>
+            <p className="text-muted-foreground">Gerencie suas conexões com Facebook e Instagram Ads</p>
+          </div>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Conectar Conta
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Conectar conta do Meta</DialogTitle>
-              <DialogDescription>
-                Escolha como deseja conectar sua conta
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <Button
-                className="w-full gap-2 h-12 bg-[#1877F2] hover:bg-[#1877F2]/90"
-                onClick={handleConnectFacebook}
-                disabled={isConnecting}
-              >
-                {isConnecting ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Facebook className="h-5 w-5" />
-                )}
-                {isConnecting ? 'Conectando...' : 'Conectar com Facebook'}
-              </Button>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={fetchConnections}>
+            <RefreshCw className="h-4 w-4 mr-2" />Atualizar
+          </Button>
+          <Dialog open={showAddConnection} onOpenChange={setShowAddConnection}>
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4 mr-2" />Conectar Conta</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Conectar Conta Meta</DialogTitle>
+                <DialogDescription>Adicione uma conta do Meta Business para sincronizar dados</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Nome da Conexão *</Label>
+                    <Input placeholder="Ex: Conta Principal" value={newConnection.name} onChange={(e) => setNewConnection({ ...newConnection, name: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Email</Label>
+                    <Input placeholder="email@exemplo.com" value={newConnection.email} onChange={(e) => setNewConnection({ ...newConnection, email: e.target.value })} />
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">ou</span>
+                <div>
+                  <Label>Access Token *</Label>
+                  <div className="flex gap-2">
+                    <Input type={showToken ? 'text' : 'password'} placeholder="Token de acesso do Meta Business" value={newConnection.accessToken} onChange={(e) => setNewConnection({ ...newConnection, accessToken: e.target.value })} />
+                    <Button variant="outline" size="icon" onClick={() => setShowToken(!showToken)}>
+                      {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Obtenha em: developers.facebook.com/tools/explorer</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Business Manager ID</Label>
+                    <Input placeholder="123456789" value={newConnection.businessId} onChange={(e) => setNewConnection({ ...newConnection, businessId: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>Nome do Business</Label>
+                    <Input placeholder="Minha Empresa" value={newConnection.businessName} onChange={(e) => setNewConnection({ ...newConnection, businessName: e.target.value })} />
+                  </div>
+                </div>
+                <div className="border rounded-lg p-4 space-y-3">
+                  <Label>Contas de Anúncios</Label>
+                  {newConnection.adAccounts.length > 0 && (
+                    <div className="space-y-2">
+                      {newConnection.adAccounts.map((acc, index) => (
+                        <div key={index} className="flex items-center justify-between bg-muted p-2 rounded">
+                          <span className="text-sm">{acc.accountName} ({acc.accountId}) - {acc.currency}</span>
+                          <Button variant="ghost" size="icon" onClick={() => handleRemoveAdAccountFromForm(index)}>
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-3 gap-2">
+                    <Input placeholder="ID (act_123...)" value={newAdAccount.accountId} onChange={(e) => setNewAdAccount({ ...newAdAccount, accountId: e.target.value })} />
+                    <Input placeholder="Nome da conta" value={newAdAccount.accountName} onChange={(e) => setNewAdAccount({ ...newAdAccount, accountName: e.target.value })} />
+                    <div className="flex gap-2">
+                      <Input placeholder="BRL" value={newAdAccount.currency} onChange={(e) => setNewAdAccount({ ...newAdAccount, currency: e.target.value })} className="w-20" />
+                      <Button variant="outline" onClick={handleAddAdAccountToForm}><Plus className="h-4 w-4" /></Button>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              <Button
-                variant="outline"
-                className="w-full gap-2 h-12"
-                onClick={() => setShowTokenDialog(true)}
-              >
-                <Settings className="h-4 w-4" />
-                Usar Access Token Manual
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowAddConnection(false)}>Cancelar</Button>
+                <Button onClick={handleAddConnection} disabled={submitting}>
+                  {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Conectar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-[#1877F2]/10 to-transparent border-[#1877F2]/20">
+        <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-[#1877F2]/20">
-                <Users className="h-5 w-5 text-[#1877F2]" />
-              </div>
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Contas Conectadas</p>
-                <p className="text-2xl font-bold">{accounts.length}</p>
+                <p className="text-sm text-muted-foreground">Conexões</p>
+                <p className="text-2xl font-bold">{connections.length}</p>
               </div>
+              <Link2 className="h-8 w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
-
-        <Card className="bg-gradient-to-br from-green-500/10 to-transparent border-green-500/20">
+        <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-green-500/20">
-                <Target className="h-5 w-5 text-green-500" />
-              </div>
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Ad Accounts Ativos</p>
-                <p className="text-2xl font-bold">
-                  {accounts.reduce((acc, a) => acc + a.ad_accounts.filter(aa => aa.selected).length, 0)}
-                </p>
+                <p className="text-sm text-muted-foreground">Contas Ativas</p>
+                <p className="text-2xl font-bold">{activeAccounts} / {totalAccounts}</p>
               </div>
+              <Target className="h-8 w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
-
-        <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/20">
+        <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-purple-500/20">
-                <Activity className="h-5 w-5 text-purple-500" />
-              </div>
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Pixels Ativos</p>
-                <p className="text-2xl font-bold">
-                  {accounts.reduce((acc, a) => acc + a.pixels.filter(px => px.selected).length, 0)}
-                </p>
+                <p className="text-sm text-muted-foreground">Gasto Hoje</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalSpendToday)}</p>
               </div>
+              <DollarSign className="h-8 w-8 text-yellow-500" />
             </div>
           </CardContent>
         </Card>
-
-        <Card className="bg-gradient-to-br from-orange-500/10 to-transparent border-orange-500/20">
+        <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-orange-500/20">
-                <Zap className="h-5 w-5 text-orange-500" />
-              </div>
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Eventos Hoje</p>
-                <p className="text-2xl font-bold">
-                  {accounts.reduce((acc, a) => acc + a.pixels.reduce((sum, px) => sum + px.events_today, 0), 0).toLocaleString()}
-                </p>
+                <p className="text-sm text-muted-foreground">Gasto Total</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalSpend)}</p>
               </div>
+              <TrendingUp className="h-8 w-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Connected Accounts */}
-      {accounts.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="p-4 rounded-full bg-muted mb-4">
-              <Facebook className="h-8 w-8 text-muted-foreground" />
-            </div>
+      {/* Erro */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erro ao carregar conexões</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Conexões */}
+      {loading ? (
+        <div className="flex items-center justify-center p-12">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : connections.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center p-12 text-center">
+            <Facebook className="h-16 w-16 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">Nenhuma conta conectada</h3>
-            <p className="text-muted-foreground text-center mb-4 max-w-md">
-              Conecte sua conta do Meta para começar a importar dados de campanhas e otimizar seu tracking
-            </p>
-            <Button className="gap-2 bg-[#1877F2] hover:bg-[#1877F2]/90">
-              <Facebook className="h-4 w-4" />
-              Conectar primeira conta
-            </Button>
+            <p className="text-muted-foreground mb-4">Conecte sua conta do Meta Business para sincronizar dados</p>
+            <Button onClick={() => setShowAddConnection(true)}><Plus className="h-4 w-4 mr-2" />Conectar Conta Meta</Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {accounts.map((account) => (
-            <Card key={account.id}>
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#1877F2] to-[#E1306C] flex items-center justify-center text-white font-bold text-lg">
-                      {account.name.charAt(0)}
+        <div className="space-y-4">
+          {connections.map((connection) => (
+            <Card key={connection.id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Facebook className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
-                      <CardTitle className="flex items-center gap-2">
-                        {account.name}
-                        {account.status === 'active' && (
-                          <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Ativo
-                          </Badge>
-                        )}
-                        {account.status === 'expired' && (
-                          <Badge variant="destructive" className="bg-red-500/10 text-red-500 border-red-500/20">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Token Expirado
-                          </Badge>
-                        )}
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        {connection.name}
+                        {getStatusBadge(connection.status)}
                       </CardTitle>
-                      <CardDescription className="mt-1">
-                        {account.email} • BM: {account.business_manager_name}
+                      <CardDescription>
+                        {connection.email || 'Sem email'} | Business: {connection.businessName || connection.businessId || 'N/A'} | Sync: {formatDate(connection.lastSyncAt)}
                       </CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleRefresh(account.id)}>
+                    <Button variant="outline" size="icon" onClick={fetchConnections}>
                       <RefreshCw className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                      onClick={() => handleDisconnect(account.id)}
-                    >
-                      <Unlink className="h-4 w-4" />
+                    <Button variant="outline" size="icon" onClick={() => handleDeleteConnection(connection.id)}>
+                      <Unlink className="h-4 w-4 text-red-500" />
                     </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="ad_accounts">
-                  <TabsList className="grid w-full grid-cols-3 mb-4">
-                    <TabsTrigger value="ad_accounts">Ad Accounts</TabsTrigger>
-                    <TabsTrigger value="pixels">Pixels</TabsTrigger>
-                    <TabsTrigger value="settings">Configurações</TabsTrigger>
-                  </TabsList>
 
-                  <TabsContent value="ad_accounts" className="space-y-3">
-                    {account.ad_accounts.map((adAccount) => (
-                      <div
-                        key={adAccount.id}
-                        className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-4">
-                          <Switch
-                            checked={adAccount.selected}
-                            onCheckedChange={() => toggleAdAccount(account.id, adAccount.id)}
-                          />
+              {connection.errorMessage && (
+                <CardContent className="pt-0">
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{connection.errorMessage}</AlertDescription>
+                  </Alert>
+                </CardContent>
+              )}
+
+              {connection.adAccounts.length > 0 && (
+                <CardContent>
+                  <h4 className="font-medium mb-3">Contas de Anúncios</h4>
+                  <div className="space-y-2">
+                    {connection.adAccounts.map((account) => (
+                      <div key={account.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Switch checked={account.isSelected} onCheckedChange={() => handleToggleAdAccount(connection.id, account)} />
                           <div>
-                            <p className="font-medium flex items-center gap-2">
-                              {adAccount.name}
-                              {adAccount.status === 'active' && (
-                                <span className="h-2 w-2 rounded-full bg-green-500" />
-                              )}
-                            </p>
-                            <p className="text-sm text-muted-foreground flex items-center gap-2">
-                              <span>{adAccount.id}</span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5"
-                                onClick={() => copyToClipboard(adAccount.id)}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            </p>
+                            <p className="font-medium">{account.accountName}</p>
+                            <p className="text-sm text-muted-foreground">{account.accountId} | {account.currency}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">
-                            {adAccount.currency} {adAccount.amount_spent.toLocaleString()}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Gasto total
-                          </p>
+                          <p className="font-medium">{formatCurrency(account.spendTotal, account.currency)}</p>
+                          <p className="text-sm text-muted-foreground">Hoje: {formatCurrency(account.spendToday, account.currency)}</p>
                         </div>
                       </div>
                     ))}
-                  </TabsContent>
-
-                  <TabsContent value="pixels" className="space-y-3">
-                    {account.pixels.map((pixel) => (
-                      <div
-                        key={pixel.id}
-                        className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-4">
-                          <Switch
-                            checked={pixel.selected}
-                            onCheckedChange={() => togglePixel(account.id, pixel.id)}
-                          />
-                          <div>
-                            <p className="font-medium">{pixel.name}</p>
-                            <p className="text-sm text-muted-foreground flex items-center gap-2">
-                              <span>{pixel.id}</span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5"
-                                onClick={() => copyToClipboard(pixel.id)}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium text-green-500 flex items-center gap-1">
-                            <Activity className="h-4 w-4" />
-                            {pixel.events_today.toLocaleString()} eventos
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Último: {pixel.last_fired}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </TabsContent>
-
-                  <TabsContent value="settings" className="space-y-4">
-                    <div className="grid gap-4">
-                      <div className="flex items-center justify-between p-4 rounded-lg border">
-                        <div>
-                          <p className="font-medium">Sincronização automática</p>
-                          <p className="text-sm text-muted-foreground">
-                            Atualizar dados a cada 15 minutos
-                          </p>
-                        </div>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between p-4 rounded-lg border">
-                        <div>
-                          <p className="font-medium">Importar custos históricos</p>
-                          <p className="text-sm text-muted-foreground">
-                            Sincronizar dados dos últimos 30 dias
-                          </p>
-                        </div>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between p-4 rounded-lg border">
-                        <div>
-                          <p className="font-medium">CAPI (Conversions API)</p>
-                          <p className="text-sm text-muted-foreground">
-                            Enviar eventos server-side para melhor tracking
-                          </p>
-                        </div>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="p-4 rounded-lg border">
-                        <p className="font-medium mb-2">Token de Acesso</p>
-                        <div className="flex gap-2">
-                          <Input
-                            type={showToken ? 'text' : 'password'}
-                            value="EAAGo4BAp...XYZ"
-                            readOnly
-                            className="font-mono text-sm"
-                          />
-                          <Button variant="outline" size="icon" onClick={() => setShowToken(!showToken)}>
-                            {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                          <Button variant="outline" size="icon">
-                            <RefreshCw className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Conectado em {account.connected_at} • Última sync: {account.last_sync}
-                        </p>
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
+                  </div>
+                </CardContent>
+              )}
             </Card>
           ))}
         </div>
       )}
 
-      {/* Manual Token Dialog */}
-      <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Configurar Access Token Manual</DialogTitle>
-            <DialogDescription>
-              Cole seu token de acesso do Facebook para configuração avançada
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Access Token</Label>
-              <Input
-                type="password"
-                placeholder="EAAGo4BAp..."
-                value={accessToken}
-                onChange={(e) => setAccessToken(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Obtenha seu token em{' '}
-                <a
-                  href="https://developers.facebook.com/tools/explorer/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline inline-flex items-center gap-1"
-                >
-                  Graph API Explorer
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </p>
-            </div>
-            <Button className="w-full" onClick={() => setShowTokenDialog(false)}>
-              Salvar Token
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Documentation */}
-      <Card className="bg-muted/50">
+      {/* Documentação */}
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <ExternalLink className="h-4 w-4" />
-            Documentação e Recursos
-          </CardTitle>
+          <CardTitle className="text-lg">Como Conectar</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <a
-              href="#"
-              className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors group"
-            >
-              <h4 className="font-medium group-hover:text-primary transition-colors">
-                Guia de Configuração
-              </h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                Como conectar sua conta e configurar o tracking
-              </p>
-            </a>
-            <a
-              href="#"
-              className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors group"
-            >
-              <h4 className="font-medium group-hover:text-primary transition-colors">
-                Conversions API (CAPI)
-              </h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                Configurar eventos server-side para COD
-              </p>
-            </a>
-            <a
-              href="#"
-              className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors group"
-            >
-              <h4 className="font-medium group-hover:text-primary transition-colors">
-                Troubleshooting
-              </h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                Resolver problemas comuns de integração
-              </p>
-            </a>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <h4 className="font-medium">1. Obtenha o Access Token</h4>
+            <p className="text-sm text-muted-foreground">
+              Acesse o <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Graph API Explorer</a> e gere um token com permissões: <code className="bg-muted px-1 rounded">ads_read</code>, <code className="bg-muted px-1 rounded">ads_management</code>
+            </p>
+          </div>
+          <div className="space-y-2">
+            <h4 className="font-medium">2. Encontre seu Business Manager ID</h4>
+            <p className="text-sm text-muted-foreground">
+              Acesse <a href="https://business.facebook.com/settings" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Business Settings</a> e copie o ID
+            </p>
           </div>
         </CardContent>
       </Card>

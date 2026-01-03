@@ -121,6 +121,12 @@ model Workspace {
   shopifyStores  ShopifyStore[]
   countries      Country[]
 
+  // Integrações de Ads
+  pixels              Pixel[]
+  adConnections       AdPlatformConnection[]
+  utmConfigurations   UTMConfiguration[]
+  webhookConfigs      WebhookConfig[]
+
   @@map("workspaces")
 }
 
@@ -738,4 +744,227 @@ enum N1OrderStatus {
   DEVOLVIDO
   CANCELADO
   ERRO
+}
+
+// ==================== INTEGRAÇÕES DE ADS E PIXELS ====================
+
+model Pixel {
+  id           String       @id @default(cuid())
+  workspaceId  String
+  platform     PixelPlatform
+  pixelId      String       // ID do pixel na plataforma (ex: 1234567890)
+  name         String
+  accessToken  String?      // Token de acesso (para Conversions API)
+  testEventCode String?     // Código de teste para eventos
+  isActive     Boolean      @default(true)
+  eventsToday  Int          @default(0)
+  lastEventAt  DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  events       PixelEvent[]
+
+  @@unique([workspaceId, platform, pixelId])
+  @@index([workspaceId])
+  @@map("pixels")
+}
+
+model PixelEvent {
+  id           String       @id @default(cuid())
+  pixelId      String
+  eventName    String       // PageView, Purchase, Lead, etc.
+  eventData    Json?        // Dados do evento
+  status       EventStatus  @default(PENDING)
+  errorMessage String?
+  processedAt  DateTime?
+  createdAt    DateTime     @default(now())
+
+  pixel        Pixel        @relation(fields: [pixelId], references: [id], onDelete: Cascade)
+
+  @@index([pixelId, createdAt])
+  @@map("pixel_events")
+}
+
+enum PixelPlatform {
+  META
+  GOOGLE
+  TIKTOK
+}
+
+enum EventStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model AdPlatformConnection {
+  id              String          @id @default(cuid())
+  workspaceId     String
+  platform        AdPlatform
+  name            String          // Nome da conexão
+  email           String?         // Email da conta
+  accessToken     String?         // Token de acesso (criptografado)
+  refreshToken    String?         // Refresh token
+  tokenExpiresAt  DateTime?
+  businessId      String?         // Business Manager ID / Customer ID
+  businessName    String?
+  status          ConnectionStatus @default(PENDING)
+  lastSyncAt      DateTime?
+  errorMessage    String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  workspace       Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  adAccounts      AdAccountLink[]
+
+  @@unique([workspaceId, platform, businessId])
+  @@index([workspaceId])
+  @@map("ad_platform_connections")
+}
+
+model AdAccountLink {
+  id              String          @id @default(cuid())
+  connectionId    String
+  accountId       String          // ID da conta de anúncios na plataforma
+  accountName     String
+  currency        String          @default("BRL")
+  timezone        String          @default("America/Sao_Paulo")
+  status          String          @default("active")
+  isSelected      Boolean         @default(true)
+  spendToday      Float           @default(0)
+  spendTotal      Float           @default(0)
+  lastSyncAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  connection      AdPlatformConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, accountId])
+  @@map("ad_account_links")
+}
+
+enum AdPlatform {
+  META
+  GOOGLE
+  TIKTOK
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  ERROR
+  DISCONNECTED
+}
+
+model UTMConfiguration {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  name         String    @default("Padrão")
+  utmSource    String    @default("{platform}")
+  utmMedium    String    @default("cpc")
+  utmCampaign  String    @default("{campaign_name}")
+  utmContent   String    @default("{ad_name}")
+  utmTerm      String    @default("{adset_name}")
+  isDefault    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@map("utm_configurations")
+}
+
+model WebhookConfig {
+  id           String        @id @default(cuid())
+  workspaceId  String
+  name         String
+  url          String
+  secret       String?       // Secret para validação HMAC
+  events       String[]      // Eventos que disparam o webhook
+  isActive     Boolean       @default(true)
+  lastTriggeredAt DateTime?
+  failCount    Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  logs         WebhookLog[]
+
+  @@index([workspaceId])
+  @@map("webhook_configs")
+}
+
+model WebhookLog {
+  id           String       @id @default(cuid())
+  webhookId    String
+  eventType    String
+  payload      Json
+  responseCode Int?
+  responseBody String?
+  status       WebhookStatus @default(PENDING)
+  attempts     Int          @default(0)
+  errorMessage String?
+  createdAt    DateTime     @default(now())
+  processedAt  DateTime?
+
+  webhook      WebhookConfig @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId, createdAt])
+  @@map("webhook_logs")
+}
+
+enum WebhookStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  RETRYING
+}
+
+// Eventos de tracking recebidos (do script na landing page)
+model IncomingTrackingEvent {
+  id           String    @id @default(cuid())
+  workspaceId  String?
+  visitorId    String
+  sessionId    String?
+  eventName    String    // PageView, InitiateCheckout, Purchase, Lead
+  eventData    Json?
+
+  // UTM Parameters
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  utmContent   String?
+  utmTerm      String?
+
+  // Click IDs
+  fbclid       String?
+  gclid        String?
+  ttclid       String?
+
+  // Page info
+  pageUrl      String?
+  pageTitle    String?
+  referrer     String?
+  landingPage  String?
+
+  // Device/Location
+  ipAddress    String?
+  userAgent    String?
+  country      String?
+  currency     String?
+
+  // Order info (for Purchase events)
+  orderId      String?
+  orderValue   Float?
+
+  createdAt    DateTime  @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@index([visitorId])
+  @@index([eventName])
+  @@index([orderId])
+  @@map("incoming_tracking_events")
 }

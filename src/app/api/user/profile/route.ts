@@ -61,7 +61,7 @@ export async function GET() {
       role: user.role,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      workspaces: user.workspaces.map(wm => ({
+      workspaces: user.workspaces.map((wm: any) => ({
         id: wm.workspace.id,
         name: wm.workspace.name,
         slug: wm.workspace.slug,

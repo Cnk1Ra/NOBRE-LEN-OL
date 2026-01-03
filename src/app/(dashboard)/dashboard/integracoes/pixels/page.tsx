@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
   Table,
@@ -33,6 +34,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/ui/alert'
+import {
   Activity,
   Plus,
   Copy,
@@ -40,910 +46,516 @@ import {
   AlertCircle,
   CheckCircle2,
   Trash2,
-  Play,
   RefreshCw,
   Code,
-  Link2,
   Eye,
-  ExternalLink,
+  EyeOff,
   Settings,
   Zap,
-  Target,
   Facebook,
   Search,
   Music2,
-  FlaskConical,
-  MousePointerClick,
-  ShoppingCart,
-  CreditCard,
-  Truck,
-  PackageCheck,
+  Loader2,
+  XCircle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 interface Pixel {
   id: string
-  platform: 'meta' | 'google' | 'tiktok'
-  pixel_id: string
+  platform: 'META' | 'GOOGLE' | 'TIKTOK'
+  pixelId: string
   name: string
-  status: 'active' | 'inactive' | 'error'
-  events_today: number
-  last_event: string
+  accessToken?: string | null
+  testEventCode?: string | null
+  isActive: boolean
+  eventsToday: number
+  lastEventAt: string | null
+  totalEvents?: number
+  createdAt: string
 }
 
 interface UTMConfig {
-  utm_source: string
-  utm_medium: string
-  utm_campaign: string
-  utm_content: string
-  utm_term: string
-}
-
-interface TestEvent {
   id: string
-  event_name: string
-  timestamp: string
-  platform: string
-  status: 'success' | 'failed' | 'pending'
-  details: string
+  name: string
+  utmSource: string
+  utmMedium: string
+  utmCampaign: string
+  utmContent: string
+  utmTerm: string
+  isDefault: boolean
 }
 
-const mockPixels: Pixel[] = [
-  {
-    id: '1',
-    platform: 'meta',
-    pixel_id: '1234567890123456',
-    name: 'Pixel Principal',
-    status: 'active',
-    events_today: 1250,
-    last_event: '30s atrás',
-  },
-  {
-    id: '2',
-    platform: 'meta',
-    pixel_id: '9876543210987654',
-    name: 'Pixel Landing',
-    status: 'active',
-    events_today: 890,
-    last_event: '2min atrás',
-  },
-  {
-    id: '3',
-    platform: 'google',
-    pixel_id: 'AW-123456789',
-    name: 'Google Tag',
-    status: 'active',
-    events_today: 650,
-    last_event: '1min atrás',
-  },
-  {
-    id: '4',
-    platform: 'tiktok',
-    pixel_id: 'CPIX123456789',
-    name: 'TikTok Pixel',
-    status: 'inactive',
-    events_today: 0,
-    last_event: '2h atrás',
-  },
-]
+interface Webhook {
+  id: string
+  name: string
+  url: string
+  events: string[]
+  isActive: boolean
+  lastTriggeredAt: string | null
+  failCount: number
+  totalRequests: number
+  successRate: number
+}
 
-const mockTestEvents: TestEvent[] = [
-  {
-    id: '1',
-    event_name: 'PageView',
-    timestamp: '14:35:22',
-    platform: 'Meta',
-    status: 'success',
-    details: 'Pixel 1234567890123456 - Landing Page',
-  },
-  {
-    id: '2',
-    event_name: 'InitiateCheckout',
-    timestamp: '14:35:25',
-    platform: 'Meta',
-    status: 'success',
-    details: 'Pixel 1234567890123456 - Checkout Page',
-  },
-  {
-    id: '3',
-    event_name: 'Purchase',
-    timestamp: '14:35:30',
-    platform: 'Google',
-    status: 'success',
-    details: 'Tag AW-123456789 - Thank You Page',
-  },
-  {
-    id: '4',
-    event_name: 'Purchase',
-    timestamp: '14:35:30',
-    platform: 'TikTok',
-    status: 'failed',
-    details: 'Erro: Pixel inativo',
-  },
-]
+interface TrackingEvent {
+  id: string
+  eventName: string
+  visitorId: string
+  createdAt: string
+  country?: string
+  currency?: string
+  orderValue?: number
+  utmSource?: string
+  pageUrl?: string
+}
 
-export default function PixelsUTMsPage() {
+interface ApiError {
+  error: string
+  code: string
+  details?: string
+}
+
+// Workspace ID temporário - em produção viria do contexto/sessão
+const WORKSPACE_ID = 'default-workspace'
+
+export default function PixelsPage() {
   const { toast } = useToast()
-  const [pixels, setPixels] = useState<Pixel[]>(mockPixels)
-  const [testEvents, setTestEvents] = useState<TestEvent[]>(mockTestEvents)
+
+  // Estados de dados
+  const [pixels, setPixels] = useState<Pixel[]>([])
+  const [utmConfigs, setUtmConfigs] = useState<UTMConfig[]>([])
+  const [webhooks, setWebhooks] = useState<Webhook[]>([])
+  const [events, setEvents] = useState<TrackingEvent[]>([])
+  const [eventStats, setEventStats] = useState<any>(null)
+
+  // Estados de loading
+  const [loadingPixels, setLoadingPixels] = useState(true)
+  const [loadingUtms, setLoadingUtms] = useState(true)
+  const [loadingWebhooks, setLoadingWebhooks] = useState(true)
+  const [loadingEvents, setLoadingEvents] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+
+  // Estados de erro
+  const [pixelsError, setPixelsError] = useState<string | null>(null)
+  const [utmsError, setUtmsError] = useState<string | null>(null)
+  const [webhooksError, setWebhooksError] = useState<string | null>(null)
+  const [eventsError, setEventsError] = useState<string | null>(null)
+
+  // Estados de UI
   const [copied, setCopied] = useState<string | null>(null)
-  const [isAddingPixel, setIsAddingPixel] = useState(false)
-  const [isTesting, setIsTesting] = useState(false)
-  const [visibleScripts, setVisibleScripts] = useState<Record<string, boolean>>({})
+  const [showAddPixel, setShowAddPixel] = useState(false)
+  const [showAddUtm, setShowAddUtm] = useState(false)
+  const [showAddWebhook, setShowAddWebhook] = useState(false)
+  const [expandedScripts, setExpandedScripts] = useState<Record<string, boolean>>({})
 
-  const toggleScriptVisibility = (scriptId: string) => {
-    setVisibleScripts(prev => ({ ...prev, [scriptId]: !prev[scriptId] }))
-  }
-
-  const [utmConfig, setUtmConfig] = useState<UTMConfig>({
-    utm_source: '{platform}',
-    utm_medium: 'cpc',
-    utm_campaign: '{campaign_name}',
-    utm_content: '{ad_name}',
-    utm_term: '{adset_name}',
-  })
-
+  // Formulários
   const [newPixel, setNewPixel] = useState({
-    platform: 'meta' as 'meta' | 'google' | 'tiktok',
-    pixel_id: '',
+    platform: 'META' as 'META' | 'GOOGLE' | 'TIKTOK',
+    pixelId: '',
     name: '',
+    accessToken: '',
+    testEventCode: '',
   })
 
-  // Script de tracking para COD (Formulário na página)
-  const codFormTrackingScript = `<!-- DOD COD TRACKING - Cole antes do </head> -->
-<script>
-(function() {
-  'use strict';
+  const [newUtm, setNewUtm] = useState({
+    name: '',
+    utmSource: '{platform}',
+    utmMedium: 'cpc',
+    utmCampaign: '{campaign_name}',
+    utmContent: '{ad_name}',
+    utmTerm: '{adset_name}',
+    isDefault: false,
+  })
 
-  // ============================================
-  // CONFIGURAÇÃO - ALTERE AQUI
-  // ============================================
-  const DOD_CONFIG = {
-    webhookUrl: 'https://seu-dashboard.com/api/webhook/tracking',
-    defaultCurrency: 'MAD',  // Moeda padrão se não detectar
-    debug: false
-  };
+  const [newWebhook, setNewWebhook] = useState({
+    name: '',
+    url: '',
+    events: ['PageView', 'Purchase', 'Lead', 'InitiateCheckout'],
+    generateSecret: true,
+  })
 
-  // ============================================
-  // MAPA DE PAÍSES/MOEDAS POR DOMÍNIO
-  // ============================================
-  const COUNTRY_MAP = {
-    // África
-    'ma': { country: 'MA', currency: 'MAD', name: 'Marrocos' },
-    'dz': { country: 'DZ', currency: 'DZD', name: 'Argélia' },
-    'tn': { country: 'TN', currency: 'TND', name: 'Tunísia' },
-    'eg': { country: 'EG', currency: 'EGP', name: 'Egito' },
-    'ng': { country: 'NG', currency: 'NGN', name: 'Nigéria' },
-    'za': { country: 'ZA', currency: 'ZAR', name: 'África do Sul' },
-    // Oriente Médio
-    'ae': { country: 'AE', currency: 'AED', name: 'Emirados Árabes' },
-    'sa': { country: 'SA', currency: 'SAR', name: 'Arábia Saudita' },
-    'kw': { country: 'KW', currency: 'KWD', name: 'Kuwait' },
-    'qa': { country: 'QA', currency: 'QAR', name: 'Qatar' },
-    'bh': { country: 'BH', currency: 'BHD', name: 'Bahrein' },
-    'om': { country: 'OM', currency: 'OMR', name: 'Omã' },
-    'jo': { country: 'JO', currency: 'JOD', name: 'Jordânia' },
-    'iq': { country: 'IQ', currency: 'IQD', name: 'Iraque' },
-    // Europa Ocidental
-    'pt': { country: 'PT', currency: 'EUR', name: 'Portugal' },
-    'es': { country: 'ES', currency: 'EUR', name: 'Espanha' },
-    'fr': { country: 'FR', currency: 'EUR', name: 'França' },
-    'de': { country: 'DE', currency: 'EUR', name: 'Alemanha' },
-    'it': { country: 'IT', currency: 'EUR', name: 'Itália' },
-    'at': { country: 'AT', currency: 'EUR', name: 'Áustria' },
-    'gr': { country: 'GR', currency: 'EUR', name: 'Grécia' },
-    'uk': { country: 'GB', currency: 'GBP', name: 'Reino Unido' },
-    // Europa Central e Oriental
-    'pl': { country: 'PL', currency: 'PLN', name: 'Polônia' },
-    'cz': { country: 'CZ', currency: 'CZK', name: 'República Tcheca' },
-    'sk': { country: 'SK', currency: 'EUR', name: 'Eslováquia' },
-    'hu': { country: 'HU', currency: 'HUF', name: 'Hungria' },
-    'ro': { country: 'RO', currency: 'RON', name: 'Romênia' },
-    'bg': { country: 'BG', currency: 'BGN', name: 'Bulgária' },
-    'hr': { country: 'HR', currency: 'EUR', name: 'Croácia' },
-    'si': { country: 'SI', currency: 'EUR', name: 'Eslovênia' },
-    // Bálticos
-    'ee': { country: 'EE', currency: 'EUR', name: 'Estônia' },
-    'lv': { country: 'LV', currency: 'EUR', name: 'Letônia' },
-    'lt': { country: 'LT', currency: 'EUR', name: 'Lituânia' },
-    // Américas
-    'br': { country: 'BR', currency: 'BRL', name: 'Brasil' },
-    'mx': { country: 'MX', currency: 'MXN', name: 'México' },
-    'co': { country: 'CO', currency: 'COP', name: 'Colômbia' },
-    'ar': { country: 'AR', currency: 'ARS', name: 'Argentina' },
-    'cl': { country: 'CL', currency: 'CLP', name: 'Chile' },
-    'pe': { country: 'PE', currency: 'PEN', name: 'Peru' },
-    // Ásia
-    'pk': { country: 'PK', currency: 'PKR', name: 'Paquistão' },
-    'in': { country: 'IN', currency: 'INR', name: 'Índia' },
-    'id': { country: 'ID', currency: 'IDR', name: 'Indonésia' },
-    'my': { country: 'MY', currency: 'MYR', name: 'Malásia' },
-    'ph': { country: 'PH', currency: 'PHP', name: 'Filipinas' },
-    'th': { country: 'TH', currency: 'THB', name: 'Tailândia' },
-    'vn': { country: 'VN', currency: 'VND', name: 'Vietnã' }
-  };
-
-  // ============================================
-  // FUNÇÕES UTILITÁRIAS
-  // ============================================
-  const DOD = {
-    log: function(msg, data) {
-      if (DOD_CONFIG.debug) console.log('[DOD]', msg, data || '');
-    },
-    generateId: function() {
-      return 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    },
-    getVisitorId: function() {
-      let id = localStorage.getItem('dod_visitor_id');
-      if (!id) {
-        id = this.generateId();
-        localStorage.setItem('dod_visitor_id', id);
-      }
-      return id;
-    },
-    getCookie: function(name) {
-      const value = '; ' + document.cookie;
-      const parts = value.split('; ' + name + '=');
-      if (parts.length === 2) return parts.pop().split(';').shift();
-      return null;
-    },
-    setCookie: function(name, value, days) {
-      const d = new Date();
-      d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
-      document.cookie = name + '=' + value + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
-    },
-    // Detecta país/moeda automaticamente
-    detectCountry: function() {
-      // 1. Tenta por parâmetro URL (?country=MA)
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlCountry = urlParams.get('country');
-      if (urlCountry && COUNTRY_MAP[urlCountry.toLowerCase()]) {
-        return COUNTRY_MAP[urlCountry.toLowerCase()];
-      }
-
-      // 2. Tenta por TLD do domínio
-      const host = window.location.hostname;
-      const tld = host.split('.').pop().toLowerCase();
-      if (COUNTRY_MAP[tld]) {
-        return COUNTRY_MAP[tld];
-      }
-
-      // 3. Tenta por subdomínio (ex: ma.loja.com)
-      const subdomain = host.split('.')[0].toLowerCase();
-      if (COUNTRY_MAP[subdomain]) {
-        return COUNTRY_MAP[subdomain];
-      }
-
-      // 4. Retorna padrão
-      return { country: 'XX', currency: DOD_CONFIG.defaultCurrency, name: 'Padrão' };
+  // Buscar dados
+  const fetchPixels = useCallback(async () => {
+    setLoadingPixels(true)
+    setPixelsError(null)
+    try {
+      const res = await fetch(`/api/integrations/pixels?workspaceId=${WORKSPACE_ID}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao buscar pixels')
+      setPixels(data.pixels || [])
+    } catch (error: any) {
+      setPixelsError(error.message)
+      console.error('Erro ao buscar pixels:', error)
+    } finally {
+      setLoadingPixels(false)
     }
-  };
+  }, [])
 
-  // ============================================
-  // CAPTURA DE PARÂMETROS DA URL
-  // ============================================
-  const Params = {
-    capture: function() {
-      const p = new URLSearchParams(window.location.search);
-      return {
-        utm_source: p.get('utm_source'),
-        utm_campaign: p.get('utm_campaign'),
-        utm_medium: p.get('utm_medium'),
-        utm_content: p.get('utm_content'),
-        utm_term: p.get('utm_term'),
-        fbclid: p.get('fbclid'),
-        gclid: p.get('gclid'),
-        ttclid: p.get('ttclid'),
-        cwr: p.get('cwr'),
-        cname: p.get('cname'),
-        adset: p.get('adset'),
-        adname: p.get('adname'),
-        placement: p.get('placement'),
-        site: p.get('site'),
-        xid: p.get('xid'),
-        visitor_id: DOD.getVisitorId(),
-        fbp: DOD.getCookie('_fbp'),
-        fbc: DOD.getCookie('_fbc'),
-        landing_page: window.location.href,
-        timestamp: new Date().toISOString()
-      };
-    },
-    save: function(data) {
-      const clean = {};
-      for (const k in data) { if (data[k]) clean[k] = data[k]; }
-      localStorage.setItem('dod_tracking', JSON.stringify(clean));
-      DOD.setCookie('dod_tracking', btoa(JSON.stringify(clean)), 30);
-      return clean;
-    },
-    get: function() {
-      try {
-        const s = localStorage.getItem('dod_tracking');
-        if (s) return JSON.parse(s);
-      } catch (e) {}
-      return {};
+  const fetchUtms = useCallback(async () => {
+    setLoadingUtms(true)
+    setUtmsError(null)
+    try {
+      const res = await fetch(`/api/integrations/utm?workspaceId=${WORKSPACE_ID}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao buscar UTMs')
+      setUtmConfigs(data.utmConfigs || [])
+    } catch (error: any) {
+      setUtmsError(error.message)
+      console.error('Erro ao buscar UTMs:', error)
+    } finally {
+      setLoadingUtms(false)
     }
-  };
+  }, [])
 
-  // ============================================
-  // ENVIO DE EVENTOS
-  // ============================================
-  const Events = {
-    send: function(eventName, eventData) {
-      const payload = {
-        event: eventName,
-        timestamp: new Date().toISOString(),
-        tracking: Params.get(),
-        data: eventData,
-        page: { url: window.location.href, title: document.title }
-      };
-
-      // Webhook
-      if (!DOD_CONFIG.webhookUrl.includes('seu-dashboard')) {
-        fetch(DOD_CONFIG.webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          keepalive: true
-        }).catch(function(e) { DOD.log('Erro:', e); });
-      }
-
-      // Meta Pixel
-      if (typeof fbq !== 'undefined') {
-        const tracking = Params.get();
-        fbq('track', eventName, {
-          ...eventData,
-          external_id: tracking.visitor_id
-        });
-      }
-
-      // Google
-      if (typeof gtag !== 'undefined') {
-        gtag('event', eventName, eventData);
-      }
-
-      // TikTok
-      if (typeof ttq !== 'undefined') {
-        ttq.track(eventName, eventData);
-      }
-
-      DOD.log(eventName, eventData);
+  const fetchWebhooks = useCallback(async () => {
+    setLoadingWebhooks(true)
+    setWebhooksError(null)
+    try {
+      const res = await fetch(`/api/integrations/webhooks?workspaceId=${WORKSPACE_ID}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao buscar webhooks')
+      setWebhooks(data.webhooks || [])
+    } catch (error: any) {
+      setWebhooksError(error.message)
+      console.error('Erro ao buscar webhooks:', error)
+    } finally {
+      setLoadingWebhooks(false)
     }
-  };
+  }, [])
 
-  // ============================================
-  // INICIALIZAÇÃO
-  // ============================================
-  const data = Params.capture();
-  if (data.utm_source || data.fbclid || data.gclid || data.ttclid) {
-    Params.save(data);
+  const fetchEvents = useCallback(async () => {
+    setLoadingEvents(true)
+    setEventsError(null)
+    try {
+      const res = await fetch(`/api/integrations/events?workspaceId=${WORKSPACE_ID}&limit=20`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao buscar eventos')
+      setEvents(data.events || [])
+      setEventStats(data.stats || null)
+    } catch (error: any) {
+      setEventsError(error.message)
+      console.error('Erro ao buscar eventos:', error)
+    } finally {
+      setLoadingEvents(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchPixels()
+    fetchUtms()
+    fetchWebhooks()
+    fetchEvents()
+  }, [fetchPixels, fetchUtms, fetchWebhooks, fetchEvents])
+
+  // Handlers
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text)
+    setCopied(id)
+    toast({ title: 'Copiado!', description: 'Conteúdo copiado para a área de transferência' })
+    setTimeout(() => setCopied(null), 2000)
   }
 
-  // PageView automático
-  Events.send('PageView', { page_type: window.location.pathname });
-
-  // ============================================
-  // FUNÇÕES GLOBAIS PARA CHAMAR NO FORMULÁRIO
-  // ============================================
-  const countryInfo = DOD.detectCountry();
-  DOD.log('País detectado:', countryInfo);
-
-  window.DOD = {
-    // Info do país detectado
-    country: countryInfo,
-
-    // Chame quando abrir o formulário
-    formOpened: function(productData) {
-      const currency = productData.currency || countryInfo.currency;
-      Events.send('InitiateCheckout', {
-        content_type: 'product',
-        content_ids: [productData.id || ''],
-        content_name: productData.name || '',
-        value: productData.price || 0,
-        currency: currency,
-        country: countryInfo.country,
-        num_items: 1
-      });
-    },
-
-    // Chame quando o formulário for enviado com sucesso
-    purchase: function(orderData) {
-      // Evita duplicação
-      const orderId = orderData.order_id || DOD.generateId();
-      const tracked = JSON.parse(localStorage.getItem('dod_tracked') || '[]');
-      if (tracked.includes(orderId)) return;
-
-      const currency = orderData.currency || countryInfo.currency;
-      Events.send('Purchase', {
-        content_type: 'product',
-        content_ids: [orderData.product_id || ''],
-        content_name: orderData.product_name || '',
-        value: orderData.value || 0,
-        currency: currency,
-        country: countryInfo.country,
-        order_id: orderId,
-        customer_name: orderData.customer_name || '',
-        customer_phone: orderData.customer_phone || '',
-        customer_city: orderData.customer_city || '',
-        num_items: orderData.quantity || 1
-      });
-
-      tracked.push(orderId);
-      localStorage.setItem('dod_tracked', JSON.stringify(tracked));
-    },
-
-    // Chame para Lead (quando preencher telefone/whatsapp)
-    lead: function(data) {
-      const currency = data.currency || countryInfo.currency;
-      Events.send('Lead', {
-        content_name: data.product_name || '',
-        value: data.value || 0,
-        currency: currency,
-        country: countryInfo.country
-      });
-    },
-
-    // Para tracking manual
-    track: Events.send,
-
-    // Funções auxiliares expostas
-    getCountry: function() { return countryInfo; },
-    getCurrency: function() { return countryInfo.currency; }
-  };
-})();
-</script>
-<!-- FIM DOD COD TRACKING -->`
-
-  // Script simples em BRL (sem detecção automática de país)
-  const codSimpleBRLScript = `<!-- DOD COD TRACKING SIMPLES (BRL) - Cole antes do </head> -->
-<script>
-(function() {
-  'use strict';
-
-  const DOD_CONFIG = {
-    webhookUrl: 'https://seu-dashboard.com/api/webhook/tracking',
-    currency: 'BRL',
-    debug: false
-  };
-
-  const DOD = {
-    log: function(msg, data) {
-      if (DOD_CONFIG.debug) console.log('[DOD]', msg, data || '');
-    },
-    generateId: function() {
-      return 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    },
-    getVisitorId: function() {
-      let id = localStorage.getItem('dod_visitor_id');
-      if (!id) {
-        id = this.generateId();
-        localStorage.setItem('dod_visitor_id', id);
-      }
-      return id;
-    },
-    getCookie: function(name) {
-      const value = '; ' + document.cookie;
-      const parts = value.split('; ' + name + '=');
-      if (parts.length === 2) return parts.pop().split(';').shift();
-      return null;
-    },
-    setCookie: function(name, value, days) {
-      const d = new Date();
-      d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
-      document.cookie = name + '=' + value + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+  const handleAddPixel = async () => {
+    if (!newPixel.pixelId || !newPixel.name) {
+      toast({ title: 'Erro', description: 'Preencha todos os campos obrigatórios', variant: 'destructive' })
+      return
     }
-  };
 
-  const Params = {
-    capture: function() {
-      const p = new URLSearchParams(window.location.search);
-      return {
-        utm_source: p.get('utm_source'),
-        utm_campaign: p.get('utm_campaign'),
-        utm_medium: p.get('utm_medium'),
-        utm_content: p.get('utm_content'),
-        utm_term: p.get('utm_term'),
-        fbclid: p.get('fbclid'),
-        gclid: p.get('gclid'),
-        ttclid: p.get('ttclid'),
-        visitor_id: DOD.getVisitorId(),
-        fbp: DOD.getCookie('_fbp'),
-        fbc: DOD.getCookie('_fbc'),
-        landing_page: window.location.href,
-        timestamp: new Date().toISOString()
-      };
-    },
-    save: function(data) {
-      const clean = {};
-      for (const k in data) { if (data[k]) clean[k] = data[k]; }
-      localStorage.setItem('dod_tracking', JSON.stringify(clean));
-      DOD.setCookie('dod_tracking', btoa(JSON.stringify(clean)), 30);
-      return clean;
-    },
-    get: function() {
-      try {
-        const s = localStorage.getItem('dod_tracking');
-        if (s) return JSON.parse(s);
-      } catch (e) {}
-      return {};
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/integrations/pixels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: WORKSPACE_ID,
+          ...newPixel,
+        }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao criar pixel')
+      }
+
+      toast({ title: 'Sucesso!', description: 'Pixel criado com sucesso' })
+      setShowAddPixel(false)
+      setNewPixel({ platform: 'META', pixelId: '', name: '', accessToken: '', testEventCode: '' })
+      fetchPixels()
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    } finally {
+      setSubmitting(false)
     }
-  };
-
-  const Events = {
-    send: function(eventName, eventData) {
-      const payload = {
-        event: eventName,
-        timestamp: new Date().toISOString(),
-        tracking: Params.get(),
-        data: eventData,
-        page: { url: window.location.href, title: document.title }
-      };
-
-      if (!DOD_CONFIG.webhookUrl.includes('seu-dashboard')) {
-        fetch(DOD_CONFIG.webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          keepalive: true
-        }).catch(function(e) { DOD.log('Erro:', e); });
-      }
-
-      if (typeof fbq !== 'undefined') {
-        fbq('track', eventName, { ...eventData, external_id: Params.get().visitor_id });
-      }
-      if (typeof gtag !== 'undefined') {
-        gtag('event', eventName, eventData);
-      }
-      if (typeof ttq !== 'undefined') {
-        ttq.track(eventName, eventData);
-      }
-      DOD.log(eventName, eventData);
-    }
-  };
-
-  const data = Params.capture();
-  if (data.utm_source || data.fbclid || data.gclid || data.ttclid) {
-    Params.save(data);
   }
 
-  Events.send('PageView', { page_type: window.location.pathname });
+  const handleDeletePixel = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este pixel?')) return
 
-  window.DOD = {
-    formOpened: function(productData) {
-      Events.send('InitiateCheckout', {
-        content_type: 'product',
-        content_ids: [productData.id || ''],
-        content_name: productData.name || '',
-        value: productData.price || 0,
-        currency: DOD_CONFIG.currency,
-        num_items: 1
-      });
-    },
-    purchase: function(orderData) {
-      const orderId = orderData.order_id || DOD.generateId();
-      const tracked = JSON.parse(localStorage.getItem('dod_tracked') || '[]');
-      if (tracked.includes(orderId)) return;
+    try {
+      const res = await fetch(`/api/integrations/pixels?id=${id}`, { method: 'DELETE' })
+      const data = await res.json()
 
-      Events.send('Purchase', {
-        content_type: 'product',
-        content_ids: [orderData.product_id || ''],
-        content_name: orderData.product_name || '',
-        value: orderData.value || 0,
-        currency: DOD_CONFIG.currency,
-        order_id: orderId,
-        customer_name: orderData.customer_name || '',
-        customer_phone: orderData.customer_phone || '',
-        customer_city: orderData.customer_city || '',
-        num_items: orderData.quantity || 1
-      });
+      if (!res.ok) throw new Error(data.error || 'Erro ao excluir pixel')
 
-      tracked.push(orderId);
-      localStorage.setItem('dod_tracked', JSON.stringify(tracked));
-    },
-    lead: function(data) {
-      Events.send('Lead', {
-        content_name: data.product_name || '',
-        value: data.value || 0,
-        currency: DOD_CONFIG.currency
-      });
-    },
-    track: Events.send
-  };
-})();
-</script>
-<!-- FIM DOD COD TRACKING SIMPLES -->`
-
-  // Script de tracking para Shopify tradicional
-  const shopifyTrackingScript = `<!-- DOD TRACKING SCRIPT - Cole antes do </head> -->
-<script>
-(function() {
-  'use strict';
-
-  // ============================================
-  // CONFIGURAÇÃO
-  // ============================================
-  const DOD_CONFIG = {
-    webhookUrl: 'https://seu-dashboard.com/api/webhook/tracking',
-    debug: false
-  };
-
-  const DOD = {
-    log: function(msg, data) {
-      if (DOD_CONFIG.debug) console.log('[DOD]', msg, data || '');
-    },
-    generateVisitorId: function() {
-      return 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    },
-    getVisitorId: function() {
-      let id = localStorage.getItem('dod_visitor_id');
-      if (!id) {
-        id = this.generateVisitorId();
-        localStorage.setItem('dod_visitor_id', id);
-      }
-      return id;
-    },
-    getCookie: function(name) {
-      const value = '; ' + document.cookie;
-      const parts = value.split('; ' + name + '=');
-      if (parts.length === 2) return parts.pop().split(';').shift();
-      return null;
-    },
-    setCookie: function(name, value, days) {
-      const d = new Date();
-      d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
-      document.cookie = name + '=' + value + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+      toast({ title: 'Sucesso!', description: 'Pixel excluído com sucesso' })
+      fetchPixels()
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
     }
-  };
-
-  // ============================================
-  // CAPTURA DE PARÂMETROS
-  // ============================================
-  const Params = {
-    capture: function() {
-      const p = new URLSearchParams(window.location.search);
-      return {
-        // UTMs
-        utm_source: p.get('utm_source'),
-        utm_campaign: p.get('utm_campaign'),
-        utm_medium: p.get('utm_medium'),
-        utm_content: p.get('utm_content'),
-        utm_term: p.get('utm_term'),
-        // Click IDs
-        fbclid: p.get('fbclid'),
-        gclid: p.get('gclid'),
-        ttclid: p.get('ttclid'),
-        // Cloaker
-        cwr: p.get('cwr'),
-        cname: p.get('cname'),
-        adset: p.get('adset'),
-        adname: p.get('adname'),
-        placement: p.get('placement'),
-        site: p.get('site'),
-        xid: p.get('xid'),
-        // Meta
-        visitor_id: DOD.getVisitorId(),
-        fbp: DOD.getCookie('_fbp'),
-        fbc: DOD.getCookie('_fbc'),
-        landing_page: window.location.href,
-        timestamp: new Date().toISOString()
-      };
-    },
-    save: function(data) {
-      const clean = {};
-      for (const k in data) {
-        if (data[k]) clean[k] = data[k];
-      }
-      localStorage.setItem('dod_tracking', JSON.stringify(clean));
-      DOD.setCookie('dod_tracking', btoa(JSON.stringify(clean)), 30);
-      return clean;
-    },
-    get: function() {
-      try {
-        const s = localStorage.getItem('dod_tracking');
-        if (s) return JSON.parse(s);
-        const c = DOD.getCookie('dod_tracking');
-        if (c) return JSON.parse(atob(c));
-      } catch (e) {}
-      return {};
-    }
-  };
-
-  // ============================================
-  // ENVIO DE EVENTOS
-  // ============================================
-  const Events = {
-    send: function(eventName, eventData) {
-      if (!DOD_CONFIG.webhookUrl.includes('seu-dashboard')) {
-        fetch(DOD_CONFIG.webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            event: eventName,
-            timestamp: new Date().toISOString(),
-            tracking: Params.get(),
-            data: eventData,
-            page: { url: window.location.href, title: document.title }
-          }),
-          keepalive: true
-        }).catch(function(e) { DOD.log('Erro:', e); });
-      }
-      // Meta Pixel
-      if (typeof fbq !== 'undefined') {
-        fbq('track', eventName, eventData);
-      }
-      // Google
-      if (typeof gtag !== 'undefined') {
-        gtag('event', eventName, eventData);
-      }
-      // TikTok
-      if (typeof ttq !== 'undefined') {
-        ttq.track(eventName, eventData);
-      }
-      DOD.log(eventName, eventData);
-    }
-  };
-
-  // ============================================
-  // INIT
-  // ============================================
-  function init() {
-    const data = Params.capture();
-    if (data.utm_source || data.fbclid || data.gclid || data.ttclid) {
-      Params.save(data);
-    }
-    Events.send('PageView', { page_type: window.location.pathname });
   }
 
-  window.DOD_Track = Events.send;
-  init();
-})();
-</script>
-{% if template contains 'product' %}
-<script>
-  DOD_Track('ViewContent', {
-    content_type: 'product',
-    content_ids: ['{{ product.id }}'],
-    content_name: '{{ product.title | escape }}',
-    value: {{ product.price | divided_by: 100.0 }},
-    currency: '{{ shop.currency }}'
-  });
-</script>
-{% endif %}
-{% if template contains 'cart' %}
-<script>
-  DOD_Track('ViewCart', {
-    content_ids: [{% for item in cart.items %}'{{ item.product_id }}'{% unless forloop.last %},{% endunless %}{% endfor %}],
-    num_items: {{ cart.item_count }},
-    value: {{ cart.total_price | divided_by: 100.0 }},
-    currency: '{{ shop.currency }}'
-  });
-</script>
-{% endif %}
-<!-- FIM DOD TRACKING -->`
+  const handleTogglePixel = async (pixel: Pixel) => {
+    try {
+      const res = await fetch('/api/integrations/pixels', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: pixel.id, isActive: !pixel.isActive }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Erro ao atualizar pixel')
+
+      toast({ title: 'Sucesso!', description: `Pixel ${pixel.isActive ? 'desativado' : 'ativado'}` })
+      fetchPixels()
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    }
+  }
+
+  const handleAddUtm = async () => {
+    if (!newUtm.name) {
+      toast({ title: 'Erro', description: 'Nome é obrigatório', variant: 'destructive' })
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/integrations/utm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspaceId: WORKSPACE_ID, ...newUtm }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Erro ao criar UTM')
+
+      toast({ title: 'Sucesso!', description: 'Configuração UTM criada' })
+      setShowAddUtm(false)
+      setNewUtm({ name: '', utmSource: '{platform}', utmMedium: 'cpc', utmCampaign: '{campaign_name}', utmContent: '{ad_name}', utmTerm: '{adset_name}', isDefault: false })
+      fetchUtms()
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDeleteUtm = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta configuração?')) return
+
+    try {
+      const res = await fetch(`/api/integrations/utm?id=${id}`, { method: 'DELETE' })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Erro ao excluir UTM')
+
+      toast({ title: 'Sucesso!', description: 'Configuração UTM excluída' })
+      fetchUtms()
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    }
+  }
+
+  const handleAddWebhook = async () => {
+    if (!newWebhook.name || !newWebhook.url) {
+      toast({ title: 'Erro', description: 'Nome e URL são obrigatórios', variant: 'destructive' })
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/integrations/webhooks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspaceId: WORKSPACE_ID, ...newWebhook }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Erro ao criar webhook')
+
+      if (data.webhook?.secretVisible) {
+        toast({
+          title: 'Webhook criado!',
+          description: `Secret: ${data.webhook.secretVisible.substring(0, 20)}... (salve agora, não será mostrado novamente)`,
+        })
+      } else {
+        toast({ title: 'Sucesso!', description: 'Webhook criado' })
+      }
+
+      setShowAddWebhook(false)
+      setNewWebhook({ name: '', url: '', events: ['PageView', 'Purchase', 'Lead', 'InitiateCheckout'], generateSecret: true })
+      fetchWebhooks()
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDeleteWebhook = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este webhook?')) return
+
+    try {
+      const res = await fetch(`/api/integrations/webhooks?id=${id}`, { method: 'DELETE' })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Erro ao excluir webhook')
+
+      toast({ title: 'Sucesso!', description: 'Webhook excluído' })
+      fetchWebhooks()
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    }
+  }
+
+  const handleToggleWebhook = async (webhook: Webhook) => {
+    try {
+      const res = await fetch('/api/integrations/webhooks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: webhook.id, isActive: !webhook.isActive }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Erro ao atualizar webhook')
+
+      toast({ title: 'Sucesso!', description: `Webhook ${webhook.isActive ? 'desativado' : 'ativado'}` })
+      fetchWebhooks()
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    }
+  }
 
   const getPlatformIcon = (platform: string) => {
     switch (platform) {
-      case 'meta':
-        return <Facebook className="h-4 w-4 text-[#1877F2]" />
-      case 'google':
-        return <Search className="h-4 w-4 text-[#EA4335]" />
-      case 'tiktok':
-        return <Music2 className="h-4 w-4" />
-      default:
-        return <Activity className="h-4 w-4" />
+      case 'META': return <Facebook className="h-4 w-4 text-blue-500" />
+      case 'GOOGLE': return <Search className="h-4 w-4 text-red-500" />
+      case 'TIKTOK': return <Music2 className="h-4 w-4 text-pink-500" />
+      default: return <Code className="h-4 w-4" />
     }
   }
 
   const getPlatformColor = (platform: string) => {
     switch (platform) {
-      case 'meta':
-        return 'text-[#1877F2] bg-[#1877F2]/10 border-[#1877F2]/20'
-      case 'google':
-        return 'text-[#EA4335] bg-[#EA4335]/10 border-[#EA4335]/20'
-      case 'tiktok':
-        return 'bg-black/10 border-black/20 dark:bg-white/10 dark:border-white/20'
-      default:
-        return 'bg-muted'
+      case 'META': return 'bg-blue-100 text-blue-800'
+      case 'GOOGLE': return 'bg-red-100 text-red-800'
+      case 'TIKTOK': return 'bg-pink-100 text-pink-800'
+      default: return 'bg-gray-100 text-gray-800'
     }
   }
 
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text)
-    setCopied(id)
-    setTimeout(() => setCopied(null), 2000)
-    toast({
-      title: 'Copiado!',
-      description: 'Código copiado para a área de transferência.',
-    })
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Nunca'
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffSecs = Math.floor(diffMs / 1000)
+    const diffMins = Math.floor(diffSecs / 60)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffSecs < 60) return `${diffSecs}s atrás`
+    if (diffMins < 60) return `${diffMins}min atrás`
+    if (diffHours < 24) return `${diffHours}h atrás`
+    return `${diffDays}d atrás`
   }
 
-  const addPixel = () => {
-    if (!newPixel.pixel_id || !newPixel.name) return
+  // Gerar script de tracking
+  const getTrackingScript = () => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://seu-dominio.com'
+    return `<!-- DOD Tracking Script -->
+<script>
+(function() {
+  var DOD_WEBHOOK = '${baseUrl}/api/webhook/tracking';
+  var DOD_WORKSPACE = '${WORKSPACE_ID}';
 
-    const pixel: Pixel = {
-      id: Date.now().toString(),
-      platform: newPixel.platform,
-      pixel_id: newPixel.pixel_id,
-      name: newPixel.name,
-      status: 'inactive',
-      events_today: 0,
-      last_event: 'Nunca',
+  function generateId() {
+    return 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  }
+
+  function getVisitorId() {
+    var id = localStorage.getItem('dod_visitor_id');
+    if (!id) {
+      id = generateId();
+      localStorage.setItem('dod_visitor_id', id);
     }
-
-    setPixels([...pixels, pixel])
-    setNewPixel({ platform: 'meta', pixel_id: '', name: '' })
-    setIsAddingPixel(false)
-    toast({
-      title: 'Pixel adicionado!',
-      description: `${pixel.name} foi adicionado com sucesso.`,
-    })
+    return id;
   }
 
-  const removePixel = (id: string) => {
-    setPixels(pixels.filter(p => p.id !== id))
-    toast({
-      title: 'Pixel removido',
-      description: 'O pixel foi removido das configurações.',
-    })
+  function getUTMParams() {
+    var p = new URLSearchParams(window.location.search);
+    return {
+      utm_source: p.get('utm_source'),
+      utm_medium: p.get('utm_medium'),
+      utm_campaign: p.get('utm_campaign'),
+      utm_content: p.get('utm_content'),
+      utm_term: p.get('utm_term'),
+      fbclid: p.get('fbclid'),
+      gclid: p.get('gclid'),
+      ttclid: p.get('ttclid'),
+      visitor_id: getVisitorId(),
+      landing_page: window.location.href
+    };
   }
 
-  const runTest = () => {
-    setIsTesting(true)
-    setTimeout(() => {
-      setIsTesting(false)
-      toast({
-        title: 'Teste concluído!',
-        description: 'Todos os eventos foram disparados. Verifique os resultados.',
-      })
-    }, 3000)
+  function sendEvent(eventName, eventData) {
+    var payload = {
+      event: eventName,
+      workspaceId: DOD_WORKSPACE,
+      timestamp: new Date().toISOString(),
+      tracking: getUTMParams(),
+      data: eventData || {},
+      page: { url: window.location.href, title: document.title }
+    };
+
+    fetch(DOD_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      keepalive: true
+    }).catch(function(e) { console.error('[DOD]', e); });
+
+    // Também dispara para pixels configurados
+    if (typeof fbq !== 'undefined') fbq('track', eventName, eventData);
+    if (typeof gtag !== 'undefined') gtag('event', eventName, eventData);
+    if (typeof ttq !== 'undefined') ttq.track(eventName, eventData);
   }
 
-  const generateTrackingScript = () => {
-    const metaPixels = pixels.filter(p => p.platform === 'meta' && p.status === 'active')
-    const googlePixels = pixels.filter(p => p.platform === 'google' && p.status === 'active')
-    const tiktokPixels = pixels.filter(p => p.platform === 'tiktok' && p.status === 'active')
+  // Auto PageView
+  sendEvent('PageView', { page_type: window.location.pathname });
 
-    let script = `<!-- DOD Tracking Script -->\n<script>\n`
-    script += `// UTM Parameters\nconst utmParams = new URLSearchParams(window.location.search);\n`
-    script += `const utm_source = utmParams.get('utm_source') || '';\n`
-    script += `const utm_medium = utmParams.get('utm_medium') || '';\n`
-    script += `const utm_campaign = utmParams.get('utm_campaign') || '';\n\n`
-
-    if (metaPixels.length > 0) {
-      script += `// Meta Pixel\n`
-      metaPixels.forEach(p => {
-        script += `!function(f,b,e,v,n,t,s){...}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');\n`
-        script += `fbq('init', '${p.pixel_id}');\n`
-        script += `fbq('track', 'PageView');\n\n`
-      })
+  // Expor globalmente
+  window.DOD = {
+    track: sendEvent,
+    purchase: function(data) {
+      sendEvent('Purchase', {
+        value: data.value,
+        currency: data.currency || 'BRL',
+        order_id: data.order_id,
+        content_name: data.product_name
+      });
+    },
+    lead: function(data) {
+      sendEvent('Lead', data);
+    },
+    initiateCheckout: function(data) {
+      sendEvent('InitiateCheckout', data);
     }
-
-    if (googlePixels.length > 0) {
-      script += `// Google Tag\n`
-      googlePixels.forEach(p => {
-        script += `gtag('config', '${p.pixel_id}');\n\n`
-      })
-    }
-
-    if (tiktokPixels.length > 0) {
-      script += `// TikTok Pixel\n`
-      tiktokPixels.forEach(p => {
-        script += `ttq.load('${p.pixel_id}');\n`
-        script += `ttq.page();\n\n`
-      })
-    }
-
-    script += `</script>`
-    return script
-  }
-
-  const generateUTMUrl = (baseUrl: string) => {
-    const params = new URLSearchParams()
-    if (utmConfig.utm_source) params.append('utm_source', utmConfig.utm_source)
-    if (utmConfig.utm_medium) params.append('utm_medium', utmConfig.utm_medium)
-    if (utmConfig.utm_campaign) params.append('utm_campaign', utmConfig.utm_campaign)
-    if (utmConfig.utm_content) params.append('utm_content', utmConfig.utm_content)
-    if (utmConfig.utm_term) params.append('utm_term', utmConfig.utm_term)
-    return `${baseUrl}?${params.toString()}`
+  };
+})();
+</script>`
   }
 
   return (
@@ -951,1102 +563,520 @@ export default function PixelsUTMsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-lime-500/10">
-              <Activity className="h-6 w-6 text-lime-500" />
-            </div>
-            Pixels, UTMs & Testes
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Configure pixels de tracking, parâmetros UTM e teste suas integrações
-          </p>
+          <h1 className="text-2xl font-bold">Pixels & Tracking</h1>
+          <p className="text-muted-foreground">Gerencie seus pixels e configurações de tracking</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => { fetchPixels(); fetchUtms(); fetchWebhooks(); fetchEvents(); }}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="webhooks" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 max-w-xl">
-          <TabsTrigger value="webhooks" className="gap-2">
-            <Zap className="h-4 w-4" />
-            Webhook
-          </TabsTrigger>
-          <TabsTrigger value="scripts" className="gap-2">
-            <Code className="h-4 w-4" />
-            Scripts
-          </TabsTrigger>
-          <TabsTrigger value="pixels" className="gap-2">
-            <Target className="h-4 w-4" />
-            Pixels
-          </TabsTrigger>
-          <TabsTrigger value="utms" className="gap-2">
-            <Link2 className="h-4 w-4" />
-            UTMs
-          </TabsTrigger>
-        </TabsList>
-
-        {/* WEBHOOKS TAB */}
-        <TabsContent value="webhooks" className="space-y-6">
-          <Card className="border-2 border-green-500/50 bg-gradient-to-br from-green-500/5 to-transparent">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/20">
-                  <Zap className="h-5 w-5 text-green-500" />
-                </div>
+      {/* Stats Cards */}
+      {eventStats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
-                    Webhooks da Shopify
-                    <Badge className="bg-green-500 text-white">RECOMENDADO</Badge>
-                  </CardTitle>
-                  <CardDescription>
-                    Receba atualizações de pedidos em tempo real na sua dashboard
-                  </CardDescription>
+                  <p className="text-sm text-muted-foreground">Eventos Hoje</p>
+                  <p className="text-2xl font-bold">{eventStats.eventsToday?.toLocaleString() || 0}</p>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
-                <p className="text-sm font-semibold mb-2 text-green-600 dark:text-green-400">Por que usar Webhooks?</p>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Webhooks enviam dados instantaneamente para sua dashboard quando eventos acontecem:
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  <div className="p-2 rounded bg-background text-center">
-                    <p className="text-xs font-semibold">Pedido Criado</p>
-                  </div>
-                  <div className="p-2 rounded bg-background text-center">
-                    <p className="text-xs font-semibold">Pedido Pago</p>
-                  </div>
-                  <div className="p-2 rounded bg-background text-center">
-                    <p className="text-xs font-semibold">Pedido Enviado</p>
-                  </div>
-                  <div className="p-2 rounded bg-background text-center">
-                    <p className="text-xs font-semibold">Cancelado</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">URL do Webhook</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value="https://seu-dashboard.com/api/shopify/webhook"
-                    readOnly
-                    className="font-mono text-sm bg-muted"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => copyToClipboard('https://seu-dashboard.com/api/shopify/webhook', 'webhook-url')}
-                  >
-                    {copied === 'webhook-url' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-lg bg-muted/50">
-                <p className="text-sm font-semibold mb-2">Como configurar na Shopify:</p>
-                <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
-                  <li>Acesse <span className="font-mono bg-background px-1 rounded">Settings → Notifications</span></li>
-                  <li>Role até <span className="font-mono bg-background px-1 rounded">Webhooks</span> e clique em "Create webhook"</li>
-                  <li>Selecione o evento (Order creation, Order payment, etc.)</li>
-                  <li>Cole a URL acima e salve</li>
-                </ol>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="outline" className="gap-1">
-                  <CheckCircle2 className="h-3 w-3 text-green-500" />
-                  Order creation
-                </Badge>
-                <Badge variant="outline" className="gap-1">
-                  <CheckCircle2 className="h-3 w-3 text-green-500" />
-                  Order payment
-                </Badge>
-                <Badge variant="outline" className="gap-1">
-                  <CheckCircle2 className="h-3 w-3 text-green-500" />
-                  Fulfillment creation
-                </Badge>
-                <Badge variant="outline" className="gap-1">
-                  <CheckCircle2 className="h-3 w-3 text-green-500" />
-                  Order cancelled
-                </Badge>
+                <Activity className="h-8 w-8 text-blue-500" />
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Purchases</p>
+                  <p className="text-2xl font-bold">{eventStats.byType?.purchases?.toLocaleString() || 0}</p>
+                </div>
+                <CheckCircle2 className="h-8 w-8 text-green-500" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Leads</p>
+                  <p className="text-2xl font-bold">{eventStats.byType?.leads?.toLocaleString() || 0}</p>
+                </div>
+                <Zap className="h-8 w-8 text-yellow-500" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Receita Total</p>
+                  <p className="text-2xl font-bold">
+                    R$ {(eventStats.totalRevenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <Activity className="h-8 w-8 text-purple-500" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-        {/* PIXELS TAB */}
-        <TabsContent value="pixels" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">Pixels Configurados</h2>
-              <p className="text-sm text-muted-foreground">
-                Gerencie seus pixels de todas as plataformas
-              </p>
-            </div>
-            <Dialog open={isAddingPixel} onOpenChange={setIsAddingPixel}>
+      <Tabs defaultValue="pixels" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="pixels">Pixels ({pixels.length})</TabsTrigger>
+          <TabsTrigger value="scripts">Scripts</TabsTrigger>
+          <TabsTrigger value="utm">UTMs ({utmConfigs.length})</TabsTrigger>
+          <TabsTrigger value="webhooks">Webhooks ({webhooks.length})</TabsTrigger>
+          <TabsTrigger value="events">Eventos ({events.length})</TabsTrigger>
+        </TabsList>
+
+        {/* Tab Pixels */}
+        <TabsContent value="pixels" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold">Pixels Configurados</h2>
+            <Dialog open={showAddPixel} onOpenChange={setShowAddPixel}>
               <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Adicionar Pixel
-                </Button>
+                <Button><Plus className="h-4 w-4 mr-2" /> Adicionar Pixel</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Adicionar Novo Pixel</DialogTitle>
-                  <DialogDescription>
-                    Configure um novo pixel para tracking
-                  </DialogDescription>
+                  <DialogDescription>Configure um pixel para tracking de conversões</DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>Plataforma</Label>
-                    <Select
-                      value={newPixel.platform}
-                      onValueChange={(v) => setNewPixel({ ...newPixel, platform: v as any })}
-                    >
+                <div className="space-y-4">
+                  <div>
+                    <Label>Plataforma *</Label>
+                    <Select value={newPixel.platform} onValueChange={(v) => setNewPixel({ ...newPixel, platform: v as any })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="meta">
-                          <span className="flex items-center gap-2">
-                            <Facebook className="h-4 w-4 text-[#1877F2]" />
-                            Meta (Facebook/Instagram)
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="google">
-                          <span className="flex items-center gap-2">
-                            <Search className="h-4 w-4 text-[#EA4335]" />
-                            Google Ads
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="tiktok">
-                          <span className="flex items-center gap-2">
-                            <Music2 className="h-4 w-4" />
-                            TikTok Ads
-                          </span>
-                        </SelectItem>
+                        <SelectItem value="META">Meta (Facebook/Instagram)</SelectItem>
+                        <SelectItem value="GOOGLE">Google Ads / Analytics</SelectItem>
+                        <SelectItem value="TIKTOK">TikTok Ads</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>ID do Pixel</Label>
+                  <div>
+                    <Label>ID do Pixel *</Label>
                     <Input
-                      placeholder={newPixel.platform === 'meta' ? '1234567890123456' : newPixel.platform === 'google' ? 'AW-123456789' : 'CPIX123456789'}
-                      value={newPixel.pixel_id}
-                      onChange={(e) => setNewPixel({ ...newPixel, pixel_id: e.target.value })}
+                      placeholder={newPixel.platform === 'META' ? '1234567890123456' : newPixel.platform === 'GOOGLE' ? 'AW-123456789' : 'CPIX123456789'}
+                      value={newPixel.pixelId}
+                      onChange={(e) => setNewPixel({ ...newPixel, pixelId: e.target.value })}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Nome de Identificação</Label>
+                  <div>
+                    <Label>Nome *</Label>
                     <Input
                       placeholder="Ex: Pixel Principal"
                       value={newPixel.name}
                       onChange={(e) => setNewPixel({ ...newPixel, name: e.target.value })}
                     />
                   </div>
-                  <Button className="w-full" onClick={addPixel}>
-                    Adicionar Pixel
-                  </Button>
+                  <div>
+                    <Label>Access Token (opcional, para Conversions API)</Label>
+                    <Input
+                      type="password"
+                      placeholder="Token de acesso"
+                      value={newPixel.accessToken}
+                      onChange={(e) => setNewPixel({ ...newPixel, accessToken: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Test Event Code (opcional)</Label>
+                    <Input
+                      placeholder="TEST12345"
+                      value={newPixel.testEventCode}
+                      onChange={(e) => setNewPixel({ ...newPixel, testEventCode: e.target.value })}
+                    />
+                  </div>
                 </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowAddPixel(false)}>Cancelar</Button>
+                  <Button onClick={handleAddPixel} disabled={submitting}>
+                    {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Adicionar
+                  </Button>
+                </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
 
-          <div className="grid gap-4">
-            {pixels.map((pixel) => (
-              <Card key={pixel.id} className="overflow-hidden">
-                <div className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${getPlatformColor(pixel.platform)}`}>
+          {pixelsError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Erro ao carregar pixels</AlertTitle>
+              <AlertDescription>{pixelsError}</AlertDescription>
+            </Alert>
+          )}
+
+          {loadingPixels ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : pixels.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+                <Code className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="font-semibold mb-2">Nenhum pixel configurado</h3>
+                <p className="text-muted-foreground mb-4">Adicione um pixel para começar a rastrear conversões</p>
+                <Button onClick={() => setShowAddPixel(true)}>
+                  <Plus className="h-4 w-4 mr-2" /> Adicionar Pixel
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {pixels.map((pixel) => (
+                <Card key={pixel.id}>
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-4">
                       {getPlatformIcon(pixel.platform)}
-                    </div>
-                    <div>
-                      <p className="font-medium flex items-center gap-2">
-                        {pixel.name}
-                        {pixel.status === 'active' && (
-                          <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Ativo
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{pixel.name}</span>
+                          <Badge variant="outline" className={getPlatformColor(pixel.platform)}>
+                            {pixel.platform}
                           </Badge>
-                        )}
-                        {pixel.status === 'inactive' && (
-                          <Badge variant="outline" className="text-muted-foreground">
-                            Inativo
-                          </Badge>
-                        )}
-                        {pixel.status === 'error' && (
-                          <Badge variant="destructive">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Erro
-                          </Badge>
-                        )}
-                      </p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-2">
-                        <span className="font-mono">{pixel.pixel_id}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5"
-                          onClick={() => copyToClipboard(pixel.pixel_id, pixel.id)}
-                        >
-                          {copied === pixel.id ? (
-                            <Check className="h-3 w-3 text-green-500" />
+                          {pixel.isActive ? (
+                            <Badge variant="outline" className="bg-green-100 text-green-800">Ativo</Badge>
                           ) : (
-                            <Copy className="h-3 w-3" />
+                            <Badge variant="outline" className="bg-gray-100 text-gray-800">Inativo</Badge>
                           )}
-                        </Button>
-                      </p>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          ID: {pixel.pixelId} | Eventos hoje: {pixel.eventsToday} | Último: {formatDate(pixel.lastEventAt)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="font-medium text-green-500">
-                        {pixel.events_today.toLocaleString()} eventos
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Último: {pixel.last_event}
-                      </p>
+                    <div className="flex items-center gap-2">
+                      <Switch checked={pixel.isActive} onCheckedChange={() => handleTogglePixel(pixel)} />
+                      <Button variant="ghost" size="icon" onClick={() => handleCopy(pixel.pixelId, pixel.id)}>
+                        {copied === pixel.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeletePixel(pixel.id)}>
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
                     </div>
-                    <Switch checked={pixel.status === 'active'} />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                      onClick={() => removePixel(pixel.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
-        {/* UTMS TAB */}
-        <TabsContent value="utms" className="space-y-6">
-          {/* INSTRUCAO */}
-          <Card className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-amber-500/20">
-                  <AlertCircle className="h-5 w-5 text-amber-500" />
-                </div>
-                <div>
-                  <p className="font-semibold text-amber-600 dark:text-amber-400">Como usar:</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Cole estes parâmetros na seção <span className="font-semibold text-foreground">"Parâmetros de URL"</span> do seu anúncio no gerenciador.
-                    Depois adicione <span className="font-mono bg-muted px-1 rounded">&</span> + seus parâmetros do cloaker.
-                  </p>
-                  <div className="mt-3 p-3 rounded-lg bg-background/50 font-mono text-xs">
-                    <span className="text-[#1877F2]">[parâmetros do dash]</span>
-                    <span className="text-amber-500 font-bold">&</span>
-                    <span className="text-purple-500">[parâmetros do cloaker]</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* META ADS */}
-          <Card className="border-2 border-[#1877F2]/50 bg-gradient-to-br from-[#1877F2]/5 to-transparent">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-[#1877F2]/20">
-                    <Facebook className="h-5 w-5 text-[#1877F2]" />
-                  </div>
-                  <div>
-                    <CardTitle>Meta Ads (Facebook/Instagram)</CardTitle>
-                    <CardDescription>
-                      Cole na seção "Parâmetros de URL" do anúncio
-                    </CardDescription>
-                  </div>
-                </div>
-                <Button
-                  className="gap-2 bg-[#1877F2] hover:bg-[#1877F2]/90"
-                  onClick={() => copyToClipboard('utm_source=FB&utm_campaign={{campaign.name}}|{{campaign.id}}&utm_medium={{adset.name}}|{{adset.id}}&utm_content={{ad.name}}|{{ad.id}}&utm_term={{placement}}', 'meta-params')}
-                >
-                  {copied === 'meta-params' ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Copiado!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      Copiar
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="p-4 rounded-lg bg-[#1877F2]/10 border border-[#1877F2]/20 font-mono text-sm break-all">
-                utm_source=FB&utm_campaign={'{{campaign.name}}|{{campaign.id}}'}&utm_medium={'{{adset.name}}|{{adset.id}}'}&utm_content={'{{ad.name}}|{{ad.id}}'}&utm_term={'{{placement}}'}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* GOOGLE ADS */}
-          <Card className="border-2 border-[#EA4335]/50 bg-gradient-to-br from-[#EA4335]/5 to-transparent">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-[#EA4335]/20">
-                    <Search className="h-5 w-5 text-[#EA4335]" />
-                  </div>
-                  <div>
-                    <CardTitle>Google Ads</CardTitle>
-                    <CardDescription>
-                      Cole na seção "Sufixo de URL final" do anúncio
-                    </CardDescription>
-                  </div>
-                </div>
-                <Button
-                  className="gap-2 bg-[#EA4335] hover:bg-[#EA4335]/90"
-                  onClick={() => copyToClipboard('utm_source=google&utm_medium=cpc&utm_campaign={campaignid}&utm_content={creative}&utm_term={keyword}&gclid={gclid}', 'google-params')}
-                >
-                  {copied === 'google-params' ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Copiado!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      Copiar
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="p-4 rounded-lg bg-[#EA4335]/10 border border-[#EA4335]/20 font-mono text-sm break-all">
-                utm_source=google&utm_medium=cpc&utm_campaign={'{campaignid}'}&utm_content={'{creative}'}&utm_term={'{keyword}'}&gclid={'{gclid}'}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* TIKTOK ADS */}
-          <Card className="border-2 border-black/50 dark:border-white/50 bg-gradient-to-br from-black/5 dark:from-white/5 to-transparent">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-black/10 dark:bg-white/10">
-                    <Music2 className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <CardTitle>TikTok Ads</CardTitle>
-                    <CardDescription>
-                      Cole na seção "URL parameters" do anúncio
-                    </CardDescription>
-                  </div>
-                </div>
-                <Button
-                  className="gap-2 bg-black hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
-                  onClick={() => copyToClipboard('utm_source=tiktok&utm_medium=cpc&utm_campaign=__CAMPAIGN_NAME__&utm_content=__AID_NAME__&ttclid=__CLICKID__', 'tiktok-params')}
-                >
-                  {copied === 'tiktok-params' ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Copiado!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      Copiar
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="p-4 rounded-lg bg-black/10 dark:bg-white/10 border border-black/20 dark:border-white/20 font-mono text-sm break-all">
-                utm_source=tiktok&utm_medium=cpc&utm_campaign=__CAMPAIGN_NAME__&utm_content=__AID_NAME__&ttclid=__CLICKID__
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* EXEMPLO COMPLETO */}
-          <Card className="border-2 border-lime-500/50">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Eye className="h-4 w-4 text-lime-500" />
-                Exemplo: Parâmetros do Dash + Cloaker
-              </CardTitle>
-              <CardDescription>
-                Como fica na seção "Parâmetros de URL" do Meta Ads
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="p-4 rounded-lg bg-muted font-mono text-xs break-all">
-                <span className="text-[#1877F2]">utm_source=FB&utm_campaign={'{{campaign.name}}|{{campaign.id}}'}&utm_medium={'{{adset.name}}|{{adset.id}}'}&utm_content={'{{ad.name}}|{{ad.id}}'}&utm_term={'{{placement}}'}</span>
-                <span className="text-lime-500 font-bold text-base">&</span>
-                <span className="text-purple-500">cwr={'{{campaign.id}}'}&cname={'{{campaign.name}}'}&domain={'{{domain}}'}&placement={'{{placement}}'}&adset={'{{adset.name}}'}&adname={'{{ad.name}}'}&site={'{{site_source_name}}'}&xid=seutoken</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-3 flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded bg-[#1877F2]"></span> Parâmetros do Dash
-                <span className="inline-block w-3 h-3 rounded bg-lime-500 ml-2"></span> Separador &
-                <span className="inline-block w-3 h-3 rounded bg-purple-500 ml-2"></span> Parâmetros do Cloaker
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* VARIAVEIS DISPONIVEIS */}
+        {/* Tab Scripts */}
+        <TabsContent value="scripts" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Variáveis Dinâmicas por Plataforma</CardTitle>
-              <CardDescription>
-                Clique para copiar a variável
-              </CardDescription>
+              <CardTitle>Script de Tracking</CardTitle>
+              <CardDescription>Cole este script antes do &lt;/head&gt; em suas landing pages</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Meta Variables */}
-              <div>
-                <Label className="text-sm font-semibold flex items-center gap-2 mb-2">
-                  <Facebook className="h-4 w-4 text-[#1877F2]" />
-                  Meta Ads
-                </Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {[
-                    { var: '{{campaign.id}}', desc: 'ID Campanha' },
-                    { var: '{{campaign.name}}', desc: 'Nome Campanha' },
-                    { var: '{{adset.id}}', desc: 'ID Conjunto' },
-                    { var: '{{adset.name}}', desc: 'Nome Conjunto' },
-                    { var: '{{ad.id}}', desc: 'ID Anúncio' },
-                    { var: '{{ad.name}}', desc: 'Nome Anúncio' },
-                    { var: '{{placement}}', desc: 'Posicionamento' },
-                    { var: '{{site_source_name}}', desc: 'Origem' },
-                  ].map((item) => (
-                    <div
-                      key={item.var}
-                      className="p-2 rounded-lg border bg-card hover:bg-[#1877F2]/10 cursor-pointer transition-colors"
-                      onClick={() => copyToClipboard(item.var, item.var)}
-                    >
-                      <p className="font-mono text-xs text-[#1877F2]">{item.var}</p>
-                      <p className="text-xs text-muted-foreground">{item.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Google Variables */}
-              <div>
-                <Label className="text-sm font-semibold flex items-center gap-2 mb-2">
-                  <Search className="h-4 w-4 text-[#EA4335]" />
-                  Google Ads
-                </Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {[
-                    { var: '{campaignid}', desc: 'ID Campanha' },
-                    { var: '{campaign}', desc: 'Nome Campanha' },
-                    { var: '{adgroupid}', desc: 'ID Grupo' },
-                    { var: '{creative}', desc: 'ID Criativo' },
-                    { var: '{keyword}', desc: 'Palavra-chave' },
-                    { var: '{matchtype}', desc: 'Tipo Match' },
-                    { var: '{device}', desc: 'Dispositivo' },
-                    { var: '{gclid}', desc: 'Click ID' },
-                  ].map((item) => (
-                    <div
-                      key={item.var}
-                      className="p-2 rounded-lg border bg-card hover:bg-[#EA4335]/10 cursor-pointer transition-colors"
-                      onClick={() => copyToClipboard(item.var, item.var)}
-                    >
-                      <p className="font-mono text-xs text-[#EA4335]">{item.var}</p>
-                      <p className="text-xs text-muted-foreground">{item.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* TikTok Variables */}
-              <div>
-                <Label className="text-sm font-semibold flex items-center gap-2 mb-2">
-                  <Music2 className="h-4 w-4" />
-                  TikTok Ads
-                </Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {[
-                    { var: '__CAMPAIGN_ID__', desc: 'ID Campanha' },
-                    { var: '__CAMPAIGN_NAME__', desc: 'Nome Campanha' },
-                    { var: '__AID__', desc: 'ID Anúncio' },
-                    { var: '__AID_NAME__', desc: 'Nome Anúncio' },
-                    { var: '__CID__', desc: 'ID Criativo' },
-                    { var: '__CID_NAME__', desc: 'Nome Criativo' },
-                    { var: '__PLACEMENT__', desc: 'Posicionamento' },
-                    { var: '__CLICKID__', desc: 'Click ID' },
-                  ].map((item) => (
-                    <div
-                      key={item.var}
-                      className="p-2 rounded-lg border bg-card hover:bg-muted cursor-pointer transition-colors"
-                      onClick={() => copyToClipboard(item.var, item.var)}
-                    >
-                      <p className="font-mono text-xs">{item.var}</p>
-                      <p className="text-xs text-muted-foreground">{item.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* SCRIPTS TAB */}
-        <TabsContent value="scripts" className="space-y-6">
-          {/* INSTRUCOES */}
-          <Card className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/30">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-green-500/20">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                </div>
-                <div>
-                  <p className="font-semibold text-green-600 dark:text-green-400">Como instalar na Shopify:</p>
-                  <ol className="text-sm text-muted-foreground mt-2 space-y-1 list-decimal list-inside">
-                    <li>Vá em <span className="font-mono bg-muted px-1 rounded">Online Store → Themes → Edit Code</span></li>
-                    <li>Abra o arquivo <span className="font-mono bg-muted px-1 rounded">theme.liquid</span></li>
-                    <li>Cole o script <span className="font-semibold text-foreground">antes do {'</head>'}</span></li>
-                    <li>Salve e pronto!</li>
-                  </ol>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* SCRIPT PADRÃO */}
-          <Card className="border-2 border-green-500/50 bg-gradient-to-br from-green-500/5 to-transparent">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-green-500/20">
-                    <CreditCard className="h-5 w-5 text-green-500" />
-                  </div>
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      Script Padrão
-                    </CardTitle>
-                    <CardDescription>
-                      Script simples com moeda fixa em Real (BRL)
-                    </CardDescription>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => toggleScriptVisibility('brl-script')}
-                  >
-                    <Eye className="h-4 w-4" />
-                    {visibleScripts['brl-script'] ? 'Ocultar' : 'Ver Script'}
-                  </Button>
-                  <Button
-                    className="gap-2 bg-green-500 hover:bg-green-600"
-                    onClick={() => copyToClipboard(codSimpleBRLScript, 'brl-script')}
-                  >
-                    {copied === 'brl-script' ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        Copiar
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            {visibleScripts['brl-script'] && (
-              <CardContent>
-                <Textarea
-                  value={codSimpleBRLScript}
-                  readOnly
-                  className="font-mono text-xs min-h-[200px] bg-muted"
-                />
-              </CardContent>
-            )}
-          </Card>
-
-          {/* SCRIPT COD - DETECÇÃO AUTOMÁTICA */}
-          <Card className="border-2 border-lime-500/50 bg-gradient-to-br from-lime-500/5 to-transparent">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-lime-500/20">
-                    <ShoppingCart className="h-5 w-5 text-lime-500" />
-                  </div>
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      Script Universal (Detecção Automática)
-                      <Badge className="bg-lime-500 text-white">RECOMENDADO</Badge>
-                    </CardTitle>
-                    <CardDescription>
-                      Um único script para todas as lojas - detecta país/moeda automaticamente pelo domínio
-                    </CardDescription>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => toggleScriptVisibility('cod-script')}
-                  >
-                    <Eye className="h-4 w-4" />
-                    {visibleScripts['cod-script'] ? 'Ocultar' : 'Ver Script'}
-                  </Button>
-                  <Button
-                    className="gap-2 bg-lime-500 hover:bg-lime-600"
-                    onClick={() => copyToClipboard(codFormTrackingScript, 'cod-script')}
-                  >
-                    {copied === 'cod-script' ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        Copiar
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {visibleScripts['cod-script'] && (
-                <div className="relative">
-                  <Textarea
-                    value={codFormTrackingScript}
-                    readOnly
-                    className="font-mono text-xs min-h-[300px] bg-muted"
-                  />
-                </div>
-              )}
-
-              {/* DETECCAO AUTOMATICA */}
-              <div className="p-4 rounded-lg bg-lime-500/10 border border-lime-500/20">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-semibold text-lime-600 dark:text-lime-400">Detecção automática por domínio</p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs gap-1"
-                    onClick={() => toggleScriptVisibility('universal-countries')}
-                  >
-                    <Eye className="h-3 w-3" />
-                    {visibleScripts['universal-countries'] ? 'Ocultar Países' : 'Ver Países Suportados'}
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Cole o <span className="font-semibold text-foreground">mesmo script</span> em todas as suas lojas. Detecta moeda pelo TLD (.it, .pl, .ae, .ma...)
-                </p>
-
-                {visibleScripts['universal-countries'] && (
-                  <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                    <div className="p-2 rounded bg-background flex items-center gap-2">
-                      <span>🇮🇹</span>
-                      <span className="font-mono text-lime-600">.it</span>
-                      <span className="text-muted-foreground">→</span>
-                      <span className="font-bold">EUR</span>
-                    </div>
-                    <div className="p-2 rounded bg-background flex items-center gap-2">
-                      <span>🇵🇱</span>
-                      <span className="font-mono text-lime-600">.pl</span>
-                      <span className="text-muted-foreground">→</span>
-                      <span className="font-bold">PLN</span>
-                    </div>
-                    <div className="p-2 rounded bg-background flex items-center gap-2">
-                      <span>🇦🇪</span>
-                      <span className="font-mono text-lime-600">.ae</span>
-                      <span className="text-muted-foreground">→</span>
-                      <span className="font-bold">AED</span>
-                    </div>
-                    <div className="p-2 rounded bg-background flex items-center gap-2">
-                      <span>🇲🇦</span>
-                      <span className="font-mono text-lime-600">.ma</span>
-                      <span className="text-muted-foreground">→</span>
-                      <span className="font-bold">MAD</span>
-                    </div>
-                    <div className="p-2 rounded bg-background flex items-center gap-2">
-                      <span>🇸🇦</span>
-                      <span className="font-mono text-lime-600">.sa</span>
-                      <span className="text-muted-foreground">→</span>
-                      <span className="font-bold">SAR</span>
-                    </div>
-                    <div className="p-2 rounded bg-background flex items-center gap-2">
-                      <span>🇪🇬</span>
-                      <span className="font-mono text-lime-600">.eg</span>
-                      <span className="text-muted-foreground">→</span>
-                      <span className="font-bold">EGP</span>
-                    </div>
-                    <div className="p-2 rounded bg-background flex items-center gap-2">
-                      <span>🇧🇷</span>
-                      <span className="font-mono text-lime-600">.br</span>
-                      <span className="text-muted-foreground">→</span>
-                      <span className="font-bold">BRL</span>
-                    </div>
-                    <div className="p-2 rounded bg-background flex items-center gap-2">
-                      <span>🌍</span>
-                      <span className="font-mono text-lime-600">+40</span>
-                      <span className="text-muted-foreground">países</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* EVENTOS */}
-              <div className="p-4 rounded-lg bg-muted/50">
-                <p className="text-sm font-semibold mb-2">Eventos disparados:</p>
-                <div className="flex flex-wrap gap-2">
-                  <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">PageView</Badge>
-                  <Badge className="bg-purple-500/10 text-purple-500 border-purple-500/20">InitiateCheckout</Badge>
-                  <Badge className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20">Lead</Badge>
-                  <Badge className="bg-green-500/10 text-green-500 border-green-500/20">Purchase</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* SCRIPTS POR MOEDA FIXA */}
-          <Card className="border border-muted">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/20">
-                    <CreditCard className="h-5 w-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">Scripts por Moeda Fixa</CardTitle>
-                    <CardDescription>
-                      Para outros países - clique na moeda para copiar o script
-                    </CardDescription>
-                  </div>
-                </div>
+              <div className="relative">
+                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm max-h-96">
+                  {getTrackingScript()}
+                </pre>
                 <Button
+                  className="absolute top-2 right-2"
                   variant="outline"
-                  className="gap-2"
-                  onClick={() => toggleScriptVisibility('all-countries')}
+                  size="sm"
+                  onClick={() => handleCopy(getTrackingScript(), 'script')}
                 >
-                  <Eye className="h-4 w-4" />
-                  {visibleScripts['all-countries'] ? 'Ocultar Países' : 'Ver Países'}
+                  {copied === 'script' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
-            </CardHeader>
-            {visibleScripts['all-countries'] && (
-              <CardContent className="space-y-4">
-                {/* PRINCIPAIS MOEDAS */}
-                <div>
-                  <p className="text-sm font-semibold mb-3">Principais Moedas:</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {[
-                      { code: 'MAD', country: 'MA', name: 'Marrocos', flag: '🇲🇦' },
-                      { code: 'AED', country: 'AE', name: 'Emirados', flag: '🇦🇪' },
-                      { code: 'SAR', country: 'SA', name: 'Arábia Saudita', flag: '🇸🇦' },
-                      { code: 'EGP', country: 'EG', name: 'Egito', flag: '🇪🇬' },
-                      { code: 'EUR', country: 'EU', name: 'Europa', flag: '🇪🇺' },
-                      { code: 'PLN', country: 'PL', name: 'Polônia', flag: '🇵🇱' },
-                      { code: 'PKR', country: 'PK', name: 'Paquistão', flag: '🇵🇰' },
-                      { code: 'INR', country: 'IN', name: 'Índia', flag: '🇮🇳' },
-                    ].map((currency) => (
-                      <div
-                        key={currency.code}
-                        className="p-3 rounded-lg border bg-card hover:bg-blue-500/10 cursor-pointer transition-colors group"
-                        onClick={() => copyToClipboard(
-                          codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${currency.code}'`),
-                          `script-${currency.code}`
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-mono font-bold text-blue-500">{currency.code}</p>
-                            <p className="text-xs text-muted-foreground">{currency.flag} {currency.name}</p>
-                          </div>
-                          {copied === `script-${currency.code}` && (
-                            <Check className="h-4 w-4 text-green-500" />
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
-                {/* VER TODOS OS PAISES */}
-                <div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full gap-2"
-                    onClick={() => toggleScriptVisibility('all-countries-expanded')}
-                  >
-                    <Eye className="h-4 w-4" />
-                    {visibleScripts['all-countries-expanded'] ? 'Ocultar Lista Completa' : 'Ver Todos os Países (+40)'}
-                  </Button>
-
-                {visibleScripts['all-countries-expanded'] && (
-                  <div className="mt-4 p-4 rounded-lg bg-muted/50 border">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {/* AFRICA */}
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">África</p>
-                        <div className="space-y-1">
-                          {[
-                            { code: 'MAD', country: 'MA', name: 'Marrocos', flag: '🇲🇦' },
-                            { code: 'DZD', country: 'DZ', name: 'Argélia', flag: '🇩🇿' },
-                            { code: 'TND', country: 'TN', name: 'Tunísia', flag: '🇹🇳' },
-                            { code: 'EGP', country: 'EG', name: 'Egito', flag: '🇪🇬' },
-                            { code: 'NGN', country: 'NG', name: 'Nigéria', flag: '🇳🇬' },
-                            { code: 'ZAR', country: 'ZA', name: 'África do Sul', flag: '🇿🇦' },
-                          ].map((c) => (
-                            <div
-                              key={c.code}
-                              className="flex items-center justify-between p-2 rounded hover:bg-background cursor-pointer text-xs"
-                              onClick={() => copyToClipboard(
-                                codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${c.code}'`),
-                                `script-${c.code}`
-                              )}
-                            >
-                              <span>{c.flag} {c.name} ({c.country})</span>
-                              <span className="font-mono font-bold text-blue-500">{c.code}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* ORIENTE MEDIO */}
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">Oriente Médio</p>
-                        <div className="space-y-1">
-                          {[
-                            { code: 'AED', country: 'AE', name: 'Emirados Árabes', flag: '🇦🇪' },
-                            { code: 'SAR', country: 'SA', name: 'Arábia Saudita', flag: '🇸🇦' },
-                            { code: 'KWD', country: 'KW', name: 'Kuwait', flag: '🇰🇼' },
-                            { code: 'QAR', country: 'QA', name: 'Qatar', flag: '🇶🇦' },
-                            { code: 'BHD', country: 'BH', name: 'Bahrein', flag: '🇧🇭' },
-                            { code: 'OMR', country: 'OM', name: 'Omã', flag: '🇴🇲' },
-                            { code: 'JOD', country: 'JO', name: 'Jordânia', flag: '🇯🇴' },
-                            { code: 'IQD', country: 'IQ', name: 'Iraque', flag: '🇮🇶' },
-                          ].map((c) => (
-                            <div
-                              key={c.code}
-                              className="flex items-center justify-between p-2 rounded hover:bg-background cursor-pointer text-xs"
-                              onClick={() => copyToClipboard(
-                                codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${c.code}'`),
-                                `script-${c.code}`
-                              )}
-                            >
-                              <span>{c.flag} {c.name} ({c.country})</span>
-                              <span className="font-mono font-bold text-blue-500">{c.code}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* EUROPA OCIDENTAL */}
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">Europa Ocidental</p>
-                        <div className="space-y-1">
-                          {[
-                            { code: 'EUR', country: 'PT', name: 'Portugal', flag: '🇵🇹' },
-                            { code: 'EUR', country: 'ES', name: 'Espanha', flag: '🇪🇸' },
-                            { code: 'EUR', country: 'FR', name: 'França', flag: '🇫🇷' },
-                            { code: 'EUR', country: 'DE', name: 'Alemanha', flag: '🇩🇪' },
-                            { code: 'EUR', country: 'IT', name: 'Itália', flag: '🇮🇹' },
-                            { code: 'EUR', country: 'AT', name: 'Áustria', flag: '🇦🇹' },
-                            { code: 'EUR', country: 'GR', name: 'Grécia', flag: '🇬🇷' },
-                            { code: 'GBP', country: 'GB', name: 'Reino Unido', flag: '🇬🇧' },
-                          ].map((c) => (
-                            <div
-                              key={`${c.code}-${c.country}`}
-                              className="flex items-center justify-between p-2 rounded hover:bg-background cursor-pointer text-xs"
-                              onClick={() => copyToClipboard(
-                                codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${c.code}'`),
-                                `script-${c.code}-${c.country}`
-                              )}
-                            >
-                              <span>{c.flag} {c.name} ({c.country})</span>
-                              <span className="font-mono font-bold text-blue-500">{c.code}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* EUROPA CENTRAL E ORIENTAL */}
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">Europa Central/Oriental</p>
-                        <div className="space-y-1">
-                          {[
-                            { code: 'PLN', country: 'PL', name: 'Polônia', flag: '🇵🇱' },
-                            { code: 'CZK', country: 'CZ', name: 'Rep. Tcheca', flag: '🇨🇿' },
-                            { code: 'EUR', country: 'SK', name: 'Eslováquia', flag: '🇸🇰' },
-                            { code: 'HUF', country: 'HU', name: 'Hungria', flag: '🇭🇺' },
-                            { code: 'RON', country: 'RO', name: 'Romênia', flag: '🇷🇴' },
-                            { code: 'BGN', country: 'BG', name: 'Bulgária', flag: '🇧🇬' },
-                            { code: 'EUR', country: 'HR', name: 'Croácia', flag: '🇭🇷' },
-                            { code: 'EUR', country: 'SI', name: 'Eslovênia', flag: '🇸🇮' },
-                          ].map((c) => (
-                            <div
-                              key={`${c.code}-${c.country}`}
-                              className="flex items-center justify-between p-2 rounded hover:bg-background cursor-pointer text-xs"
-                              onClick={() => copyToClipboard(
-                                codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${c.code}'`),
-                                `script-${c.code}-${c.country}`
-                              )}
-                            >
-                              <span>{c.flag} {c.name} ({c.country})</span>
-                              <span className="font-mono font-bold text-blue-500">{c.code}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* BÁLTICOS */}
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">Bálticos</p>
-                        <div className="space-y-1">
-                          {[
-                            { code: 'EUR', country: 'EE', name: 'Estônia', flag: '🇪🇪' },
-                            { code: 'EUR', country: 'LV', name: 'Letônia', flag: '🇱🇻' },
-                            { code: 'EUR', country: 'LT', name: 'Lituânia', flag: '🇱🇹' },
-                          ].map((c) => (
-                            <div
-                              key={`${c.code}-${c.country}`}
-                              className="flex items-center justify-between p-2 rounded hover:bg-background cursor-pointer text-xs"
-                              onClick={() => copyToClipboard(
-                                codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${c.code}'`),
-                                `script-${c.code}-${c.country}`
-                              )}
-                            >
-                              <span>{c.flag} {c.name} ({c.country})</span>
-                              <span className="font-mono font-bold text-blue-500">{c.code}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* AMERICAS */}
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">Américas</p>
-                        <div className="space-y-1">
-                          {[
-                            { code: 'BRL', country: 'BR', name: 'Brasil', flag: '🇧🇷' },
-                            { code: 'MXN', country: 'MX', name: 'México', flag: '🇲🇽' },
-                            { code: 'COP', country: 'CO', name: 'Colômbia', flag: '🇨🇴' },
-                            { code: 'ARS', country: 'AR', name: 'Argentina', flag: '🇦🇷' },
-                            { code: 'CLP', country: 'CL', name: 'Chile', flag: '🇨🇱' },
-                            { code: 'PEN', country: 'PE', name: 'Peru', flag: '🇵🇪' },
-                          ].map((c) => (
-                            <div
-                              key={c.code}
-                              className="flex items-center justify-between p-2 rounded hover:bg-background cursor-pointer text-xs"
-                              onClick={() => copyToClipboard(
-                                codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${c.code}'`),
-                                `script-${c.code}`
-                              )}
-                            >
-                              <span>{c.flag} {c.name} ({c.country})</span>
-                              <span className="font-mono font-bold text-blue-500">{c.code}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* ASIA */}
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">Ásia</p>
-                        <div className="space-y-1">
-                          {[
-                            { code: 'PKR', country: 'PK', name: 'Paquistão', flag: '🇵🇰' },
-                            { code: 'INR', country: 'IN', name: 'Índia', flag: '🇮🇳' },
-                            { code: 'IDR', country: 'ID', name: 'Indonésia', flag: '🇮🇩' },
-                            { code: 'MYR', country: 'MY', name: 'Malásia', flag: '🇲🇾' },
-                            { code: 'PHP', country: 'PH', name: 'Filipinas', flag: '🇵🇭' },
-                            { code: 'THB', country: 'TH', name: 'Tailândia', flag: '🇹🇭' },
-                            { code: 'VND', country: 'VN', name: 'Vietnã', flag: '🇻🇳' },
-                          ].map((c) => (
-                            <div
-                              key={c.code}
-                              className="flex items-center justify-between p-2 rounded hover:bg-background cursor-pointer text-xs"
-                              onClick={() => copyToClipboard(
-                                codSimpleBRLScript.replace(/currency: 'BRL'/g, `currency: '${c.code}'`),
-                                `script-${c.code}`
-                              )}
-                            >
-                              <span>{c.flag} {c.name} ({c.country})</span>
-                              <span className="font-mono font-bold text-blue-500">{c.code}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              </CardContent>
-            )}
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Como usar</AlertTitle>
+                <AlertDescription>
+                  <ul className="list-disc list-inside space-y-1 mt-2">
+                    <li><code>DOD.track('EventName', {'{data}'}</code> - Enviar evento customizado</li>
+                    <li><code>DOD.purchase({'{value, currency, order_id}'})</code> - Registrar compra</li>
+                    <li><code>DOD.lead({'{data}'})</code> - Registrar lead</li>
+                    <li><code>DOD.initiateCheckout({'{data}'})</code> - Início do checkout</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            </CardContent>
           </Card>
-
-          {/* SCRIPT SHOPIFY TRADICIONAL */}
-          <Card className="border border-muted">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/20">
-                    <Code className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">Script Shopify Tradicional</CardTitle>
-                    <CardDescription>
-                      Para lojas com checkout padrão da Shopify
-                    </CardDescription>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => toggleScriptVisibility('shopify-script')}
-                  >
-                    <Eye className="h-4 w-4" />
-                    {visibleScripts['shopify-script'] ? 'Ocultar' : 'Ver Script'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => copyToClipboard(shopifyTrackingScript, 'shopify-script')}
-                  >
-                    {copied === 'shopify-script' ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        Copiar
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            {visibleScripts['shopify-script'] && (
-              <CardContent>
-                <Textarea
-                  value={shopifyTrackingScript}
-                  readOnly
-                  className="font-mono text-xs min-h-[300px] bg-muted"
-                />
-              </CardContent>
-            )}
-          </Card>
-
         </TabsContent>
 
+        {/* Tab UTMs */}
+        <TabsContent value="utm" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold">Configurações UTM</h2>
+            <Dialog open={showAddUtm} onOpenChange={setShowAddUtm}>
+              <DialogTrigger asChild>
+                <Button><Plus className="h-4 w-4 mr-2" /> Adicionar Configuração</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Nova Configuração UTM</DialogTitle>
+                  <DialogDescription>Defina o padrão de UTMs para suas campanhas</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Nome</Label>
+                    <Input value={newUtm.name} onChange={(e) => setNewUtm({ ...newUtm, name: e.target.value })} placeholder="Ex: Padrão Meta" />
+                  </div>
+                  <div>
+                    <Label>utm_source</Label>
+                    <Input value={newUtm.utmSource} onChange={(e) => setNewUtm({ ...newUtm, utmSource: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>utm_medium</Label>
+                    <Input value={newUtm.utmMedium} onChange={(e) => setNewUtm({ ...newUtm, utmMedium: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>utm_campaign</Label>
+                    <Input value={newUtm.utmCampaign} onChange={(e) => setNewUtm({ ...newUtm, utmCampaign: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>utm_content</Label>
+                    <Input value={newUtm.utmContent} onChange={(e) => setNewUtm({ ...newUtm, utmContent: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>utm_term</Label>
+                    <Input value={newUtm.utmTerm} onChange={(e) => setNewUtm({ ...newUtm, utmTerm: e.target.value })} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch checked={newUtm.isDefault} onCheckedChange={(v) => setNewUtm({ ...newUtm, isDefault: v })} />
+                    <Label>Definir como padrão</Label>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowAddUtm(false)}>Cancelar</Button>
+                  <Button onClick={handleAddUtm} disabled={submitting}>
+                    {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Adicionar
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {utmsError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Erro ao carregar UTMs</AlertTitle>
+              <AlertDescription>{utmsError}</AlertDescription>
+            </Alert>
+          )}
+
+          {loadingUtms ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : utmConfigs.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+                <Settings className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="font-semibold mb-2">Nenhuma configuração UTM</h3>
+                <p className="text-muted-foreground mb-4">Configure padrões de UTM para suas campanhas</p>
+                <Button onClick={() => setShowAddUtm(true)}>
+                  <Plus className="h-4 w-4 mr-2" /> Adicionar Configuração
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {utmConfigs.map((utm) => (
+                <Card key={utm.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{utm.name}</span>
+                        {utm.isDefault && <Badge>Padrão</Badge>}
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteUtm(utm.id)}>
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>utm_source: <code className="bg-muted px-1 rounded">{utm.utmSource}</code></p>
+                      <p>utm_medium: <code className="bg-muted px-1 rounded">{utm.utmMedium}</code></p>
+                      <p>utm_campaign: <code className="bg-muted px-1 rounded">{utm.utmCampaign}</code></p>
+                      <p>utm_content: <code className="bg-muted px-1 rounded">{utm.utmContent}</code></p>
+                      <p>utm_term: <code className="bg-muted px-1 rounded">{utm.utmTerm}</code></p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Tab Webhooks */}
+        <TabsContent value="webhooks" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold">Webhooks</h2>
+            <Dialog open={showAddWebhook} onOpenChange={setShowAddWebhook}>
+              <DialogTrigger asChild>
+                <Button><Plus className="h-4 w-4 mr-2" /> Adicionar Webhook</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Novo Webhook</DialogTitle>
+                  <DialogDescription>Configure um endpoint para receber eventos</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Nome</Label>
+                    <Input value={newWebhook.name} onChange={(e) => setNewWebhook({ ...newWebhook, name: e.target.value })} placeholder="Ex: CRM Integration" />
+                  </div>
+                  <div>
+                    <Label>URL do Webhook</Label>
+                    <Input value={newWebhook.url} onChange={(e) => setNewWebhook({ ...newWebhook, url: e.target.value })} placeholder="https://seu-endpoint.com/webhook" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch checked={newWebhook.generateSecret} onCheckedChange={(v) => setNewWebhook({ ...newWebhook, generateSecret: v })} />
+                    <Label>Gerar Secret para assinatura HMAC</Label>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowAddWebhook(false)}>Cancelar</Button>
+                  <Button onClick={handleAddWebhook} disabled={submitting}>
+                    {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Adicionar
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {webhooksError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Erro ao carregar webhooks</AlertTitle>
+              <AlertDescription>{webhooksError}</AlertDescription>
+            </Alert>
+          )}
+
+          {loadingWebhooks ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : webhooks.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+                <Zap className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="font-semibold mb-2">Nenhum webhook configurado</h3>
+                <p className="text-muted-foreground mb-4">Adicione webhooks para integrar com outros sistemas</p>
+                <Button onClick={() => setShowAddWebhook(true)}>
+                  <Plus className="h-4 w-4 mr-2" /> Adicionar Webhook
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {webhooks.map((webhook) => (
+                <Card key={webhook.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{webhook.name}</span>
+                          {webhook.isActive ? (
+                            <Badge variant="outline" className="bg-green-100 text-green-800">Ativo</Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-gray-100 text-gray-800">Inativo</Badge>
+                          )}
+                          {webhook.failCount > 5 && (
+                            <Badge variant="destructive">Falhas: {webhook.failCount}</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate max-w-md">{webhook.url}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Último disparo: {formatDate(webhook.lastTriggeredAt)} | Requests: {webhook.totalRequests} | Taxa de sucesso: {webhook.successRate}%
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch checked={webhook.isActive} onCheckedChange={() => handleToggleWebhook(webhook)} />
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteWebhook(webhook.id)}>
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Tab Eventos */}
+        <TabsContent value="events" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold">Eventos Recentes</h2>
+            <Button variant="outline" onClick={fetchEvents}>
+              <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
+            </Button>
+          </div>
+
+          {eventsError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Erro ao carregar eventos</AlertTitle>
+              <AlertDescription>{eventsError}</AlertDescription>
+            </Alert>
+          )}
+
+          {loadingEvents ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : events.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+                <Activity className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="font-semibold mb-2">Nenhum evento registrado</h3>
+                <p className="text-muted-foreground">Os eventos aparecerão aqui quando o script for instalado</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Evento</TableHead>
+                    <TableHead>Visitante</TableHead>
+                    <TableHead>Origem</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Data</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {events.map((event) => (
+                    <TableRow key={event.id}>
+                      <TableCell>
+                        <Badge variant={
+                          event.eventName === 'Purchase' ? 'default' :
+                          event.eventName === 'Lead' ? 'secondary' :
+                          'outline'
+                        }>
+                          {event.eventName}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{event.visitorId.substring(0, 15)}...</TableCell>
+                      <TableCell>{event.utmSource || '-'}</TableCell>
+                      <TableCell>
+                        {event.orderValue ? `R$ ${event.orderValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
+                      </TableCell>
+                      <TableCell>{formatDate(event.createdAt)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
+        </TabsContent>
       </Tabs>
     </div>
   )
