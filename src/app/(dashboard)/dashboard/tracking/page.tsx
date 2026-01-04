@@ -40,46 +40,16 @@ import {
 import { formatNumber, formatPercentage } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 
-// Mock data
-const funnelData = [
-  { name: 'Visitantes', value: 13060, color: '#6366f1' },
-  { name: 'Visualizaram Produto', value: 8450, color: '#8b5cf6' },
-  { name: 'Add to Cart', value: 2890, color: '#a855f7' },
-  { name: 'Checkout', value: 1240, color: '#d946ef' },
-  { name: 'Pedidos', value: 427, color: '#22c55e' },
-]
+// Tracking data - starts empty, will be populated from API
+const funnelData: { name: string; value: number; color: string }[] = []
 
-const trafficBySource = [
-  { name: 'Facebook', sessions: 4520, orders: 156, conversion: 3.45 },
-  { name: 'Instagram', sessions: 2890, orders: 98, conversion: 3.39 },
-  { name: 'TikTok', sessions: 3200, orders: 72, conversion: 2.25 },
-  { name: 'Google', sessions: 1560, orders: 45, conversion: 2.88 },
-  { name: 'Orgânico', sessions: 890, orders: 28, conversion: 3.15 },
-]
+const trafficBySource: { name: string; sessions: number; orders: number; conversion: number }[] = []
 
-const dailyTraffic = [
-  { date: '01/12', sessions: 1520, pageViews: 4560, orders: 52 },
-  { date: '02/12', sessions: 1780, pageViews: 5340, orders: 58 },
-  { date: '03/12', sessions: 1650, pageViews: 4950, orders: 48 },
-  { date: '04/12', sessions: 2100, pageViews: 6300, orders: 72 },
-  { date: '05/12', sessions: 2350, pageViews: 7050, orders: 82 },
-  { date: '06/12', sessions: 2180, pageViews: 6540, orders: 75 },
-  { date: '07/12', sessions: 2480, pageViews: 7440, orders: 90 },
-]
+const dailyTraffic: { date: string; sessions: number; pageViews: number; orders: number }[] = []
 
-const deviceData = [
-  { name: 'Mobile', value: 68, color: '#6366f1' },
-  { name: 'Desktop', value: 28, color: '#22c55e' },
-  { name: 'Tablet', value: 4, color: '#f59e0b' },
-]
+const deviceData: { name: string; value: number; color: string }[] = []
 
-const topPages = [
-  { page: '/produto/kit-skincare', views: 4520, orders: 156 },
-  { page: '/produto/serum-vitamina-c', views: 2890, orders: 98 },
-  { page: '/produto/creme-noturno', views: 2100, orders: 72 },
-  { page: '/produto/protetor-solar', views: 1560, orders: 45 },
-  { page: '/colecao/verao-2024', views: 1200, orders: 28 },
-]
+const topPages: { page: string; views: number; orders: number }[] = []
 
 export default function TrackingPage() {
   const { toast } = useToast()
@@ -133,7 +103,7 @@ export default function TrackingPage() {
             <div className="flex items-center gap-4">
               <Eye className="h-8 w-8 text-blue-500" />
               <div>
-                <p className="text-2xl font-bold">{formatNumber(13060)}</p>
+                <p className="text-2xl font-bold">{formatNumber(0)}</p>
                 <p className="text-xs text-muted-foreground">Visitantes</p>
               </div>
             </div>
@@ -144,7 +114,7 @@ export default function TrackingPage() {
             <div className="flex items-center gap-4">
               <MousePointer className="h-8 w-8 text-purple-500" />
               <div>
-                <p className="text-2xl font-bold">{formatNumber(39180)}</p>
+                <p className="text-2xl font-bold">{formatNumber(0)}</p>
                 <p className="text-xs text-muted-foreground">Page Views</p>
               </div>
             </div>
@@ -155,7 +125,7 @@ export default function TrackingPage() {
             <div className="flex items-center gap-4">
               <ShoppingCart className="h-8 w-8 text-orange-500" />
               <div>
-                <p className="text-2xl font-bold">{formatNumber(2890)}</p>
+                <p className="text-2xl font-bold">{formatNumber(0)}</p>
                 <p className="text-xs text-muted-foreground">Add to Cart</p>
               </div>
             </div>
@@ -166,7 +136,7 @@ export default function TrackingPage() {
             <div className="flex items-center gap-4">
               <Target className="h-8 w-8 text-green-500" />
               <div>
-                <p className="text-2xl font-bold">{formatNumber(427)}</p>
+                <p className="text-2xl font-bold">{formatNumber(0)}</p>
                 <p className="text-xs text-muted-foreground">Conversões</p>
               </div>
             </div>
@@ -177,7 +147,7 @@ export default function TrackingPage() {
             <div className="flex items-center gap-4">
               <TrendingUp className="h-8 w-8 text-indigo-500" />
               <div>
-                <p className="text-2xl font-bold">3.27%</p>
+                <p className="text-2xl font-bold">0%</p>
                 <p className="text-xs text-muted-foreground">Taxa de Conversão</p>
               </div>
             </div>
