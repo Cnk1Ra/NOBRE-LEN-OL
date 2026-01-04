@@ -9,12 +9,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -26,7 +27,7 @@ export default function LoginPage() {
 
     try {
       const result = await signIn('credentials', {
-        email: formData.email,
+        email: formData.email.toLowerCase().trim(),
         password: formData.password,
         redirect: false,
       })
@@ -34,17 +35,26 @@ export default function LoginPage() {
       if (result?.error) {
         toast({
           title: 'Erro ao entrar',
-          description: result.error,
+          description: result.error === 'CredentialsSignin'
+            ? 'Email ou senha incorretos'
+            : result.error,
           variant: 'destructive',
         })
-      } else {
+      } else if (result?.ok) {
         router.push('/dashboard')
         router.refresh()
+      } else {
+        toast({
+          title: 'Erro ao entrar',
+          description: 'Não foi possível fazer login. Verifique suas credenciais.',
+          variant: 'destructive',
+        })
       }
     } catch (error) {
+      console.error('Login error:', error)
       toast({
         title: 'Erro',
-        description: 'Ocorreu um erro ao tentar entrar',
+        description: 'Ocorreu um erro ao tentar entrar. Tente novamente.',
         variant: 'destructive',
       })
     } finally {
@@ -92,17 +102,32 @@ export default function LoginPage() {
                   Esqueceu a senha?
                 </Link>
               </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                required
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  required
+                  disabled={isLoading}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
