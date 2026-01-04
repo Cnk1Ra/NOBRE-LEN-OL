@@ -25,243 +25,55 @@ import {
   Loader2,
 } from 'lucide-react'
 
-// Dados mock por periodo - em producao viriam do banco de dados
-const mockDataByPeriod = {
-  today: {
-    revenue: 8500,
-    profit: 2850,
-    orders: 28,
-    avgTicket: 303.57,
-    deliveryRate: 82.1,
-    returnRate: 10.5,
-    roas: 4.2,
-    visitors: 890,
-    chartData: [
-      { date: '08:00', revenue: 1200, profit: 400, orders: 4 },
-      { date: '10:00', revenue: 2100, profit: 720, orders: 7 },
-      { date: '12:00', revenue: 1800, profit: 600, orders: 6 },
-      { date: '14:00', revenue: 1500, profit: 510, orders: 5 },
-      { date: '16:00', revenue: 1900, profit: 620, orders: 6 },
-    ],
-    delivered: 18, inTransit: 5, returned: 3, pending: 2, failed: 0, total: 28,
-  },
-  yesterday: {
-    revenue: 12400,
-    profit: 4200,
-    orders: 42,
-    avgTicket: 295.24,
-    deliveryRate: 79.5,
-    returnRate: 11.8,
-    roas: 3.9,
-    visitors: 1250,
-    chartData: [
-      { date: '08:00', revenue: 1800, profit: 600, orders: 6 },
-      { date: '10:00', revenue: 2800, profit: 950, orders: 9 },
-      { date: '12:00', revenue: 2400, profit: 820, orders: 8 },
-      { date: '14:00', revenue: 2200, profit: 740, orders: 7 },
-      { date: '16:00', revenue: 3200, profit: 1090, orders: 12 },
-    ],
-    delivered: 28, inTransit: 6, returned: 5, pending: 2, failed: 1, total: 42,
-  },
-  week: {
-    revenue: 65200,
-    profit: 22100,
-    orders: 218,
-    avgTicket: 299.08,
-    deliveryRate: 78.9,
-    returnRate: 12.1,
-    roas: 4.1,
-    visitors: 6780,
-    chartData: [
-      { date: 'Seg', revenue: 8500, profit: 2900, orders: 28 },
-      { date: 'Ter', revenue: 9200, profit: 3100, orders: 31 },
-      { date: 'Qua', revenue: 10500, profit: 3600, orders: 35 },
-      { date: 'Qui', revenue: 9800, profit: 3300, orders: 33 },
-      { date: 'Sex', revenue: 11200, profit: 3800, orders: 38 },
-      { date: 'Sab', revenue: 8500, profit: 2900, orders: 28 },
-      { date: 'Dom', revenue: 7500, profit: 2500, orders: 25 },
-    ],
-    delivered: 172, inTransit: 22, returned: 15, pending: 6, failed: 3, total: 218,
-  },
-  month: {
-    revenue: 126300,
-    profit: 43500,
-    orders: 427,
-    avgTicket: 295.81,
-    deliveryRate: 78.5,
-    returnRate: 12.3,
-    roas: 3.72,
-    visitors: 13060,
-    chartData: [
-      { date: '01/12', revenue: 12500, profit: 4200, orders: 45 },
-      { date: '02/12', revenue: 15800, profit: 5100, orders: 52 },
-      { date: '03/12', revenue: 14200, profit: 4800, orders: 48 },
-      { date: '04/12', revenue: 18500, profit: 6200, orders: 62 },
-      { date: '05/12', revenue: 21000, profit: 7500, orders: 71 },
-      { date: '06/12', revenue: 19800, profit: 6800, orders: 67 },
-      { date: '07/12', revenue: 24500, profit: 8900, orders: 82 },
-    ],
-    delivered: 335, inTransit: 42, returned: 52, pending: 28, failed: 12, total: 427,
-  },
-  last_month: {
-    revenue: 112500,
-    profit: 38200,
-    orders: 385,
-    avgTicket: 292.21,
-    deliveryRate: 76.2,
-    returnRate: 13.8,
-    roas: 3.45,
-    visitors: 11800,
-    chartData: [
-      { date: 'Sem 1', revenue: 25000, profit: 8500, orders: 85 },
-      { date: 'Sem 2', revenue: 28500, profit: 9700, orders: 98 },
-      { date: 'Sem 3', revenue: 30200, profit: 10200, orders: 102 },
-      { date: 'Sem 4', revenue: 28800, profit: 9800, orders: 100 },
-    ],
-    delivered: 293, inTransit: 0, returned: 53, pending: 0, failed: 39, total: 385,
-  },
-  max: {
-    revenue: 1850000,
-    profit: 628000,
-    orders: 6250,
-    avgTicket: 296.00,
-    deliveryRate: 77.8,
-    returnRate: 13.2,
-    roas: 3.65,
-    visitors: 185000,
-    chartData: [
-      { date: 'Jan', revenue: 95000, profit: 32000, orders: 320 },
-      { date: 'Fev', revenue: 102000, profit: 34500, orders: 345 },
-      { date: 'Mar', revenue: 125000, profit: 42500, orders: 420 },
-      { date: 'Abr', revenue: 145000, profit: 49000, orders: 490 },
-      { date: 'Mai', revenue: 168000, profit: 57000, orders: 565 },
-      { date: 'Jun', revenue: 178000, profit: 60500, orders: 600 },
-      { date: 'Jul', revenue: 195000, profit: 66000, orders: 655 },
-      { date: 'Ago', revenue: 210000, profit: 71500, orders: 710 },
-      { date: 'Set', revenue: 198000, profit: 67000, orders: 665 },
-      { date: 'Out', revenue: 185000, profit: 63000, orders: 625 },
-      { date: 'Nov', revenue: 125000, profit: 42500, orders: 425 },
-      { date: 'Dez', revenue: 124000, profit: 42500, orders: 430 },
-    ],
-    delivered: 4863, inTransit: 42, returned: 825, pending: 28, failed: 492, total: 6250,
-  },
-  custom: {
-    revenue: 45000,
-    profit: 15300,
-    orders: 152,
-    avgTicket: 296.05,
-    deliveryRate: 79.0,
-    returnRate: 11.5,
-    roas: 3.8,
-    visitors: 4500,
-    chartData: [
-      { date: 'Dia 1', revenue: 9000, profit: 3050, orders: 30 },
-      { date: 'Dia 2', revenue: 9500, profit: 3200, orders: 32 },
-      { date: 'Dia 3', revenue: 8500, profit: 2900, orders: 28 },
-      { date: 'Dia 4', revenue: 9200, profit: 3100, orders: 31 },
-      { date: 'Dia 5', revenue: 8800, profit: 3050, orders: 31 },
-    ],
-    delivered: 120, inTransit: 15, returned: 10, pending: 5, failed: 2, total: 152,
-  },
+// Dados zerados - em producao viriam do banco de dados
+const emptyData = {
+  revenue: 0,
+  profit: 0,
+  orders: 0,
+  avgTicket: 0,
+  deliveryRate: 0,
+  returnRate: 0,
+  roas: 0,
+  visitors: 0,
+  chartData: [] as { date: string; revenue: number; profit: number; orders: number }[],
+  delivered: 0, inTransit: 0, returned: 0, pending: 0, failed: 0, total: 0,
 }
 
-const mockTrafficSources = [
-  {
-    name: 'Facebook Ads',
-    platform: 'FACEBOOK' as const,
-    sessions: 4520,
-    orders: 156,
-    revenue: 45600,
-    adSpend: 12500,
-    conversionRate: 3.45,
-  },
-  {
-    name: 'Instagram',
-    platform: 'INSTAGRAM' as const,
-    sessions: 2890,
-    orders: 98,
-    revenue: 28400,
-    adSpend: 8200,
-    conversionRate: 3.39,
-  },
-  {
-    name: 'Google Ads',
-    platform: 'GOOGLE' as const,
-    sessions: 1560,
-    orders: 45,
-    revenue: 15200,
-    adSpend: 5800,
-    conversionRate: 2.88,
-  },
-  {
-    name: 'TikTok Ads',
-    platform: 'TIKTOK' as const,
-    sessions: 3200,
-    orders: 72,
-    revenue: 21500,
-    adSpend: 7500,
-    conversionRate: 2.25,
-  },
-  {
-    name: 'Organico',
-    platform: 'ORGANIC' as const,
-    sessions: 890,
-    orders: 28,
-    revenue: 8400,
-    conversionRate: 3.15,
-  },
-]
+const mockDataByPeriod = {
+  today: { ...emptyData },
+  yesterday: { ...emptyData },
+  week: { ...emptyData },
+  month: { ...emptyData },
+  last_month: { ...emptyData },
+  max: { ...emptyData },
+  custom: { ...emptyData },
+}
 
-const mockOrders = [
-  {
-    id: 'ord_a1b2c3d4',
-    customerName: 'Joao Silva',
-    total: 289.90,
-    status: 'SHIPPED' as const,
-    paymentStatus: 'PENDING' as const,
-    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    country: 'BR',
-  },
-  {
-    id: 'ord_e5f6g7h8',
-    customerName: 'Maria Santos',
-    total: 459.90,
-    status: 'DELIVERED' as const,
-    paymentStatus: 'PAID' as const,
-    createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    country: 'BR',
-  },
-  {
-    id: 'ord_i9j0k1l2',
-    customerName: 'Pedro Oliveira',
-    total: 189.90,
-    status: 'PENDING' as const,
-    paymentStatus: 'PENDING' as const,
-    createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-    country: 'PT',
-  },
-  {
-    id: 'ord_m3n4o5p6',
-    customerName: 'Ana Costa',
-    total: 599.90,
-    status: 'RETURNED' as const,
-    paymentStatus: 'REFUNDED' as const,
-    createdAt: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
-    country: 'BR',
-  },
-  {
-    id: 'ord_q7r8s9t0',
-    customerName: 'Carlos Ferreira',
-    total: 349.90,
-    status: 'OUT_FOR_DELIVERY' as const,
-    paymentStatus: 'PENDING' as const,
-    createdAt: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
-    country: 'BR',
-  },
-]
+// Fontes de trafego zeradas - dados reais virao das integracoes
+const mockTrafficSources: {
+  name: string
+  platform: 'FACEBOOK' | 'INSTAGRAM' | 'GOOGLE' | 'TIKTOK' | 'ORGANIC'
+  sessions: number
+  orders: number
+  revenue: number
+  adSpend?: number
+  conversionRate: number
+}[] = []
+
+// Pedidos zerados - dados reais virao do banco
+const mockOrders: {
+  id: string
+  customerName: string
+  total: number
+  status: 'PENDING' | 'SHIPPED' | 'DELIVERED' | 'RETURNED' | 'OUT_FOR_DELIVERY'
+  paymentStatus: 'PENDING' | 'PAID' | 'REFUNDED'
+  createdAt: string
+  country: string
+}[] = []
 
 // Calcula variacao percentual entre periodos
 function calculateChange(current: number, previous: number): number {
+  if (previous === 0 && current === 0) return 0
   if (previous === 0) return 100
   return ((current - previous) / previous) * 100
 }

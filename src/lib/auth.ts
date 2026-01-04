@@ -49,6 +49,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           image: user.image,
           role: user.role,
+          isPaymentExempt: user.isPaymentExempt,
         }
       },
     }),
@@ -58,6 +59,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id
         token.role = (user as any).role
+        token.isPaymentExempt = (user as any).isPaymentExempt
       }
       return token
     },
@@ -65,6 +67,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as string
+        session.user.isPaymentExempt = token.isPaymentExempt as boolean
       }
       return session
     },

@@ -252,6 +252,7 @@ export function Sidebar({ className }: SidebarProps) {
   const [integracoesOpen, setIntegracoesOpen] = useState(false)
 
   const isMatrix = session?.user?.role === 'MATRIX'
+  const isPaymentExempt = session?.user?.isPaymentExempt === true
 
   const NavItem = ({ item }: { item: typeof mainNavItems[0] }) => {
     const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -460,8 +461,8 @@ export function Sidebar({ className }: SidebarProps) {
           </nav>
         </ScrollArea>
 
-        {/* Upgrade Card - Only show when expanded */}
-        {!collapsed && (
+        {/* Upgrade Card - Only show when expanded and user is not exempt */}
+        {!collapsed && !isPaymentExempt && !isMatrix && (
           <div className="px-3 py-3">
             <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 via-accent/10 to-primary/10 p-4 border border-primary/20">
               <div className="relative z-10">
