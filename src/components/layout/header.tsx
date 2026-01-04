@@ -36,7 +36,7 @@ import {
   Trophy,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { useDateFilter, DateFilterPeriod } from '@/contexts/date-filter-context'
 import { useNotifications } from '@/contexts/notifications-context'
@@ -44,6 +44,7 @@ import { useCountry } from '@/contexts/country-context'
 import { useUser } from '@/contexts/user-context'
 import { Package, Truck, AlertTriangle, CheckCircle, Info, X, Globe2, Check } from 'lucide-react'
 import Link from 'next/link'
+import { SearchPalette } from './search-palette'
 
 interface HeaderProps {
   workspaceName?: string
@@ -99,11 +100,25 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
   const { countries, selectedCountry, selectCountry, selectAll, isAllSelected, getCountryData } = useCountry()
   const { profile, getInitials, getFullName } = useUser()
   const [mounted, setMounted] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   const activeCountries = countries.filter(c => c.active)
 
   useEffect(() => {
     setMounted(true)
+  }, [])
+
+  // Keyboard shortcut for search (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   // Get TOTAL revenue (histórico) for selected country - for milestone progress
@@ -157,7 +172,10 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
     <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-border/40 bg-background/80 backdrop-blur-xl px-6">
       {/* Search */}
       <div className="flex-1 flex items-center gap-4">
-        <button className="group flex items-center gap-3 h-10 px-4 w-full max-w-md rounded-xl border border-border/60 bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:border-border transition-all duration-200">
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="group flex items-center gap-3 h-10 px-4 w-full max-w-md rounded-xl border border-border/60 bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:border-border transition-all duration-200"
+        >
           <Search className="h-4 w-4 shrink-0" />
           <span className="text-sm flex-1 text-left">Buscar pedidos, produtos...</span>
           <kbd className="hidden md:inline-flex h-5 items-center gap-1 rounded border border-border/60 bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
@@ -498,6 +516,9 @@ export function Header({ workspaceName = 'Minha Loja' }: HeaderProps) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Search Palette */}
+      <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} />
     </header>
   )
 }
