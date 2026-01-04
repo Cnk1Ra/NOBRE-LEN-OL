@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { DeliveryStats } from '@/components/dashboard/delivery-stats'
 import { RevenueChart } from '@/components/dashboard/revenue-chart'
@@ -334,7 +335,7 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       {isSectionVisible('quick-actions') && (
         <div className="grid gap-4 md:grid-cols-3">
-          <button className="group flex items-center gap-4 p-4 rounded-2xl border border-border/50 bg-card hover:border-primary/50 hover:bg-primary/5 transition-all duration-300">
+          <Link href="/dashboard/orders?status=PENDING" className="group flex items-center gap-4 p-4 rounded-2xl border border-border/50 bg-card hover:border-primary/50 hover:bg-primary/5 transition-all duration-300">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform">
               <ShoppingCart className="h-6 w-6" />
             </div>
@@ -343,9 +344,9 @@ export default function DashboardPage() {
               <p className="text-sm text-muted-foreground">Aguardando processamento</p>
             </div>
             <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-          </button>
+          </Link>
 
-          <button className="group flex items-center gap-4 p-4 rounded-2xl border border-border/50 bg-card hover:border-warning/50 hover:bg-warning/5 transition-all duration-300">
+          <Link href="/dashboard/inventory?filter=low" className="group flex items-center gap-4 p-4 rounded-2xl border border-border/50 bg-card hover:border-warning/50 hover:bg-warning/5 transition-all duration-300">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10 text-warning group-hover:scale-110 transition-transform">
               <Zap className="h-6 w-6" />
             </div>
@@ -354,9 +355,9 @@ export default function DashboardPage() {
               <p className="text-sm text-muted-foreground">Requer atencao</p>
             </div>
             <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground group-hover:text-warning group-hover:translate-x-1 transition-all" />
-          </button>
+          </Link>
 
-          <button className="group flex items-center gap-4 p-4 rounded-2xl border border-border/50 bg-card hover:border-success/50 hover:bg-success/5 transition-all duration-300">
+          <Link href="/dashboard/deliveries" className="group flex items-center gap-4 p-4 rounded-2xl border border-border/50 bg-card hover:border-success/50 hover:bg-success/5 transition-all duration-300">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10 text-success group-hover:scale-110 transition-transform">
               <Truck className="h-6 w-6" />
             </div>
@@ -365,7 +366,7 @@ export default function DashboardPage() {
               <p className="text-sm text-muted-foreground">Saindo para entrega hoje</p>
             </div>
             <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground group-hover:text-success group-hover:translate-x-1 transition-all" />
-          </button>
+          </Link>
         </div>
       )}
 

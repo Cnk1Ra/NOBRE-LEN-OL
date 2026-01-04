@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { useTutorial } from '@/contexts/tutorial-context'
 import { useSearchParams } from 'next/navigation'
+import { ChangePasswordDialog } from '@/components/settings/change-password-dialog'
 import {
   Select,
   SelectContent,
@@ -494,8 +495,8 @@ function SettingsContent() {
               <div className="space-y-4">
                 <div>
                   <Label>Alterar Senha</Label>
-                  <p className="text-sm text-muted-foreground mb-4">Para sua segurança, recomendamos usar uma senha forte e única.</p>
-                  <Button variant="outline">Alterar senha</Button>
+                  <p className="text-sm text-muted-foreground mb-4">Para sua seguranca, recomendamos usar uma senha forte e unica.</p>
+                  <ChangePasswordDialog />
                 </div>
                 <Separator />
                 <div>
