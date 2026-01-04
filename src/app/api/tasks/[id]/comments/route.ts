@@ -14,12 +14,12 @@ export async function POST(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    const membership = await prisma.workspaceMember.findFirst({
+      where: { userId: session.user.id },
       select: { workspaceId: true },
     })
 
-    if (!user?.workspaceId) {
+    if (!membership?.workspaceId) {
       return NextResponse.json({ error: 'Workspace não encontrado' }, { status: 404 })
     }
 
@@ -27,7 +27,7 @@ export async function POST(
     const task = await prisma.task.findFirst({
       where: {
         id: params.id,
-        workspaceId: user.workspaceId,
+        workspaceId: membership.workspaceId,
       },
     })
 
