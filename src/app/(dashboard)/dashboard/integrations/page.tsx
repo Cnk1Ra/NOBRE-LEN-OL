@@ -160,148 +160,17 @@ interface PixelConfig {
   events: string[]
 }
 
-// ============ MOCK DATA ============
+// ============ INTEGRATION DATA - STARTS EMPTY ============
 
-const mockDomains: TrackingDomain[] = [
-  { id: '1', domain: 'track.minhaloja.com', status: 'active', ssl: true, createdAt: new Date('2024-01-15') },
-  { id: '2', domain: 'go.minhaloja.com', status: 'active', ssl: true, createdAt: new Date('2024-02-01') },
-]
+const mockDomains: TrackingDomain[] = []
 
-const mockCloakers: CloakerConfig[] = [
-  {
-    id: '1',
-    name: 'The White Rabbit - Principal',
-    type: 'the-white-rabbit',
-    apiKey: 'twr_xxxxxxxxxxxx',
-    apiSecret: '••••••••••••',
-    enabled: true,
-    safePage: 'https://minhaloja.com/blog',
-    moneyPage: 'https://minhaloja.com/oferta',
-    settings: {
-      blockBots: true,
-      blockVPN: true,
-      blockDatacenters: true,
-      geoTargeting: true,
-      allowedCountries: ['BR', 'PT', 'AO', 'MZ'],
-      blockRepeatedVisits: false,
-    },
-  },
-]
+const mockCloakers: CloakerConfig[] = []
 
-const mockPostbacks: PostbackConfig[] = [
-  {
-    id: '1',
-    name: 'Meta - IC',
-    event: 'initiate_checkout',
-    url: 'https://graph.facebook.com/v18.0/{pixel_id}/events',
-    method: 'POST',
-    enabled: true,
-    parameters: [
-      { key: 'event_name', value: 'InitiateCheckout' },
-      { key: 'event_time', value: '{timestamp}' },
-      { key: 'user_data[client_ip_address]', value: '{ip}' },
-      { key: 'user_data[client_user_agent]', value: '{user_agent}' },
-      { key: 'user_data[fbc]', value: '{fbclid}' },
-      { key: 'custom_data[value]', value: '{value}' },
-      { key: 'custom_data[currency]', value: 'BRL' },
-    ],
-    lastTriggered: new Date(),
-    successCount: 1247,
-    failCount: 3,
-  },
-  {
-    id: '2',
-    name: 'Meta - Purchase',
-    event: 'purchase',
-    url: 'https://graph.facebook.com/v18.0/{pixel_id}/events',
-    method: 'POST',
-    enabled: true,
-    parameters: [
-      { key: 'event_name', value: 'Purchase' },
-      { key: 'event_time', value: '{timestamp}' },
-      { key: 'user_data[client_ip_address]', value: '{ip}' },
-      { key: 'custom_data[value]', value: '{value}' },
-      { key: 'custom_data[order_id]', value: '{order_id}' },
-    ],
-    lastTriggered: new Date(),
-    successCount: 523,
-    failCount: 1,
-  },
-  {
-    id: '3',
-    name: 'Google - Conversão',
-    event: 'purchase',
-    url: 'https://www.googleadservices.com/pagead/conversion/{conversion_id}/',
-    method: 'GET',
-    enabled: true,
-    parameters: [
-      { key: 'value', value: '{value}' },
-      { key: 'currency', value: 'BRL' },
-      { key: 'transaction_id', value: '{order_id}' },
-    ],
-    lastTriggered: new Date(),
-    successCount: 312,
-    failCount: 0,
-  },
-]
+const mockPostbacks: PostbackConfig[] = []
 
-const mockEvents: TrackingEvent[] = [
-  {
-    id: '1',
-    type: 'pageview',
-    timestamp: new Date(Date.now() - 5000),
-    data: {
-      clickId: 'clk_abc123',
-      fbclid: 'fb.1.123456789.987654321',
-      ip: '187.xxx.xxx.xxx',
-      country: 'BR',
-      utm: { source: 'facebook', medium: 'cpc', campaign: 'blackfriday', content: 'ad1', term: '' },
-      subIds: { sub1: 'creative1', sub2: 'adset1', sub3: '', sub4: '', sub5: '', sub6: '', sub7: '', sub8: '' },
-    },
-  },
-  {
-    id: '2',
-    type: 'click',
-    timestamp: new Date(Date.now() - 15000),
-    data: {
-      clickId: 'clk_abc123',
-      fbclid: 'fb.1.123456789.987654321',
-      ip: '187.xxx.xxx.xxx',
-      country: 'BR',
-    },
-  },
-  {
-    id: '3',
-    type: 'initiate_checkout',
-    timestamp: new Date(Date.now() - 60000),
-    data: {
-      clickId: 'clk_abc123',
-      fbclid: 'fb.1.123456789.987654321',
-      ip: '187.xxx.xxx.xxx',
-      country: 'BR',
-      value: 197.90,
-    },
-  },
-  {
-    id: '4',
-    type: 'purchase',
-    timestamp: new Date(Date.now() - 120000),
-    data: {
-      clickId: 'clk_def456',
-      gclid: 'Cj0KCQiA...',
-      ip: '200.xxx.xxx.xxx',
-      country: 'BR',
-      value: 297.90,
-      orderId: 'ORD-12345',
-    },
-  },
-]
+const mockEvents: TrackingEvent[] = []
 
-const mockPixels: PixelConfig[] = [
-  { id: '1', platform: 'meta', pixelId: '1234567890123456', accessToken: 'EAABs...', enabled: true, events: ['PageView', 'ViewContent', 'AddToCart', 'InitiateCheckout', 'Purchase'] },
-  { id: '2', platform: 'google', pixelId: 'AW-1234567890', enabled: true, events: ['conversion', 'remarketing'] },
-  { id: '3', platform: 'tiktok', pixelId: 'CXXXXXXXXXXXXXXXXX', enabled: false, events: ['PageView', 'ClickButton', 'SubmitForm', 'CompletePayment'] },
-]
+const mockPixels: PixelConfig[] = []
 
 // ============ COMPONENT ============
 
