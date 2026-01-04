@@ -1,12 +1,32 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
-import { getPasswordResetEmailTemplate, getPasswordResetTextTemplate } from '@/lib/email/templates'
+import { getPasswordResetEmailTemplate, getPasswordResetTextTemplate, getPasswordResetSubject } from '@/lib/email/templates'
 import crypto from 'crypto'
+
+// Mapeamento de expiresIn por idioma
+const expiresInByLang: Record<string, string> = {
+  'pt-BR': '1 hora',
+  'pt-PT': '1 hora',
+  'en-US': '1 hour',
+  'en-GB': '1 hour',
+  'es': '1 hora',
+  'fr': '1 heure',
+  'de': '1 Stunde',
+  'it': '1 ora',
+}
+
+function getExpiresIn(lang: string): string {
+  return expiresInByLang[lang] || expiresInByLang['pt-BR']
+}
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json()
+    const { email, language } = await request.json()
+
+    // Detectar idioma do header Accept-Language como fallback
+    const acceptLanguage = request.headers.get('Accept-Language')
+    const detectedLang = language || acceptLanguage?.split(',')[0]?.split(';')[0] || 'pt-BR'
 
     if (!email) {
       return NextResponse.json(
@@ -92,20 +112,24 @@ export async function POST(request: Request) {
     const smtpConfigured = !!(process.env.SMTP_USER && process.env.SMTP_PASSWORD)
 
     if (smtpConfigured) {
-      // Enviar email
+      // Enviar email no idioma correto
+      const expiresIn = getExpiresIn(detectedLang)
+
       try {
         await sendEmail({
           to: user.email,
-          subject: 'Redefinição de Senha - Dash On Delivery',
+          subject: getPasswordResetSubject(detectedLang),
           html: getPasswordResetEmailTemplate({
             userName: user.name || undefined,
             resetLink,
-            expiresIn: '1 hora',
+            expiresIn,
+            language: detectedLang,
           }),
           text: getPasswordResetTextTemplate({
             userName: user.name || undefined,
             resetLink,
-            expiresIn: '1 hora',
+            expiresIn,
+            language: detectedLang,
           }),
         })
 
