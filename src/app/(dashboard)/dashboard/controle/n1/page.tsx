@@ -118,21 +118,8 @@ interface DODOrder {
   address?: string
 }
 
-// Initial DOD orders data
-const initialDodOrders: DODOrder[] = [
-  { id: 'DOD-001', country: 'PT', customer: 'João Silva', total: 289.90, status: 'SHIPPED', date: '2024-12-07', trackingCode: 'PT123456789', phone: '+351910192960', email: 'joao@email.com' },
-  { id: 'DOD-002', country: 'ES', customer: 'María García', total: 459.90, status: 'DELIVERED', date: '2024-12-06', trackingCode: 'ES987654321', phone: '+34612345678', email: 'maria@email.com' },
-  { id: 'DOD-003', country: 'PT', customer: 'Pedro Costa', total: 189.90, status: 'PENDING', date: '2024-12-07', trackingCode: '', phone: '+351965868007', email: 'pedro@email.com' },
-  { id: 'DOD-004', country: 'IT', customer: 'Marco Rossi', total: 599.90, status: 'SHIPPED', date: '2024-12-05', trackingCode: 'IT456789123', phone: '+39345678901', email: 'marco@email.com' },
-  { id: 'DOD-005', country: 'ES', customer: 'Carlos López', total: 349.90, status: 'DELIVERED', date: '2024-12-04', trackingCode: 'ES321654987', phone: '+34698765432', email: 'carlos@email.com' },
-  { id: 'DOD-006', country: 'PT', customer: 'Lucia Ferreira', total: 279.90, status: 'SHIPPED', date: '2024-12-07', trackingCode: 'PT147258369', phone: '+351933124552', email: 'lucia@email.com' },
-  { id: 'DOD-007', country: 'IT', customer: 'Giuseppe Bianchi', total: 429.90, status: 'PENDING', date: '2024-12-07', trackingCode: '', phone: '+39334567890', email: 'giuseppe@email.com' },
-  { id: 'DOD-008', country: 'ES', customer: 'Ana Martínez', total: 199.90, status: 'SHIPPED', date: '2024-12-06', trackingCode: 'ES963852741', phone: '+34654321098', email: 'ana@email.com' },
-  { id: 'DOD-009', country: 'PT', customer: 'Marcos Pereira', total: 529.90, status: 'RETURNED', date: '2024-12-03', trackingCode: 'PT852741963', phone: '+351918663601', email: 'marcos@email.com' },
-  { id: 'DOD-010', country: 'IT', customer: 'Francesca Romano', total: 319.90, status: 'DELIVERED', date: '2024-12-05', trackingCode: 'IT741852963', phone: '+39312345678', email: 'francesca@email.com' },
-  { id: 'DOD-011', country: 'BR', customer: 'Roberto Santos', total: 389.90, status: 'SHIPPED', date: '2024-12-07', trackingCode: 'BR123789456', phone: '+5511987654321', email: 'roberto@email.com' },
-  { id: 'DOD-012', country: 'AO', customer: 'Manuel Silva', total: 259.90, status: 'PENDING', date: '2024-12-07', trackingCode: '', phone: '+244923456789', email: 'manuel@email.com' },
-]
+// DOD orders data - starts empty, will be populated from API/database
+const initialDodOrders: DODOrder[] = []
 
 export default function N1ControlPage() {
   const [searchTerm, setSearchTerm] = useState('')
