@@ -109,6 +109,12 @@ const trafficNavItems = [
 // INTEGRACOES - Platform connections
 const integrationNavItems = [
   {
+    title: 'Todas Integrações',
+    href: '/dashboard/integrations',
+    icon: Settings,
+    color: 'text-purple-500',
+  },
+  {
     title: 'Conectar Meta',
     href: '/dashboard/integracoes/meta',
     icon: Facebook,

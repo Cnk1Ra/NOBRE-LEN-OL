@@ -1472,8 +1472,9 @@ export default function IntegrationsPage() {
         <TabsContent value="platforms" className="space-y-6 mt-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {[
-              { name: 'Shopify', icon: '🛒', connected: true, description: 'E-commerce platform' },
-              { name: 'WooCommerce', icon: '🔌', connected: true, description: 'WordPress plugin' },
+              { name: 'Shopify', icon: '🛒', connected: false, description: 'E-commerce platform' },
+              { name: 'N1 Warehouse', icon: '📦', connected: false, description: 'Gestão de estoque e fulfillment' },
+              { name: 'WooCommerce', icon: '🔌', connected: false, description: 'WordPress plugin' },
               { name: 'Yampi', icon: '💳', connected: false, description: 'Checkout brasileiro' },
               { name: 'Cartpanda', icon: '🐼', connected: false, description: 'Checkout COD' },
               { name: 'Appmax', icon: '📱', connected: false, description: 'Checkout mobile' },

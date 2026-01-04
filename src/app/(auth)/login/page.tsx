@@ -33,11 +33,28 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
+        // Mensagens de erro específicas
+        let errorTitle = 'Erro ao entrar'
+        let errorDescription = 'Não foi possível fazer login.'
+
+        if (result.error === 'CredentialsSignin') {
+          errorDescription = 'Email ou senha incorretos. Verifique suas credenciais.'
+        } else if (result.error.includes('não encontrado') || result.error.includes('Usuário não encontrado')) {
+          errorTitle = 'Email não cadastrado'
+          errorDescription = 'Este email não está cadastrado na plataforma. Verifique o email ou crie uma nova conta.'
+        } else if (result.error.includes('Senha incorreta') || result.error.includes('senha')) {
+          errorTitle = 'Senha incorreta'
+          errorDescription = 'A senha informada está incorreta. Tente novamente ou recupere sua senha.'
+        } else if (result.error.includes('obrigatórios')) {
+          errorTitle = 'Campos obrigatórios'
+          errorDescription = 'Por favor, preencha o email e a senha.'
+        } else {
+          errorDescription = result.error
+        }
+
         toast({
-          title: 'Erro ao entrar',
-          description: result.error === 'CredentialsSignin'
-            ? 'Email ou senha incorretos'
-            : result.error,
+          title: errorTitle,
+          description: errorDescription,
           variant: 'destructive',
         })
       } else if (result?.ok) {
