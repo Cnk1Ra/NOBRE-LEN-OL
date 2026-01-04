@@ -479,9 +479,11 @@ export function Sidebar({ className }: SidebarProps) {
                 <p className="text-xs text-muted-foreground mb-3">
                   Desbloqueie recursos avançados de tracking e relatórios.
                 </p>
-                <Button size="sm" className="w-full btn-glow">
-                  Ver planos
-                </Button>
+                <Link href="/dashboard/pricing">
+                  <Button size="sm" className="w-full btn-glow">
+                    Ver planos
+                  </Button>
+                </Link>
               </div>
               {/* Decorative gradient blob */}
               <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/20 rounded-full blur-2xl" />
