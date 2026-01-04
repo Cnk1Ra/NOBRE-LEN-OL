@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState, useEffect, useCallback } from 'react'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -45,10 +45,8 @@ import {
   Filter,
   Download,
   MoreHorizontal,
-  Eye,
   Truck,
   RotateCcw,
-  XCircle,
   ChevronLeft,
   ChevronRight,
   Pencil,
@@ -57,125 +55,11 @@ import {
   RefreshCw,
   Copy,
   CheckCircle2,
+  Loader2,
 } from 'lucide-react'
 import { formatCurrency, getRelativeTime, getInitials } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
 import type { Order, OrderStatus } from '@/types'
-
-// Mock data
-const initialOrders: Order[] = [
-  {
-    id: 'ord_a1b2c3d4',
-    customerName: 'João Silva',
-    customerEmail: 'joao@email.com',
-    customerPhone: '+55 11 99999-9999',
-    total: 289.90,
-    subtotal: 274.90,
-    shippingCost: 15,
-    discount: 0,
-    costOfGoods: 120,
-    profit: 154.90,
-    status: 'SHIPPED',
-    paymentStatus: 'PENDING',
-    deliveryStatus: 'IN_TRANSIT',
-    trackingCode: 'BR123456789',
-    carrierName: 'Correios',
-    orderedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
-    deliveryAttempts: 0,
-    utmSource: 'facebook',
-    utmMedium: 'cpc',
-    utmCampaign: 'black_friday',
-    items: [
-      { id: '1', name: 'Produto X', sku: 'SKU001', quantity: 2, unitPrice: 137.45, totalPrice: 274.90, costPrice: 60 }
-    ],
-    country: { code: 'BR', name: 'Brasil', currency: 'BRL', currencySymbol: 'R$' }
-  },
-  {
-    id: 'ord_e5f6g7h8',
-    customerName: 'Maria Santos',
-    customerEmail: 'maria@email.com',
-    total: 459.90,
-    subtotal: 444.90,
-    shippingCost: 15,
-    discount: 0,
-    costOfGoods: 180,
-    profit: 264.90,
-    status: 'DELIVERED',
-    paymentStatus: 'PAID',
-    deliveryStatus: 'DELIVERED',
-    orderedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
-    deliveredAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
-    deliveryAttempts: 1,
-    utmSource: 'instagram',
-    items: [
-      { id: '2', name: 'Produto Y', sku: 'SKU002', quantity: 1, unitPrice: 444.90, totalPrice: 444.90, costPrice: 180 }
-    ],
-    country: { code: 'BR', name: 'Brasil', currency: 'BRL', currencySymbol: 'R$' }
-  },
-  {
-    id: 'ord_i9j0k1l2',
-    customerName: 'Pedro Oliveira',
-    total: 189.90,
-    subtotal: 164.90,
-    shippingCost: 25,
-    discount: 0,
-    costOfGoods: 70,
-    profit: 94.90,
-    status: 'PENDING',
-    paymentStatus: 'PENDING',
-    deliveryStatus: 'PENDING',
-    orderedAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-    deliveryAttempts: 0,
-    utmSource: 'google',
-    items: [
-      { id: '3', name: 'Produto Z', sku: 'SKU003', quantity: 1, unitPrice: 164.90, totalPrice: 164.90, costPrice: 70 }
-    ],
-    country: { code: 'PT', name: 'Portugal', currency: 'EUR', currencySymbol: '€' }
-  },
-  {
-    id: 'ord_m3n4o5p6',
-    customerName: 'Ana Costa',
-    total: 599.90,
-    subtotal: 584.90,
-    shippingCost: 15,
-    discount: 0,
-    costOfGoods: 250,
-    profit: 0,
-    status: 'RETURNED',
-    paymentStatus: 'REFUNDED',
-    deliveryStatus: 'RETURNED',
-    orderedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
-    returnedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
-    deliveryAttempts: 2,
-    failureReason: 'Cliente recusou o pedido',
-    items: [
-      { id: '4', name: 'Produto W', sku: 'SKU004', quantity: 1, unitPrice: 584.90, totalPrice: 584.90, costPrice: 250 }
-    ],
-    country: { code: 'BR', name: 'Brasil', currency: 'BRL', currencySymbol: 'R$' }
-  },
-  {
-    id: 'ord_q7r8s9t0',
-    customerName: 'Carlos Ferreira',
-    total: 349.90,
-    subtotal: 334.90,
-    shippingCost: 15,
-    discount: 0,
-    costOfGoods: 140,
-    profit: 194.90,
-    status: 'OUT_FOR_DELIVERY',
-    paymentStatus: 'PENDING',
-    deliveryStatus: 'OUT_FOR_DELIVERY',
-    trackingCode: 'BR987654321',
-    carrierName: 'Jadlog',
-    orderedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
-    deliveryAttempts: 1,
-    lastAttemptAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    items: [
-      { id: '5', name: 'Produto V', sku: 'SKU005', quantity: 2, unitPrice: 167.45, totalPrice: 334.90, costPrice: 70 }
-    ],
-    country: { code: 'BR', name: 'Brasil', currency: 'BRL', currencySymbol: 'R$' }
-  },
-]
 
 const statusLabels: Record<OrderStatus, string> = {
   PENDING: 'Pendente',
@@ -220,10 +104,21 @@ const paymentOptions = [
 ]
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>(initialOrders)
+  const [orders, setOrders] = useState<Order[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalOrders, setTotalOrders] = useState(0)
+
+  // Stats
+  const [stats, setStats] = useState({
+    total: 0,
+    delivered: 0,
+    inTransit: 0,
+    returned: 0,
+  })
 
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -234,13 +129,57 @@ export default function OrdersPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null)
 
-  const filteredOrders = orders.filter((order) => {
-    const matchesSearch =
-      order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  // Fetch orders
+  const fetchOrders = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: '20',
+      })
+
+      if (searchTerm) params.append('search', searchTerm)
+      if (statusFilter !== 'all') params.append('status', statusFilter)
+
+      const response = await fetch(`/api/orders?${params}`)
+      if (!response.ok) throw new Error('Erro ao carregar pedidos')
+
+      const data = await response.json()
+      setOrders(data.data || [])
+      setTotalPages(data.pagination?.totalPages || 1)
+      setTotalOrders(data.pagination?.total || 0)
+
+      // Calculate stats from orders
+      const allOrders = data.data || []
+      setStats({
+        total: data.pagination?.total || 0,
+        delivered: allOrders.filter((o: Order) => o.status === 'DELIVERED').length,
+        inTransit: allOrders.filter((o: Order) => ['SHIPPED', 'OUT_FOR_DELIVERY'].includes(o.status)).length,
+        returned: allOrders.filter((o: Order) => o.status === 'RETURNED').length,
+      })
+    } catch (error) {
+      console.error('Erro ao buscar pedidos:', error)
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os pedidos.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }, [currentPage, searchTerm, statusFilter])
+
+  useEffect(() => {
+    fetchOrders()
+  }, [fetchOrders])
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentPage(1)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
 
   // Handle edit
   const handleEdit = (order: Order) => {
@@ -253,18 +192,43 @@ export default function OrdersPage() {
     if (!editingOrder) return
 
     setIsSaving(true)
-    await new Promise(resolve => setTimeout(resolve, 500))
+    try {
+      const response = await fetch(`/api/orders/${editingOrder.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: editingOrder.customerName,
+          customerEmail: editingOrder.customerEmail,
+          customerPhone: editingOrder.customerPhone,
+          total: editingOrder.total,
+          status: editingOrder.status,
+          paymentStatus: editingOrder.paymentStatus,
+          trackingCode: editingOrder.trackingCode,
+          carrierName: editingOrder.carrierName,
+        }),
+      })
 
-    setOrders(prev => prev.map(o => o.id === editingOrder.id ? editingOrder : o))
-    setEditModalOpen(false)
-    setEditingOrder(null)
-    setIsSaving(false)
+      if (!response.ok) throw new Error('Erro ao atualizar pedido')
 
-    toast({
-      title: 'Pedido atualizado!',
-      description: `O pedido #${editingOrder.id.slice(4, 12)} foi atualizado com sucesso.`,
-      className: 'bg-green-500 text-white border-green-600',
-    })
+      const updatedOrder = await response.json()
+      setOrders(prev => prev.map(o => o.id === editingOrder.id ? updatedOrder : o))
+      setEditModalOpen(false)
+      setEditingOrder(null)
+
+      toast({
+        title: 'Pedido atualizado!',
+        description: `O pedido #${editingOrder.id.slice(0, 8)} foi atualizado com sucesso.`,
+        className: 'bg-green-500 text-white border-green-600',
+      })
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar o pedido.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   // Handle delete
@@ -276,32 +240,58 @@ export default function OrdersPage() {
   const confirmDelete = async () => {
     if (!deletingOrderId) return
 
-    await new Promise(resolve => setTimeout(resolve, 300))
+    try {
+      const response = await fetch(`/api/orders/${deletingOrderId}`, {
+        method: 'DELETE',
+      })
 
-    setOrders(prev => prev.filter(o => o.id !== deletingOrderId))
-    setDeleteDialogOpen(false)
+      if (!response.ok) throw new Error('Erro ao excluir pedido')
 
-    toast({
-      title: 'Pedido removido!',
-      description: `O pedido foi removido com sucesso.`,
-      className: 'bg-green-500 text-white border-green-600',
-    })
-    setDeletingOrderId(null)
+      setOrders(prev => prev.filter(o => o.id !== deletingOrderId))
+      setDeleteDialogOpen(false)
+
+      toast({
+        title: 'Pedido removido!',
+        description: `O pedido foi removido com sucesso.`,
+        className: 'bg-green-500 text-white border-green-600',
+      })
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir o pedido.',
+        variant: 'destructive',
+      })
+    } finally {
+      setDeletingOrderId(null)
+    }
   }
 
   // Handle status update
   const handleStatusUpdate = async (orderId: string, newStatus: OrderStatus) => {
-    await new Promise(resolve => setTimeout(resolve, 300))
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
 
-    setOrders(prev => prev.map(o =>
-      o.id === orderId ? { ...o, status: newStatus } : o
-    ))
+      if (!response.ok) throw new Error('Erro ao atualizar status')
 
-    toast({
-      title: 'Status atualizado!',
-      description: `Status alterado para ${statusLabels[newStatus]}.`,
-      className: 'bg-green-500 text-white border-green-600',
-    })
+      const updatedOrder = await response.json()
+      setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o))
+
+      toast({
+        title: 'Status atualizado!',
+        description: `Status alterado para ${statusLabels[newStatus]}.`,
+        className: 'bg-green-500 text-white border-green-600',
+      })
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar o status.',
+        variant: 'destructive',
+      })
+    }
   }
 
   // Handle copy
@@ -322,7 +312,7 @@ export default function OrdersPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5" />
-              Editar Pedido #{editingOrder?.id.slice(4, 12)}
+              Editar Pedido #{editingOrder?.id.slice(0, 8)}
             </DialogTitle>
             <DialogDescription>
               Faça as alterações necessárias e clique em salvar.
@@ -476,14 +466,14 @@ export default function OrdersPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{orders.length}</div>
+            <div className="text-2xl font-bold">{stats.total}</div>
             <p className="text-xs text-muted-foreground">Total de Pedidos</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-green-500">
-              {orders.filter(o => o.status === 'DELIVERED').length}
+              {stats.delivered}
             </div>
             <p className="text-xs text-muted-foreground">Entregues</p>
           </CardContent>
@@ -491,7 +481,7 @@ export default function OrdersPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-blue-500">
-              {orders.filter(o => ['SHIPPED', 'OUT_FOR_DELIVERY'].includes(o.status)).length}
+              {stats.inTransit}
             </div>
             <p className="text-xs text-muted-foreground">Em Trânsito</p>
           </CardContent>
@@ -499,7 +489,7 @@ export default function OrdersPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-orange-500">
-              {orders.filter(o => o.status === 'RETURNED').length}
+              {stats.returned}
             </div>
             <p className="text-xs text-muted-foreground">Devolvidos</p>
           </CardContent>
@@ -520,7 +510,10 @@ export default function OrdersPage() {
                   className="pl-9"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={(value) => {
+                setStatusFilter(value)
+                setCurrentPage(1)
+              }}>
                 <SelectTrigger className="w-[180px]">
                   <Filter className="mr-2 h-4 w-4" />
                   <SelectValue placeholder="Status" />
@@ -537,161 +530,173 @@ export default function OrdersPage() {
         </CardHeader>
         <CardContent>
           {/* Orders Table */}
-          <div className="rounded-md border">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="p-4 text-left text-sm font-medium">Pedido</th>
-                    <th className="p-4 text-left text-sm font-medium">Cliente</th>
-                    <th className="p-4 text-left text-sm font-medium">Valor</th>
-                    <th className="p-4 text-left text-sm font-medium">Status</th>
-                    <th className="p-4 text-left text-sm font-medium">Pagamento</th>
-                    <th className="p-4 text-left text-sm font-medium">Origem</th>
-                    <th className="p-4 text-left text-sm font-medium">Data</th>
-                    <th className="p-4 text-left text-sm font-medium">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredOrders.map((order) => (
-                    <tr key={order.id} className="border-b hover:bg-muted/50">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div>
-                            <p className="font-medium">#{order.id.slice(4, 12)}</p>
-                            {order.trackingCode && (
-                              <p className="text-xs text-muted-foreground">
-                                {order.trackingCode}
-                              </p>
-                            )}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <p>Nenhum pedido encontrado</p>
+              {searchTerm && <p className="text-sm">Tente uma busca diferente</p>}
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="p-4 text-left text-sm font-medium">Pedido</th>
+                      <th className="p-4 text-left text-sm font-medium">Cliente</th>
+                      <th className="p-4 text-left text-sm font-medium">Valor</th>
+                      <th className="p-4 text-left text-sm font-medium">Status</th>
+                      <th className="p-4 text-left text-sm font-medium">Pagamento</th>
+                      <th className="p-4 text-left text-sm font-medium">Origem</th>
+                      <th className="p-4 text-left text-sm font-medium">Data</th>
+                      <th className="p-4 text-left text-sm font-medium">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((order) => (
+                      <tr key={order.id} className="border-b hover:bg-muted/50">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <p className="font-medium">#{order.id.slice(0, 8)}</p>
+                              {order.trackingCode && (
+                                <p className="text-xs text-muted-foreground">
+                                  {order.trackingCode}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="text-xs">
-                              {getInitials(order.customerName)}
-                            </AvatarFallback>
-                          </Avatar>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="text-xs">
+                                {getInitials(order.customerName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{order.customerName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {order.country?.code || 'BR'}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
                           <div>
-                            <p className="font-medium">{order.customerName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {order.country?.code || 'BR'}
+                            <p className="font-medium">
+                              {formatCurrency(order.total, order.country?.currency || 'BRL')}
+                            </p>
+                            <p className="text-xs text-green-600">
+                              Lucro: {formatCurrency(order.profit || 0, order.country?.currency || 'BRL')}
                             </p>
                           </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div>
-                          <p className="font-medium">
-                            {formatCurrency(order.total, order.country?.currency || 'BRL')}
+                        </td>
+                        <td className="p-4">
+                          <Badge variant={statusVariants[order.status]}>
+                            {statusLabels[order.status]}
+                          </Badge>
+                        </td>
+                        <td className="p-4">
+                          <Badge
+                            variant={
+                              order.paymentStatus === 'PAID' ? 'success' :
+                              order.paymentStatus === 'PENDING' ? 'warning' : 'destructive'
+                            }
+                          >
+                            {order.paymentStatus === 'PAID' ? 'Pago' :
+                             order.paymentStatus === 'PENDING' ? 'Aguardando' :
+                             order.paymentStatus === 'REFUNDED' ? 'Reembolsado' : 'Falhou'}
+                          </Badge>
+                        </td>
+                        <td className="p-4">
+                          <p className="text-sm capitalize">
+                            {order.utmSource || 'Direto'}
                           </p>
-                          <p className="text-xs text-green-600">
-                            Lucro: {formatCurrency(order.profit, order.country?.currency || 'BRL')}
+                        </td>
+                        <td className="p-4">
+                          <p className="text-sm text-muted-foreground">
+                            {getRelativeTime(order.orderedAt)}
                           </p>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <Badge variant={statusVariants[order.status]}>
-                          {statusLabels[order.status]}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <Badge
-                          variant={
-                            order.paymentStatus === 'PAID' ? 'success' :
-                            order.paymentStatus === 'PENDING' ? 'warning' : 'destructive'
-                          }
-                        >
-                          {order.paymentStatus === 'PAID' ? 'Pago' :
-                           order.paymentStatus === 'PENDING' ? 'Aguardando' :
-                           order.paymentStatus === 'REFUNDED' ? 'Reembolsado' : 'Falhou'}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <p className="text-sm capitalize">
-                          {order.utmSource || 'Direto'}
-                        </p>
-                      </td>
-                      <td className="p-4">
-                        <p className="text-sm text-muted-foreground">
-                          {getRelativeTime(order.orderedAt)}
-                        </p>
-                      </td>
-                      <td className="p-4">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleEdit(order)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Editar Pedido
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleCopy(order.id, 'ID')}>
-                              <Copy className="mr-2 h-4 w-4" />
-                              Copiar ID
-                            </DropdownMenuItem>
-                            {order.trackingCode && (
-                              <DropdownMenuItem onClick={() => handleCopy(order.trackingCode!, 'Rastreio')}>
-                                <Copy className="mr-2 h-4 w-4" />
-                                Copiar Rastreio
+                        </td>
+                        <td className="p-4">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleEdit(order)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar Pedido
                               </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'SHIPPED')}>
-                              <Truck className="mr-2 h-4 w-4" />
-                              Marcar Enviado
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'DELIVERED')}>
-                              <CheckCircle2 className="mr-2 h-4 w-4" />
-                              Marcar Entregue
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'RETURNED')}>
-                              <RotateCcw className="mr-2 h-4 w-4" />
-                              Marcar Devolvido
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(order.id)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir Pedido
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                              <DropdownMenuItem onClick={() => handleCopy(order.id, 'ID')}>
+                                <Copy className="mr-2 h-4 w-4" />
+                                Copiar ID
+                              </DropdownMenuItem>
+                              {order.trackingCode && (
+                                <DropdownMenuItem onClick={() => handleCopy(order.trackingCode!, 'Rastreio')}>
+                                  <Copy className="mr-2 h-4 w-4" />
+                                  Copiar Rastreio
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'SHIPPED')}>
+                                <Truck className="mr-2 h-4 w-4" />
+                                Marcar Enviado
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'DELIVERED')}>
+                                <CheckCircle2 className="mr-2 h-4 w-4" />
+                                Marcar Entregue
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'RETURNED')}>
+                                <RotateCcw className="mr-2 h-4 w-4" />
+                                Marcar Devolvido
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(order.id)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir Pedido
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Pagination */}
           <div className="flex items-center justify-between mt-4">
             <p className="text-sm text-muted-foreground">
-              Mostrando {filteredOrders.length} de {orders.length} pedidos
+              Mostrando {orders.length} de {totalOrders} pedidos
             </p>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                disabled={currentPage === 1}
+                disabled={currentPage === 1 || isLoading}
                 onClick={() => setCurrentPage((p) => p - 1)}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm">Página {currentPage}</span>
+              <span className="text-sm">Página {currentPage} de {totalPages}</span>
               <Button
                 variant="outline"
                 size="sm"
+                disabled={currentPage >= totalPages || isLoading}
                 onClick={() => setCurrentPage((p) => p + 1)}
               >
                 <ChevronRight className="h-4 w-4" />
