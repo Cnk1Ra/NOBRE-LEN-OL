@@ -868,19 +868,19 @@ fbq('track', 'Purchase', {
             <CardContent>
               <div className="grid gap-4 md:grid-cols-4">
                 <div className="p-4 rounded-lg bg-muted/50 text-center">
-                  <p className="text-2xl font-bold">12,450</p>
+                  <p className="text-2xl font-bold">0</p>
                   <p className="text-sm text-muted-foreground">PageView</p>
                 </div>
                 <div className="p-4 rounded-lg bg-muted/50 text-center">
-                  <p className="text-2xl font-bold">3,280</p>
+                  <p className="text-2xl font-bold">0</p>
                   <p className="text-sm text-muted-foreground">ViewContent</p>
                 </div>
                 <div className="p-4 rounded-lg bg-muted/50 text-center">
-                  <p className="text-2xl font-bold">890</p>
+                  <p className="text-2xl font-bold">0</p>
                   <p className="text-sm text-muted-foreground">AddToCart</p>
                 </div>
                 <div className="p-4 rounded-lg bg-muted/50 text-center">
-                  <p className="text-2xl font-bold">245</p>
+                  <p className="text-2xl font-bold">0</p>
                   <p className="text-sm text-muted-foreground">Purchase</p>
                 </div>
               </div>

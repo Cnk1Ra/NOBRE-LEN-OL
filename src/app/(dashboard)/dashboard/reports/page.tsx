@@ -156,10 +156,10 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Receita Bruta</p>
-                <p className="text-2xl font-bold">{formatCurrency(185420, 'BRL')}</p>
-                <div className="flex items-center text-xs text-green-500 mt-1">
+                <p className="text-2xl font-bold">{formatCurrency(0, 'BRL')}</p>
+                <div className="flex items-center text-xs text-muted-foreground mt-1">
                   <TrendingUp className="h-3 w-3 mr-1" />
-                  +12.5% vs mes anterior
+                  Sem dados
                 </div>
               </div>
               <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
@@ -173,10 +173,10 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Pedidos</p>
-                <p className="text-2xl font-bold">427</p>
-                <div className="flex items-center text-xs text-green-500 mt-1">
+                <p className="text-2xl font-bold">0</p>
+                <div className="flex items-center text-xs text-muted-foreground mt-1">
                   <TrendingUp className="h-3 w-3 mr-1" />
-                  +8.3% vs mes anterior
+                  Sem dados
                 </div>
               </div>
               <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
@@ -190,10 +190,10 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Taxa de Entrega</p>
-                <p className="text-2xl font-bold">78.5%</p>
-                <div className="flex items-center text-xs text-red-500 mt-1">
+                <p className="text-2xl font-bold">0%</p>
+                <div className="flex items-center text-xs text-muted-foreground mt-1">
                   <TrendingDown className="h-3 w-3 mr-1" />
-                  -2.1% vs mes anterior
+                  Sem dados
                 </div>
               </div>
               <div className="h-10 w-10 rounded-full bg-orange-500/10 flex items-center justify-center">
@@ -207,10 +207,10 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">ROAS Medio</p>
-                <p className="text-2xl font-bold">4.2x</p>
-                <div className="flex items-center text-xs text-green-500 mt-1">
+                <p className="text-2xl font-bold">0x</p>
+                <div className="flex items-center text-xs text-muted-foreground mt-1">
                   <TrendingUp className="h-3 w-3 mr-1" />
-                  +0.8 vs mes anterior
+                  Sem dados
                 </div>
               </div>
               <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center">
