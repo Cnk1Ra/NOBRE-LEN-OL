@@ -14,19 +14,19 @@ export async function GET(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    const membership = await prisma.workspaceMember.findFirst({
+      where: { userId: session.user.id },
       select: { workspaceId: true },
     })
 
-    if (!user?.workspaceId) {
+    if (!membership?.workspaceId) {
       return NextResponse.json({ error: 'Workspace não encontrado' }, { status: 404 })
     }
 
     const task = await prisma.task.findFirst({
       where: {
         id: params.id,
-        workspaceId: user.workspaceId,
+        workspaceId: membership.workspaceId,
       },
       include: {
         assignee: {
@@ -40,7 +40,7 @@ export async function GET(
         comments: {
           orderBy: { createdAt: 'desc' },
           include: {
-            author: {
+            user: {
               select: {
                 id: true,
                 name: true,
@@ -74,12 +74,12 @@ export async function PATCH(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    const membership = await prisma.workspaceMember.findFirst({
+      where: { userId: session.user.id },
       select: { workspaceId: true },
     })
 
-    if (!user?.workspaceId) {
+    if (!membership?.workspaceId) {
       return NextResponse.json({ error: 'Workspace não encontrado' }, { status: 404 })
     }
 
@@ -87,7 +87,7 @@ export async function PATCH(
     const existingTask = await prisma.task.findFirst({
       where: {
         id: params.id,
-        workspaceId: user.workspaceId,
+        workspaceId: membership.workspaceId,
       },
     })
 
@@ -137,7 +137,7 @@ export async function PATCH(
           take: 3,
           orderBy: { createdAt: 'desc' },
           include: {
-            author: {
+            user: {
               select: {
                 id: true,
                 name: true,
@@ -167,12 +167,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    const membership = await prisma.workspaceMember.findFirst({
+      where: { userId: session.user.id },
       select: { workspaceId: true },
     })
 
-    if (!user?.workspaceId) {
+    if (!membership?.workspaceId) {
       return NextResponse.json({ error: 'Workspace não encontrado' }, { status: 404 })
     }
 
@@ -180,7 +180,7 @@ export async function DELETE(
     const existingTask = await prisma.task.findFirst({
       where: {
         id: params.id,
-        workspaceId: user.workspaceId,
+        workspaceId: membership.workspaceId,
       },
     })
 

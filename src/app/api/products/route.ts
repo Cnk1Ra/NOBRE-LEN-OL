@@ -18,18 +18,18 @@ export async function GET(request: Request) {
     const isActive = searchParams.get('isActive')
 
     // Buscar workspace do usuário
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    const membership = await prisma.workspaceMember.findFirst({
+      where: { userId: session.user.id },
       select: { workspaceId: true },
     })
 
-    if (!user?.workspaceId) {
+    if (!membership?.workspaceId) {
       return NextResponse.json({ error: 'Workspace não encontrado' }, { status: 404 })
     }
 
     // Construir filtros
     const where: any = {
-      workspaceId: user.workspaceId,
+      workspaceId: membership.workspaceId,
     }
 
     if (isActive !== null && isActive !== undefined) {
@@ -97,12 +97,12 @@ export async function POST(request: Request) {
     const body = await request.json()
 
     // Buscar workspace do usuário
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    const membership = await prisma.workspaceMember.findFirst({
+      where: { userId: session.user.id },
       select: { workspaceId: true },
     })
 
-    if (!user?.workspaceId) {
+    if (!membership?.workspaceId) {
       return NextResponse.json({ error: 'Workspace não encontrado' }, { status: 404 })
     }
 
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
     // Verificar se SKU já existe no workspace
     const existingSku = await prisma.product.findFirst({
       where: {
-        workspaceId: user.workspaceId,
+        workspaceId: membership.workspaceId,
         sku: body.sku,
       },
     })
@@ -134,7 +134,7 @@ export async function POST(request: Request) {
     // Criar produto
     const product = await prisma.product.create({
       data: {
-        workspaceId: user.workspaceId,
+        workspaceId: membership.workspaceId,
         sku: body.sku,
         name: body.name,
         description: body.description,
@@ -152,7 +152,7 @@ export async function POST(request: Request) {
       await prisma.inventoryItem.create({
         data: {
           productId: product.id,
-          workspaceId: user.workspaceId,
+          workspaceId: membership.workspaceId,
           quantity: body.initialStock,
           minQuantity: body.minQuantity || 10,
           location: body.location || 'Principal',

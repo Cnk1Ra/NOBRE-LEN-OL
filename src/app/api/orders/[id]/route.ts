@@ -14,19 +14,19 @@ export async function GET(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    const membership = await prisma.workspaceMember.findFirst({
+      where: { userId: session.user.id },
       select: { workspaceId: true },
     })
 
-    if (!user?.workspaceId) {
+    if (!membership?.workspaceId) {
       return NextResponse.json({ error: 'Workspace não encontrado' }, { status: 404 })
     }
 
     const order = await prisma.order.findFirst({
       where: {
         id: params.id,
-        workspaceId: user.workspaceId,
+        workspaceId: membership.workspaceId,
       },
       include: {
         items: {
@@ -60,12 +60,12 @@ export async function PATCH(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    const membership = await prisma.workspaceMember.findFirst({
+      where: { userId: session.user.id },
       select: { workspaceId: true },
     })
 
-    if (!user?.workspaceId) {
+    if (!membership?.workspaceId) {
       return NextResponse.json({ error: 'Workspace não encontrado' }, { status: 404 })
     }
 
@@ -73,7 +73,7 @@ export async function PATCH(
     const existingOrder = await prisma.order.findFirst({
       where: {
         id: params.id,
-        workspaceId: user.workspaceId,
+        workspaceId: membership.workspaceId,
       },
     })
 
@@ -155,17 +155,24 @@ export async function DELETE(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    const membership = await prisma.workspaceMember.findFirst({
+      where: { userId: session.user.id },
       select: { workspaceId: true, role: true },
     })
 
-    if (!user?.workspaceId) {
+    if (!membership?.workspaceId) {
       return NextResponse.json({ error: 'Workspace não encontrado' }, { status: 404 })
     }
 
+    // Buscar role do usuário
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    })
+
     // Apenas OWNER, ADMIN ou MATRIX podem deletar
-    if (!['OWNER', 'ADMIN', 'MATRIX'].includes(user.role || '')) {
+    if (!['OWNER', 'ADMIN', 'MATRIX'].includes(user?.role || '') &&
+        !['OWNER', 'ADMIN'].includes(membership.role || '')) {
       return NextResponse.json({ error: 'Sem permissão para deletar pedidos' }, { status: 403 })
     }
 
@@ -173,7 +180,7 @@ export async function DELETE(
     const existingOrder = await prisma.order.findFirst({
       where: {
         id: params.id,
-        workspaceId: user.workspaceId,
+        workspaceId: membership.workspaceId,
       },
     })
 

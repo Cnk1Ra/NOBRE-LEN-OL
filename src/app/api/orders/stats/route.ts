@@ -16,12 +16,12 @@ export async function GET(request: Request) {
     const countryId = searchParams.get('countryId')
 
     // Buscar workspace do usuário
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    const membership = await prisma.workspaceMember.findFirst({
+      where: { userId: session.user.id },
       select: { workspaceId: true },
     })
 
-    if (!user?.workspaceId) {
+    if (!membership?.workspaceId) {
       return NextResponse.json({ error: 'Workspace não encontrado' }, { status: 404 })
     }
 
@@ -71,7 +71,7 @@ export async function GET(request: Request) {
 
     // Filtro base
     const baseWhere: any = {
-      workspaceId: user.workspaceId,
+      workspaceId: membership.workspaceId,
       orderedAt: { gte: startDate },
     }
 

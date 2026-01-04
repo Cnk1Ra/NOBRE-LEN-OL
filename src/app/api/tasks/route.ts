@@ -21,18 +21,18 @@ export async function GET(request: Request) {
     const search = searchParams.get('search')
 
     // Buscar workspace do usuário
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    const membership = await prisma.workspaceMember.findFirst({
+      where: { userId: session.user.id },
       select: { workspaceId: true },
     })
 
-    if (!user?.workspaceId) {
+    if (!membership?.workspaceId) {
       return NextResponse.json({ error: 'Workspace não encontrado' }, { status: 404 })
     }
 
     // Construir filtros
     const where: any = {
-      workspaceId: user.workspaceId,
+      workspaceId: membership.workspaceId,
     }
 
     if (status) where.status = status
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
             take: 3,
             orderBy: { createdAt: 'desc' },
             include: {
-              author: {
+              user: {
                 select: {
                   id: true,
                   name: true,
@@ -113,12 +113,12 @@ export async function POST(request: Request) {
     const body = await request.json()
 
     // Buscar workspace do usuário
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    const membership = await prisma.workspaceMember.findFirst({
+      where: { userId: session.user.id },
       select: { workspaceId: true },
     })
 
-    if (!user?.workspaceId) {
+    if (!membership?.workspaceId) {
       return NextResponse.json({ error: 'Workspace não encontrado' }, { status: 404 })
     }
 
@@ -130,7 +130,7 @@ export async function POST(request: Request) {
     // Criar tarefa
     const task = await prisma.task.create({
       data: {
-        workspaceId: user.workspaceId,
+        workspaceId: membership.workspaceId,
         title: body.title,
         description: body.description,
         priority: body.priority || 'MEDIUM',
