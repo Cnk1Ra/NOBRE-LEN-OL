@@ -28,16 +28,15 @@ import {
   Users,
 } from 'lucide-react'
 
-const payments = [
-  { id: 'PAY-001', supplier: 'Facebook Ads', amount: 12500, status: 'paid', dueDate: '2024-12-05', paidDate: '2024-12-05' },
-  { id: 'PAY-002', supplier: 'N1 Warehouse', amount: 15000, status: 'paid', dueDate: '2024-12-10', paidDate: '2024-12-08' },
-  { id: 'PAY-003', supplier: 'Fornecedor Produtos', amount: 45000, status: 'pending', dueDate: '2024-12-15', paidDate: null },
-  { id: 'PAY-004', supplier: 'Google Ads', amount: 8500, status: 'pending', dueDate: '2024-12-12', paidDate: null },
-  { id: 'PAY-005', supplier: 'Transportadora XYZ', amount: 22000, status: 'overdue', dueDate: '2024-12-01', paidDate: null },
-  { id: 'PAY-006', supplier: 'Funcionários', amount: 35000, status: 'scheduled', dueDate: '2024-12-30', paidDate: null },
-  { id: 'PAY-007', supplier: 'Aluguel Escritório', amount: 5500, status: 'paid', dueDate: '2024-12-05', paidDate: '2024-12-04' },
-  { id: 'PAY-008', supplier: 'Contador', amount: 2500, status: 'pending', dueDate: '2024-12-20', paidDate: null },
-]
+// Payments - starts empty, will be populated from API
+const payments: Array<{
+  id: string
+  supplier: string
+  amount: number
+  status: 'paid' | 'pending' | 'overdue' | 'scheduled'
+  dueDate: string
+  paidDate: string | null
+}> = []
 
 const statusMap: Record<string, { label: string; color: string; icon: any }> = {
   paid: { label: 'Pago', color: 'bg-green-500/10 text-green-500 border-green-500/20', icon: CheckCircle2 },
@@ -190,32 +189,43 @@ export default function PagamentosControlPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPayments.map((payment) => {
-                const status = statusMap[payment.status]
-                const StatusIcon = status.icon
-                return (
-                  <TableRow key={payment.id}>
-                    <TableCell className="font-mono text-sm">{payment.id}</TableCell>
-                    <TableCell className="font-medium">{payment.supplier}</TableCell>
-                    <TableCell>{formatCurrency(payment.amount)}</TableCell>
-                    <TableCell>{payment.dueDate}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={status.color}>
-                        <StatusIcon className="h-3 w-3 mr-1" />
-                        {status.label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{payment.paidDate || '-'}</TableCell>
-                    <TableCell className="text-right">
-                      {payment.status !== 'paid' && (
-                        <Button variant="outline" size="sm">
-                          Pagar
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
+              {filteredPayments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-32 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <CreditCard className="h-8 w-8 text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">Nenhum pagamento cadastrado</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredPayments.map((payment) => {
+                  const status = statusMap[payment.status]
+                  const StatusIcon = status.icon
+                  return (
+                    <TableRow key={payment.id}>
+                      <TableCell className="font-mono text-sm">{payment.id}</TableCell>
+                      <TableCell className="font-medium">{payment.supplier}</TableCell>
+                      <TableCell>{formatCurrency(payment.amount)}</TableCell>
+                      <TableCell>{payment.dueDate}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={status.color}>
+                          <StatusIcon className="h-3 w-3 mr-1" />
+                          {status.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{payment.paidDate || '-'}</TableCell>
+                      <TableCell className="text-right">
+                        {payment.status !== 'paid' && (
+                          <Button variant="outline" size="sm">
+                            Pagar
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>

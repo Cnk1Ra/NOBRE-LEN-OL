@@ -15,42 +15,17 @@ import {
   RefreshCw,
 } from 'lucide-react'
 
-const divergences = [
-  {
-    id: 'DIV-001',
-    order: 'DOD-032',
-    type: 'valor',
-    description: 'Valor cobrado diferente do valor da venda',
-    dodValue: 289.90,
-    actualValue: 259.90,
-    status: 'pending',
-    date: '2024-12-07',
-  },
-  {
-    id: 'DIV-002',
-    order: 'DOD-028',
-    type: 'entrega',
-    description: 'Entrega confirmada mas cliente não recebeu',
-    status: 'investigating',
-    date: '2024-12-06',
-  },
-  {
-    id: 'DIV-003',
-    order: 'DOD-025',
-    type: 'produto',
-    description: 'Produto enviado diferente do pedido',
-    status: 'resolved',
-    date: '2024-12-05',
-  },
-  {
-    id: 'DIV-004',
-    order: 'DOD-020',
-    type: 'duplicado',
-    description: 'Pedido duplicado no sistema',
-    status: 'pending',
-    date: '2024-12-07',
-  },
-]
+// Divergences - starts empty, will be populated from API
+const divergences: Array<{
+  id: string
+  order: string
+  type: 'valor' | 'entrega' | 'produto' | 'duplicado'
+  description: string
+  dodValue?: number
+  actualValue?: number
+  status: 'pending' | 'investigating' | 'resolved'
+  date: string
+}> = []
 
 const typeMap: Record<string, { label: string; color: string; icon: any }> = {
   valor: { label: 'Valor', color: 'bg-yellow-500/10 text-yellow-500', icon: DollarSign },
@@ -145,50 +120,62 @@ export default function DivergenciasControlPage() {
           <CardDescription>Pedidos que precisam de atenção</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {divergences.map((div) => {
-            const type = typeMap[div.type]
-            const TypeIcon = type.icon
-            return (
-              <div
-                key={div.id}
-                className="flex items-start justify-between p-4 rounded-xl border bg-card hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex items-start gap-4">
-                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${type.color}`}>
-                    <TypeIcon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{div.order}</span>
-                      <Badge className={type.color}>{type.label}</Badge>
-                      <Badge variant="outline" className={statusMap[div.status].color}>
-                        {statusMap[div.status].label}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">{div.description}</p>
-                    {div.dodValue && div.actualValue && (
-                      <p className="text-sm mt-2">
-                        <span className="text-muted-foreground">DOD:</span>{' '}
-                        <span className="font-medium">R$ {div.dodValue.toFixed(2)}</span>
-                        <span className="text-muted-foreground mx-2">→</span>
-                        <span className="text-muted-foreground">Real:</span>{' '}
-                        <span className="font-medium text-red-500">R$ {div.actualValue.toFixed(2)}</span>
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-2">{div.date}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  {div.status !== 'resolved' && (
-                    <>
-                      <Button variant="outline" size="sm">Investigar</Button>
-                      <Button size="sm">Resolver</Button>
-                    </>
-                  )}
-                </div>
+          {divergences.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
+                <CheckCircle2 className="h-8 w-8 text-green-500" />
               </div>
-            )
-          })}
+              <h3 className="text-lg font-semibold mb-1">Nenhuma divergência</h3>
+              <p className="text-sm text-muted-foreground text-center max-w-sm">
+                Ótimo! Não há divergências ou inconsistências para resolver no momento.
+              </p>
+            </div>
+          ) : (
+            divergences.map((div) => {
+              const type = typeMap[div.type]
+              const TypeIcon = type.icon
+              return (
+                <div
+                  key={div.id}
+                  className="flex items-start justify-between p-4 rounded-xl border bg-card hover:bg-muted/30 transition-colors"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${type.color}`}>
+                      <TypeIcon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{div.order}</span>
+                        <Badge className={type.color}>{type.label}</Badge>
+                        <Badge variant="outline" className={statusMap[div.status].color}>
+                          {statusMap[div.status].label}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">{div.description}</p>
+                      {div.dodValue && div.actualValue && (
+                        <p className="text-sm mt-2">
+                          <span className="text-muted-foreground">DOD:</span>{' '}
+                          <span className="font-medium">R$ {div.dodValue.toFixed(2)}</span>
+                          <span className="text-muted-foreground mx-2">→</span>
+                          <span className="text-muted-foreground">Real:</span>{' '}
+                          <span className="font-medium text-red-500">R$ {div.actualValue.toFixed(2)}</span>
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-2">{div.date}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {div.status !== 'resolved' && (
+                      <>
+                        <Button variant="outline" size="sm">Investigar</Button>
+                        <Button size="sm">Resolver</Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )
+            })
+          )}
         </CardContent>
       </Card>
     </div>

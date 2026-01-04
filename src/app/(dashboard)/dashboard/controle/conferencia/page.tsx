@@ -15,13 +15,15 @@ import {
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 
-const deliveriesToCheck = [
-  { id: 'ENT-001', order: 'DOD-045', customer: 'João Silva', status: 'pending', courier: 'Correios', trackingCode: 'BR123456789' },
-  { id: 'ENT-002', order: 'DOD-046', customer: 'Maria Santos', status: 'checked', courier: 'N1', trackingCode: 'N1987654321' },
-  { id: 'ENT-003', order: 'DOD-047', customer: 'Pedro Costa', status: 'issue', courier: 'Jadlog', trackingCode: 'JD456789123' },
-  { id: 'ENT-004', order: 'DOD-048', customer: 'Ana Oliveira', status: 'pending', courier: 'N1', trackingCode: 'N1321654987' },
-  { id: 'ENT-005', order: 'DOD-049', customer: 'Carlos Lima', status: 'checked', courier: 'Correios', trackingCode: 'BR147258369' },
-]
+// Deliveries to check - starts empty, will be populated from API
+const deliveriesToCheck: Array<{
+  id: string
+  order: string
+  customer: string
+  status: 'pending' | 'checked' | 'issue'
+  courier: string
+  trackingCode: string
+}> = []
 
 const statusMap: Record<string, { label: string; color: string }> = {
   pending: { label: 'Aguardando', color: 'bg-yellow-500/10 text-yellow-500' },
@@ -112,53 +114,67 @@ export default function ConferenciaControlPage() {
 
       {/* Deliveries List */}
       <div className="grid gap-4">
-        {deliveriesToCheck.map((delivery) => (
-          <Card key={delivery.id} className={delivery.status === 'issue' ? 'border-red-500/20' : ''}>
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center">
-                    <Package className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold">{delivery.order}</p>
-                      <Badge className={statusMap[delivery.status].color}>
-                        {statusMap[delivery.status].label}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{delivery.customer}</p>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                      <Truck className="h-3 w-3" />
-                      <span>{delivery.courier}</span>
-                      <span>•</span>
-                      <span className="font-mono">{delivery.trackingCode}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {delivery.status === 'pending' && (
-                    <>
-                      <Button variant="outline" size="sm">
-                        <AlertTriangle className="h-4 w-4 mr-2" />
-                        Problema
-                      </Button>
-                      <Button size="sm">
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Confirmar
-                      </Button>
-                    </>
-                  )}
-                  {delivery.status === 'issue' && (
-                    <Button variant="outline" size="sm">
-                      Resolver
-                    </Button>
-                  )}
-                </div>
+        {deliveriesToCheck.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                <FileCheck className="h-8 w-8 text-muted-foreground" />
               </div>
+              <h3 className="text-lg font-semibold mb-1">Nenhuma entrega para conferir</h3>
+              <p className="text-sm text-muted-foreground text-center max-w-sm">
+                Quando houver entregas pendentes de conferência, elas aparecerão aqui.
+              </p>
             </CardContent>
           </Card>
-        ))}
+        ) : (
+          deliveriesToCheck.map((delivery) => (
+            <Card key={delivery.id} className={delivery.status === 'issue' ? 'border-red-500/20' : ''}>
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center">
+                      <Package className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold">{delivery.order}</p>
+                        <Badge className={statusMap[delivery.status].color}>
+                          {statusMap[delivery.status].label}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{delivery.customer}</p>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                        <Truck className="h-3 w-3" />
+                        <span>{delivery.courier}</span>
+                        <span>•</span>
+                        <span className="font-mono">{delivery.trackingCode}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {delivery.status === 'pending' && (
+                      <>
+                        <Button variant="outline" size="sm">
+                          <AlertTriangle className="h-4 w-4 mr-2" />
+                          Problema
+                        </Button>
+                        <Button size="sm">
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          Confirmar
+                        </Button>
+                      </>
+                    )}
+                    {delivery.status === 'issue' && (
+                      <Button variant="outline" size="sm">
+                        Resolver
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   )

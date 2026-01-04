@@ -20,24 +20,26 @@ import {
   Users,
 } from 'lucide-react'
 
+// Financial data - starts zeroed, will be populated from API
 const financialData = {
-  revenue: 10200000,
-  expenses: 3200000,
-  profit: 7000000,
-  pending: 850000,
-  taxes: 1200000,
-  payroll: 450000,
-  marketing: 380000,
-  logistics: 520000,
+  revenue: 0,
+  expenses: 0,
+  profit: 0,
+  pending: 0,
+  taxes: 0,
+  payroll: 0,
+  marketing: 0,
+  logistics: 0,
 }
 
-const recentTransactions = [
-  { id: 1, description: 'Receita - Vendas Online', amount: 45000, type: 'income', date: '2024-12-07' },
-  { id: 2, description: 'Pagamento - Facebook Ads', amount: -12500, type: 'expense', date: '2024-12-07' },
-  { id: 3, description: 'Pagamento - Fornecedor X', amount: -28000, type: 'expense', date: '2024-12-06' },
-  { id: 4, description: 'Receita - COD Confirmados', amount: 38000, type: 'income', date: '2024-12-06' },
-  { id: 5, description: 'Pagamento - N1 Warehouse', amount: -15000, type: 'expense', date: '2024-12-05' },
-]
+// Recent transactions - starts empty, will be populated from API
+const recentTransactions: Array<{
+  id: number
+  description: string
+  amount: number
+  type: 'income' | 'expense'
+  date: string
+}> = []
 
 export default function FinanceiroControlPage() {
   const formatCurrency = (value: number) => {
@@ -221,32 +223,39 @@ export default function FinanceiroControlPage() {
             <CardDescription>Últimas movimentações financeiras</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentTransactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                      transaction.type === 'income' ? 'bg-green-500/10' : 'bg-red-500/10'
+            {recentTransactions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <BarChart3 className="h-10 w-10 text-muted-foreground/50 mb-3" />
+                <p className="text-sm text-muted-foreground">Nenhuma transação registrada</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {recentTransactions.map((transaction) => (
+                  <div key={transaction.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                        transaction.type === 'income' ? 'bg-green-500/10' : 'bg-red-500/10'
+                      }`}>
+                        {transaction.type === 'income' ? (
+                          <ArrowUpRight className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <ArrowDownRight className="h-4 w-4 text-red-500" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{transaction.description}</p>
+                        <p className="text-xs text-muted-foreground">{transaction.date}</p>
+                      </div>
+                    </div>
+                    <span className={`font-semibold ${
+                      transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
                     }`}>
-                      {transaction.type === 'income' ? (
-                        <ArrowUpRight className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <ArrowDownRight className="h-4 w-4 text-red-500" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{transaction.description}</p>
-                      <p className="text-xs text-muted-foreground">{transaction.date}</p>
-                    </div>
+                      {transaction.type === 'income' ? '+' : ''}{formatCurrency(transaction.amount)}
+                    </span>
                   </div>
-                  <span className={`font-semibold ${
-                    transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
-                  }`}>
-                    {transaction.type === 'income' ? '+' : ''}{formatCurrency(transaction.amount)}
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
