@@ -171,6 +171,12 @@ const financialNavItems = [
     color: 'text-green-500',
   },
   {
+    title: 'Assinaturas',
+    href: '/dashboard/assinaturas',
+    icon: CreditCard,
+    color: 'text-primary',
+  },
+  {
     title: 'Sócios',
     href: '/dashboard/partners',
     icon: Users,
