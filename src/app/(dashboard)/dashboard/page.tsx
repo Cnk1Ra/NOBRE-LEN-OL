@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { DeliveryStats } from '@/components/dashboard/delivery-stats'
 import { RevenueChart } from '@/components/dashboard/revenue-chart'
@@ -25,43 +25,35 @@ import {
   Loader2,
 } from 'lucide-react'
 
-// Dados zerados - em producao viriam do banco de dados
-const emptyData = {
-  revenue: 0,
-  profit: 0,
-  orders: 0,
-  avgTicket: 0,
-  deliveryRate: 0,
-  returnRate: 0,
-  roas: 0,
-  visitors: 0,
-  chartData: [] as { date: string; revenue: number; profit: number; orders: number }[],
-  delivered: 0, inTransit: 0, returned: 0, pending: 0, failed: 0, total: 0,
-}
-
-const mockDataByPeriod = {
-  today: { ...emptyData },
-  yesterday: { ...emptyData },
-  week: { ...emptyData },
-  month: { ...emptyData },
-  last_month: { ...emptyData },
-  max: { ...emptyData },
-  custom: { ...emptyData },
-}
-
-// Fontes de trafego zeradas - dados reais virao das integracoes
-const mockTrafficSources: {
-  name: string
-  platform: 'FACEBOOK' | 'INSTAGRAM' | 'GOOGLE' | 'TIKTOK' | 'ORGANIC'
-  sessions: number
-  orders: number
+interface DashboardStats {
   revenue: number
-  adSpend?: number
-  conversionRate: number
-}[] = []
+  profit: number
+  orders: number
+  avgTicket: number
+  deliveryRate: number
+  returnRate: number
+  roas: number
+  adSpend: number
+  visitors: number
+  delivered: number
+  inTransit: number
+  returned: number
+  pending: number
+  failed: number
+  total: number
+  chartData: { date: string; revenue: number; profit: number; orders: number }[]
+  trafficSources: {
+    name: string
+    platform: 'FACEBOOK' | 'INSTAGRAM' | 'GOOGLE' | 'TIKTOK' | 'ORGANIC'
+    sessions: number
+    orders: number
+    revenue: number
+    adSpend?: number
+    conversionRate: number
+  }[]
+}
 
-// Pedidos zerados - dados reais virao do banco
-const mockOrders: {
+interface RecentOrder {
   id: string
   customerName: string
   total: number
@@ -69,99 +61,120 @@ const mockOrders: {
   paymentStatus: 'PENDING' | 'PAID' | 'REFUNDED'
   createdAt: string
   country: string
-}[] = []
-
-// Calcula variacao percentual entre periodos
-function calculateChange(current: number, previous: number): number {
-  if (previous === 0 && current === 0) return 0
-  if (previous === 0) return 100
-  return ((current - previous) / previous) * 100
 }
 
-// Funcao para gerar variacao aleatoria nos dados (simula refresh)
-function addRandomVariation(data: typeof mockDataByPeriod.month, seed: number) {
-  const variation = (value: number, percent: number = 5) => {
-    const random = Math.sin(seed * value) * 0.5 + 0.5 // Deterministic random based on seed
-    const change = value * (percent / 100) * (random * 2 - 1)
-    return Math.round(value + change)
-  }
-  return {
-    ...data,
-    revenue: variation(data.revenue, 3),
-    profit: variation(data.profit, 3),
-    orders: variation(data.orders, 2),
-    visitors: variation(data.visitors, 4),
-  }
+const initialStats: DashboardStats = {
+  revenue: 0,
+  profit: 0,
+  orders: 0,
+  avgTicket: 0,
+  deliveryRate: 0,
+  returnRate: 0,
+  roas: 0,
+  adSpend: 0,
+  visitors: 0,
+  delivered: 0,
+  inTransit: 0,
+  returned: 0,
+  pending: 0,
+  failed: 0,
+  total: 0,
+  chartData: [],
+  trafficSources: [],
 }
 
 export default function DashboardPage() {
-  // Usa o contexto global de filtro de data
   const { period, refreshKey, isRefreshing } = useDateFilter()
-  const { selectedCountry, isAllSelected, getCountryData, formatCurrency: formatCurrencyGlobal, defaultCurrency } = useCountry()
+  const { selectedCountry, isAllSelected, defaultCurrency } = useCountry()
 
-  // Obtem dados baseados no periodo e pais selecionado
-  const currentData = useMemo(() => {
-    const countryCode = isAllSelected ? 'ALL' : (selectedCountry?.code || 'ALL')
-    const countryData = getCountryData(countryCode)
+  const [stats, setStats] = useState<DashboardStats>(initialStats)
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [lowStockCount, setLowStockCount] = useState(0)
 
-    // Aplica multiplicador baseado no periodo
-    const periodMultipliers: Record<string, number> = {
-      today: 0.035,
-      yesterday: 0.04,
-      week: 0.25,
-      month: 1,
-      last_month: 0.95,
-      max: 12,
-      custom: 0.5,
-    }
+  // Fetch dashboard stats
+  const fetchDashboardData = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      // Fetch stats
+      const statsResponse = await fetch(`/api/orders/stats?period=${period}`)
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json()
 
-    const multiplier = periodMultipliers[period] || 1
-    const baseData = {
-      ...mockDataByPeriod[period],
-      revenue: Math.round(countryData.revenue * multiplier),
-      profit: Math.round(countryData.profit * multiplier),
-      orders: Math.round(countryData.orders * multiplier),
-      avgTicket: countryData.avgTicket,
-      deliveryRate: countryData.deliveryRate,
-      returnRate: countryData.returnRate,
-      roas: countryData.roas,
-      visitors: Math.round(countryData.visitors * multiplier),
-    }
+        // Calculate delivery metrics
+        const deliveredCount = statsData.byStatus?.DELIVERED || 0
+        const shippedCount = statsData.byStatus?.SHIPPED || 0
+        const outForDeliveryCount = statsData.byStatus?.OUT_FOR_DELIVERY || 0
+        const returnedCount = statsData.byStatus?.RETURNED || 0
+        const pendingCount = statsData.byStatus?.PENDING || 0
+        const failedCount = statsData.byStatus?.FAILED_DELIVERY || 0
+        const totalOrders = statsData.totalOrders || 0
 
-    return addRandomVariation(baseData, refreshKey)
-  }, [period, refreshKey, selectedCountry, isAllSelected, getCountryData])
+        const deliveryRate = totalOrders > 0 ? (deliveredCount / totalOrders) * 100 : 0
+        const returnRate = totalOrders > 0 ? (returnedCount / totalOrders) * 100 : 0
 
-  // Obtem dados do periodo anterior para calcular variacao
-  const previousData = useMemo(() => {
-    switch (period) {
-      case 'today': return mockDataByPeriod.yesterday
-      case 'week': return mockDataByPeriod.last_month
-      case 'month': return mockDataByPeriod.last_month
-      default: return mockDataByPeriod.last_month
+        setStats({
+          revenue: statsData.totalRevenue || 0,
+          profit: statsData.totalProfit || 0,
+          orders: totalOrders,
+          avgTicket: statsData.avgOrderValue || 0,
+          deliveryRate: Math.round(deliveryRate * 10) / 10,
+          returnRate: Math.round(returnRate * 10) / 10,
+          roas: statsData.roas || 0,
+          adSpend: statsData.adSpend || 0,
+          visitors: statsData.visitors || 0,
+          delivered: deliveredCount,
+          inTransit: shippedCount + outForDeliveryCount,
+          returned: returnedCount,
+          pending: pendingCount,
+          failed: failedCount,
+          total: totalOrders,
+          chartData: statsData.chartData || [],
+          trafficSources: statsData.trafficSources || [],
+        })
+      }
+
+      // Fetch recent orders
+      const ordersResponse = await fetch('/api/orders?limit=5')
+      if (ordersResponse.ok) {
+        const ordersData = await ordersResponse.json()
+        const orders = (ordersData.data || []).map((order: any) => ({
+          id: order.id,
+          customerName: order.customerName,
+          total: order.total,
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          createdAt: order.orderedAt,
+          country: order.country?.code || 'BR',
+        }))
+        setRecentOrders(orders)
+      }
+
+      // Fetch low stock products
+      const productsResponse = await fetch('/api/products')
+      if (productsResponse.ok) {
+        const productsData = await productsResponse.json()
+        setLowStockCount(productsData.stats?.lowStock || 0)
+      }
+
+    } catch (error) {
+      console.error('Erro ao buscar dados do dashboard:', error)
+    } finally {
+      setIsLoading(false)
     }
   }, [period])
 
-  // Calcula variacoes
-  const changes = useMemo(() => ({
-    revenue: calculateChange(currentData.revenue, previousData.revenue),
-    profit: calculateChange(currentData.profit, previousData.profit),
-    orders: calculateChange(currentData.orders, previousData.orders),
-    avgTicket: calculateChange(currentData.avgTicket, previousData.avgTicket),
-    deliveryRate: currentData.deliveryRate - previousData.deliveryRate,
-    returnRate: previousData.returnRate - currentData.returnRate,
-    roas: calculateChange(currentData.roas, previousData.roas),
-    visitors: calculateChange(currentData.visitors, previousData.visitors),
-  }), [currentData, previousData])
+  useEffect(() => {
+    fetchDashboardData()
+  }, [fetchDashboardData, refreshKey])
 
   // Formata valores monetarios usando a moeda global selecionada
   const formatCurrency = (value: number) => {
-    // Primeiro converte o valor usando a funcao global
     const convertedValue = value * (defaultCurrency.code === 'BRL' ? 1 :
       defaultCurrency.code === 'EUR' ? 0.18 :
       defaultCurrency.code === 'USD' ? 0.20 :
       defaultCurrency.code === 'AOA' ? 166.50 : 1)
 
-    // Formata com abreviacao para valores grandes
     if (Math.abs(convertedValue) >= 1000000) {
       return `${defaultCurrency.symbol} ${(convertedValue / 1000000).toFixed(2)}M`
     }
@@ -176,7 +189,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 animate-fade-in relative">
       {/* Loading Overlay */}
-      {isRefreshing && (
+      {(isRefreshing || isLoading) && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-2xl">
           <div className="flex items-center gap-3 px-6 py-3 rounded-xl bg-card border shadow-lg">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -219,9 +232,9 @@ export default function DashboardPage() {
             <span className="text-sm font-medium">Insight:</span>
           </div>
           <span className="text-sm text-muted-foreground">
-            {period === 'max'
-              ? `Total acumulado: ${formatCurrency(currentData.revenue)} com ${currentData.orders.toLocaleString()} pedidos!`
-              : `Variacao: ${changes.revenue >= 0 ? '+' : ''}${changes.revenue.toFixed(1)}% vs periodo anterior`
+            {stats.orders > 0
+              ? `${stats.orders} pedidos no periodo com ticket medio de ${formatCurrency(stats.avgTicket)}`
+              : 'Comece a receber pedidos para ver insights'
             }
           </span>
           <Button variant="ghost" size="sm" className="h-7 text-xs text-primary hover:text-primary hidden sm:flex">
@@ -235,29 +248,29 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 stagger-children">
         <StatCard
           title="Faturamento"
-          value={formatCurrency(currentData.revenue)}
-          change={changes.revenue}
+          value={formatCurrency(stats.revenue)}
+          change={0}
           icon={DollarSign}
           color="success"
         />
         <StatCard
           title="Lucro Liquido"
-          value={formatCurrency(currentData.profit)}
-          change={changes.profit}
+          value={formatCurrency(stats.profit)}
+          change={0}
           icon={TrendingUp}
           color="primary"
         />
         <StatCard
           title="Total de Pedidos"
-          value={currentData.orders.toLocaleString()}
-          change={changes.orders}
+          value={stats.orders.toLocaleString()}
+          change={0}
           icon={ShoppingCart}
           color="info"
         />
         <StatCard
           title="Ticket Medio"
-          value={`${currencySymbol} ${currentData.avgTicket.toFixed(2)}`}
-          change={changes.avgTicket}
+          value={`${currencySymbol} ${stats.avgTicket.toFixed(2)}`}
+          change={0}
           icon={Target}
           color="accent"
         />
@@ -273,32 +286,32 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 stagger-children">
           <StatCard
             title="Taxa de Entrega"
-            value={`${currentData.deliveryRate}%`}
-            change={changes.deliveryRate}
+            value={`${stats.deliveryRate}%`}
+            change={0}
             icon={Truck}
             color="success"
             description="Pedidos entregues com sucesso"
           />
           <StatCard
             title="Taxa de Devolucao"
-            value={`${currentData.returnRate}%`}
-            change={changes.returnRate}
+            value={`${stats.returnRate}%`}
+            change={0}
             icon={RotateCcw}
             color="warning"
             description="Menor e melhor"
           />
           <StatCard
             title="ROAS"
-            value={`${currentData.roas.toFixed(2)}x`}
-            change={changes.roas}
+            value={`${stats.roas.toFixed(2)}x`}
+            change={0}
             icon={Percent}
             color="primary"
             description="Retorno sobre investimento"
           />
           <StatCard
             title="Visitantes"
-            value={currentData.visitors.toLocaleString()}
-            change={changes.visitors}
+            value={stats.visitors.toLocaleString()}
+            change={0}
             icon={Users}
             color="info"
             description="Total de sessoes"
@@ -313,7 +326,7 @@ export default function DashboardPage() {
             <ShoppingCart className="h-6 w-6" />
           </div>
           <div className="text-left">
-            <p className="font-semibold">{currentData.pending} pedidos pendentes</p>
+            <p className="font-semibold">{stats.pending} pedidos pendentes</p>
             <p className="text-sm text-muted-foreground">Aguardando processamento</p>
           </div>
           <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
@@ -324,7 +337,7 @@ export default function DashboardPage() {
             <Zap className="h-6 w-6" />
           </div>
           <div className="text-left">
-            <p className="font-semibold">3 produtos em estoque baixo</p>
+            <p className="font-semibold">{lowStockCount} produtos em estoque baixo</p>
             <p className="text-sm text-muted-foreground">Requer atencao</p>
           </div>
           <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground group-hover:text-warning group-hover:translate-x-1 transition-all" />
@@ -335,7 +348,7 @@ export default function DashboardPage() {
             <Truck className="h-6 w-6" />
           </div>
           <div className="text-left">
-            <p className="font-semibold">{currentData.inTransit} em transito</p>
+            <p className="font-semibold">{stats.inTransit} em transito</p>
             <p className="text-sm text-muted-foreground">Saindo para entrega hoje</p>
           </div>
           <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground group-hover:text-success group-hover:translate-x-1 transition-all" />
@@ -345,22 +358,22 @@ export default function DashboardPage() {
       {/* Charts and Detailed Stats */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <RevenueChart data={currentData.chartData} />
+          <RevenueChart data={stats.chartData} />
         </div>
         <DeliveryStats
-          delivered={currentData.delivered}
-          inTransit={currentData.inTransit}
-          returned={currentData.returned}
-          pending={currentData.pending}
-          failed={currentData.failed}
-          total={currentData.total}
+          delivered={stats.delivered}
+          inTransit={stats.inTransit}
+          returned={stats.returned}
+          pending={stats.pending}
+          failed={stats.failed}
+          total={stats.total}
         />
       </div>
 
       {/* Traffic and Orders */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <TrafficSources sources={mockTrafficSources} />
-        <RecentOrders orders={mockOrders} />
+        <TrafficSources sources={stats.trafficSources} />
+        <RecentOrders orders={recentOrders} />
       </div>
     </div>
   )
