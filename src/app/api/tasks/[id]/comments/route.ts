@@ -44,11 +44,11 @@ export async function POST(
     const comment = await prisma.taskComment.create({
       data: {
         taskId: params.id,
-        authorId: session.user.id,
+        userId: session.user.id,
         content: body.content,
       },
       include: {
-        author: {
+        user: {
           select: {
             id: true,
             name: true,
