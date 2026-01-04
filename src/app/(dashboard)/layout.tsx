@@ -11,6 +11,8 @@ import { UserProvider } from '@/contexts/user-context'
 import { LanguageProvider } from '@/contexts/language-context'
 import { MetaProvider } from '@/contexts/meta-context'
 import { TrackingProvider } from '@/contexts/tracking-context'
+import { TutorialProvider } from '@/contexts/tutorial-context'
+import { TutorialModal } from '@/components/tutorial/tutorial-modal'
 
 export default function DashboardLayout({
   children,
@@ -26,6 +28,7 @@ export default function DashboardLayout({
               <CountryProvider>
                 <MetaProvider>
                 <TrackingProvider>
+                <TutorialProvider>
                   <div className="flex h-screen overflow-hidden">
                     <Sidebar />
                     <div className="flex flex-1 flex-col overflow-hidden">
@@ -35,7 +38,9 @@ export default function DashboardLayout({
                       </main>
                     </div>
                   </div>
+                  <TutorialModal />
                   <Toaster />
+                </TutorialProvider>
                 </TrackingProvider>
                 </MetaProvider>
               </CountryProvider>
