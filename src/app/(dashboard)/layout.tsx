@@ -13,6 +13,7 @@ import { MetaProvider } from '@/contexts/meta-context'
 import { TrackingProvider } from '@/contexts/tracking-context'
 import { TutorialProvider } from '@/contexts/tutorial-context'
 import { TutorialModal } from '@/components/tutorial/tutorial-modal'
+import { DashboardLayoutProvider } from '@/contexts/dashboard-layout-context'
 
 export default function DashboardLayout({
   children,
@@ -29,6 +30,7 @@ export default function DashboardLayout({
                 <MetaProvider>
                 <TrackingProvider>
                 <TutorialProvider>
+                <DashboardLayoutProvider>
                   <div className="flex h-screen overflow-hidden">
                     <Sidebar />
                     <div className="flex flex-1 flex-col overflow-hidden">
@@ -40,6 +42,7 @@ export default function DashboardLayout({
                   </div>
                   <TutorialModal />
                   <Toaster />
+                </DashboardLayoutProvider>
                 </TutorialProvider>
                 </TrackingProvider>
                 </MetaProvider>

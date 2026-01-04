@@ -6,8 +6,10 @@ import { DeliveryStats } from '@/components/dashboard/delivery-stats'
 import { RevenueChart } from '@/components/dashboard/revenue-chart'
 import { TrafficSources } from '@/components/dashboard/traffic-sources'
 import { RecentOrders } from '@/components/dashboard/recent-orders'
+import { LayoutEditor } from '@/components/dashboard/layout-editor'
 import { useDateFilter } from '@/contexts/date-filter-context'
 import { useCountry } from '@/contexts/country-context'
+import { useDashboardLayout } from '@/contexts/dashboard-layout-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -86,6 +88,7 @@ const initialStats: DashboardStats = {
 export default function DashboardPage() {
   const { period, refreshKey, isRefreshing } = useDateFilter()
   const { selectedCountry, isAllSelected, defaultCurrency } = useCountry()
+  const { isSectionVisible, getOrderedVisibleSections } = useDashboardLayout()
 
   const [stats, setStats] = useState<DashboardStats>(initialStats)
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([])
@@ -225,156 +228,171 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* AI Insights Banner */}
-        <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/20">
-          <div className="flex items-center gap-2 text-primary">
-            <Sparkles className="h-4 w-4" />
-            <span className="text-sm font-medium">Insight:</span>
+        <div className="flex items-center gap-2">
+          {/* Layout Editor */}
+          <LayoutEditor />
+
+          {/* AI Insights Banner */}
+          <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/20">
+            <div className="flex items-center gap-2 text-primary">
+              <Sparkles className="h-4 w-4" />
+              <span className="text-sm font-medium hidden sm:inline">Insight:</span>
+            </div>
+            <span className="text-sm text-muted-foreground hidden md:inline">
+              {stats.orders > 0
+                ? `${stats.orders} pedidos no periodo com ticket medio de ${formatCurrency(stats.avgTicket)}`
+                : 'Comece a receber pedidos para ver insights'
+              }
+            </span>
+            <Button variant="ghost" size="sm" className="h-7 text-xs text-primary hover:text-primary hidden lg:flex">
+              Ver mais
+              <ArrowRight className="ml-1 h-3 w-3" />
+            </Button>
           </div>
-          <span className="text-sm text-muted-foreground">
-            {stats.orders > 0
-              ? `${stats.orders} pedidos no periodo com ticket medio de ${formatCurrency(stats.avgTicket)}`
-              : 'Comece a receber pedidos para ver insights'
-            }
-          </span>
-          <Button variant="ghost" size="sm" className="h-7 text-xs text-primary hover:text-primary hidden sm:flex">
-            Ver mais
-            <ArrowRight className="ml-1 h-3 w-3" />
-          </Button>
         </div>
       </div>
 
       {/* Main Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 stagger-children">
-        <StatCard
-          title="Faturamento"
-          value={formatCurrency(stats.revenue)}
-          change={0}
-          icon={DollarSign}
-          color="success"
-        />
-        <StatCard
-          title="Lucro Liquido"
-          value={formatCurrency(stats.profit)}
-          change={0}
-          icon={TrendingUp}
-          color="primary"
-        />
-        <StatCard
-          title="Total de Pedidos"
-          value={stats.orders.toLocaleString()}
-          change={0}
-          icon={ShoppingCart}
-          color="info"
-        />
-        <StatCard
-          title="Ticket Medio"
-          value={`${currencySymbol} ${stats.avgTicket.toFixed(2)}`}
-          change={0}
-          icon={Target}
-          color="accent"
-        />
-      </div>
-
-      {/* COD Specific Metrics */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Truck className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">Metricas COD</h2>
-          <Badge variant="secondary" className="text-xs">Cash on Delivery</Badge>
-        </div>
+      {isSectionVisible('main-stats') && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 stagger-children">
           <StatCard
-            title="Taxa de Entrega"
-            value={`${stats.deliveryRate}%`}
+            title="Faturamento"
+            value={formatCurrency(stats.revenue)}
             change={0}
-            icon={Truck}
+            icon={DollarSign}
             color="success"
-            description="Pedidos entregues com sucesso"
           />
           <StatCard
-            title="Taxa de Devolucao"
-            value={`${stats.returnRate}%`}
+            title="Lucro Liquido"
+            value={formatCurrency(stats.profit)}
             change={0}
-            icon={RotateCcw}
-            color="warning"
-            description="Menor e melhor"
-          />
-          <StatCard
-            title="ROAS"
-            value={`${stats.roas.toFixed(2)}x`}
-            change={0}
-            icon={Percent}
+            icon={TrendingUp}
             color="primary"
-            description="Retorno sobre investimento"
           />
           <StatCard
-            title="Visitantes"
-            value={stats.visitors.toLocaleString()}
+            title="Total de Pedidos"
+            value={stats.orders.toLocaleString()}
             change={0}
-            icon={Users}
+            icon={ShoppingCart}
             color="info"
-            description="Total de sessoes"
+          />
+          <StatCard
+            title="Ticket Medio"
+            value={`${currencySymbol} ${stats.avgTicket.toFixed(2)}`}
+            change={0}
+            icon={Target}
+            color="accent"
           />
         </div>
-      </div>
+      )}
+
+      {/* COD Specific Metrics */}
+      {isSectionVisible('cod-metrics') && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Truck className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Metricas COD</h2>
+            <Badge variant="secondary" className="text-xs">Cash on Delivery</Badge>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 stagger-children">
+            <StatCard
+              title="Taxa de Entrega"
+              value={`${stats.deliveryRate}%`}
+              change={0}
+              icon={Truck}
+              color="success"
+              description="Pedidos entregues com sucesso"
+            />
+            <StatCard
+              title="Taxa de Devolucao"
+              value={`${stats.returnRate}%`}
+              change={0}
+              icon={RotateCcw}
+              color="warning"
+              description="Menor e melhor"
+            />
+            <StatCard
+              title="ROAS"
+              value={`${stats.roas.toFixed(2)}x`}
+              change={0}
+              icon={Percent}
+              color="primary"
+              description="Retorno sobre investimento"
+            />
+            <StatCard
+              title="Visitantes"
+              value={stats.visitors.toLocaleString()}
+              change={0}
+              icon={Users}
+              color="info"
+              description="Total de sessoes"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <button className="group flex items-center gap-4 p-4 rounded-2xl border border-border/50 bg-card hover:border-primary/50 hover:bg-primary/5 transition-all duration-300">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform">
-            <ShoppingCart className="h-6 w-6" />
-          </div>
-          <div className="text-left">
-            <p className="font-semibold">{stats.pending} pedidos pendentes</p>
-            <p className="text-sm text-muted-foreground">Aguardando processamento</p>
-          </div>
-          <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-        </button>
+      {isSectionVisible('quick-actions') && (
+        <div className="grid gap-4 md:grid-cols-3">
+          <button className="group flex items-center gap-4 p-4 rounded-2xl border border-border/50 bg-card hover:border-primary/50 hover:bg-primary/5 transition-all duration-300">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform">
+              <ShoppingCart className="h-6 w-6" />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold">{stats.pending} pedidos pendentes</p>
+              <p className="text-sm text-muted-foreground">Aguardando processamento</p>
+            </div>
+            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+          </button>
 
-        <button className="group flex items-center gap-4 p-4 rounded-2xl border border-border/50 bg-card hover:border-warning/50 hover:bg-warning/5 transition-all duration-300">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10 text-warning group-hover:scale-110 transition-transform">
-            <Zap className="h-6 w-6" />
-          </div>
-          <div className="text-left">
-            <p className="font-semibold">{lowStockCount} produtos em estoque baixo</p>
-            <p className="text-sm text-muted-foreground">Requer atencao</p>
-          </div>
-          <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground group-hover:text-warning group-hover:translate-x-1 transition-all" />
-        </button>
+          <button className="group flex items-center gap-4 p-4 rounded-2xl border border-border/50 bg-card hover:border-warning/50 hover:bg-warning/5 transition-all duration-300">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10 text-warning group-hover:scale-110 transition-transform">
+              <Zap className="h-6 w-6" />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold">{lowStockCount} produtos em estoque baixo</p>
+              <p className="text-sm text-muted-foreground">Requer atencao</p>
+            </div>
+            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground group-hover:text-warning group-hover:translate-x-1 transition-all" />
+          </button>
 
-        <button className="group flex items-center gap-4 p-4 rounded-2xl border border-border/50 bg-card hover:border-success/50 hover:bg-success/5 transition-all duration-300">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10 text-success group-hover:scale-110 transition-transform">
-            <Truck className="h-6 w-6" />
-          </div>
-          <div className="text-left">
-            <p className="font-semibold">{stats.inTransit} em transito</p>
-            <p className="text-sm text-muted-foreground">Saindo para entrega hoje</p>
-          </div>
-          <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground group-hover:text-success group-hover:translate-x-1 transition-all" />
-        </button>
-      </div>
+          <button className="group flex items-center gap-4 p-4 rounded-2xl border border-border/50 bg-card hover:border-success/50 hover:bg-success/5 transition-all duration-300">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10 text-success group-hover:scale-110 transition-transform">
+              <Truck className="h-6 w-6" />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold">{stats.inTransit} em transito</p>
+              <p className="text-sm text-muted-foreground">Saindo para entrega hoje</p>
+            </div>
+            <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground group-hover:text-success group-hover:translate-x-1 transition-all" />
+          </button>
+        </div>
+      )}
 
       {/* Charts and Detailed Stats */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <RevenueChart data={stats.chartData} />
+      {isSectionVisible('charts') && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <RevenueChart data={stats.chartData} />
+          </div>
+          <DeliveryStats
+            delivered={stats.delivered}
+            inTransit={stats.inTransit}
+            returned={stats.returned}
+            pending={stats.pending}
+            failed={stats.failed}
+            total={stats.total}
+          />
         </div>
-        <DeliveryStats
-          delivered={stats.delivered}
-          inTransit={stats.inTransit}
-          returned={stats.returned}
-          pending={stats.pending}
-          failed={stats.failed}
-          total={stats.total}
-        />
-      </div>
+      )}
 
       {/* Traffic and Orders */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <TrafficSources sources={stats.trafficSources} />
-        <RecentOrders orders={recentOrders} />
-      </div>
+      {isSectionVisible('traffic-orders') && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <TrafficSources sources={stats.trafficSources} />
+          <RecentOrders orders={recentOrders} />
+        </div>
+      )}
     </div>
   )
 }
