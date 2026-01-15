@@ -42,6 +42,7 @@ import {
   Facebook,
   Target,
   Crown,
+  TrendingUp,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -75,6 +76,12 @@ const mainNavItems = [
 
 // TRAFEGO PAGO - Traffic sources with spend control
 const trafficNavItems = [
+  {
+    title: 'Media Buyer',
+    href: '/dashboard/media-buyer',
+    icon: TrendingUp,
+    color: 'text-green-500',
+  },
   {
     title: 'Facebook Ads',
     href: '/dashboard/trafego/meta',
