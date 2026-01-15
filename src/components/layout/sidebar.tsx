@@ -22,7 +22,6 @@ import {
   ShoppingCart,
   Package,
   Users,
-  DollarSign,
   CheckSquare,
   Settings,
   BarChart3,
@@ -33,7 +32,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Zap,
   HelpCircle,
   Shield,
   Warehouse,
@@ -42,9 +40,6 @@ import {
   GitCompare,
   Megaphone,
   Facebook,
-  Search,
-  Music2,
-  Activity,
   Target,
   Crown,
 } from 'lucide-react'
@@ -81,22 +76,10 @@ const mainNavItems = [
 // TRAFEGO PAGO - Traffic sources with spend control
 const trafficNavItems = [
   {
-    title: 'Meta Ads',
+    title: 'Facebook Ads',
     href: '/dashboard/trafego/meta',
     icon: Facebook,
     color: 'text-[#1877F2]',
-  },
-  {
-    title: 'Google Ads',
-    href: '/dashboard/trafego/google',
-    icon: Search,
-    color: 'text-[#EA4335]',
-  },
-  {
-    title: 'TikTok Ads',
-    href: '/dashboard/trafego/tiktok',
-    icon: Music2,
-    color: 'text-black dark:text-white',
   },
   {
     title: 'Gastos & BMs',
@@ -106,39 +89,6 @@ const trafficNavItems = [
   },
 ]
 
-// INTEGRACOES - Platform connections
-const integrationNavItems = [
-  {
-    title: 'Todas Integrações',
-    href: '/dashboard/integrations',
-    icon: Settings,
-    color: 'text-purple-500',
-  },
-  {
-    title: 'Conectar Meta',
-    href: '/dashboard/integracoes/meta',
-    icon: Facebook,
-    color: 'text-[#1877F2]',
-  },
-  {
-    title: 'Conectar Google',
-    href: '/dashboard/integracoes/google',
-    icon: Search,
-    color: 'text-[#EA4335]',
-  },
-  {
-    title: 'Conectar TikTok',
-    href: '/dashboard/integracoes/tiktok',
-    icon: Music2,
-    color: 'text-black dark:text-white',
-  },
-  {
-    title: 'Pixels & UTMs',
-    href: '/dashboard/integracoes/pixels',
-    icon: Activity,
-    color: 'text-lime-500',
-  },
-]
 
 // GESTAO - Management
 const managementNavItems = [
@@ -164,12 +114,6 @@ const managementNavItems = [
 
 // FINANCEIRO - Financial
 const financialNavItems = [
-  {
-    title: 'Assinaturas',
-    href: '/dashboard/assinaturas',
-    icon: CreditCard,
-    color: 'text-primary',
-  },
   {
     title: 'Sócios',
     href: '/dashboard/partners',
@@ -255,10 +199,8 @@ export function Sidebar({ className }: SidebarProps) {
   const { data: session } = useSession()
   const [collapsed, setCollapsed] = useState(false)
   const [controlOpen, setControlOpen] = useState(false)
-  const [integracoesOpen, setIntegracoesOpen] = useState(false)
 
   const isMatrix = session?.user?.role === 'MATRIX'
-  const isPaymentExempt = session?.user?.isPaymentExempt === true
 
   const NavItem = ({ item }: { item: typeof mainNavItems[0] }) => {
     const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -370,36 +312,6 @@ export function Sidebar({ className }: SidebarProps) {
 
             <NavSection title="Tráfego Pago" items={trafficNavItems} />
 
-            {/* INTEGRACOES - Expandable Section */}
-            <div className="space-y-1 mt-2">
-              {!collapsed ? (
-                <Collapsible open={integracoesOpen} onOpenChange={setIntegracoesOpen}>
-                  <CollapsibleTrigger className="flex items-center justify-between w-full group">
-                    <h4 className="sidebar-section-title flex items-center gap-2 cursor-pointer hover:text-foreground transition-colors">
-                      <Zap className="h-3.5 w-3.5 text-lime-500" />
-                      Integrações
-                    </h4>
-                    <ChevronDown className={cn(
-                      "h-4 w-4 text-muted-foreground transition-transform duration-200",
-                      integracoesOpen && "rotate-180"
-                    )} />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-1 mt-1">
-                    {integrationNavItems.map((item) => (
-                      <NavItem key={item.href} item={item} />
-                    ))}
-                  </CollapsibleContent>
-                </Collapsible>
-              ) : (
-                <>
-                  <div className="h-2" />
-                  {integrationNavItems.map((item) => (
-                    <NavItem key={item.href} item={item} />
-                  ))}
-                </>
-              )}
-            </div>
-
             <div className={cn('h-px bg-border/50', collapsed && 'mx-2')} />
 
             <NavSection title="Gestão" items={managementNavItems} />
@@ -466,31 +378,6 @@ export function Sidebar({ className }: SidebarProps) {
             )}
           </nav>
         </ScrollArea>
-
-        {/* Upgrade Card - Only show when expanded and user is not exempt */}
-        {!collapsed && !isPaymentExempt && !isMatrix && (
-          <div className="px-3 py-3">
-            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 via-accent/10 to-primary/10 p-4 border border-primary/20">
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-semibold">Upgrade Pro</span>
-                </div>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Desbloqueie recursos avançados de tracking e relatórios.
-                </p>
-                <Link href="/dashboard/pricing">
-                  <Button size="sm" className="w-full btn-glow">
-                    Ver planos
-                  </Button>
-                </Link>
-              </div>
-              {/* Decorative gradient blob */}
-              <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/20 rounded-full blur-2xl" />
-              <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-accent/20 rounded-full blur-2xl" />
-            </div>
-          </div>
-        )}
 
         {/* Bottom section */}
         <div className="border-t border-sidebar-border p-3 space-y-1">
