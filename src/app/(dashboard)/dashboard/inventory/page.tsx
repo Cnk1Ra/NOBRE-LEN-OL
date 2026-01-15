@@ -25,81 +25,19 @@ import {
 } from 'lucide-react'
 import { formatCurrency, formatNumber } from '@/lib/utils'
 
-// Mock data
-const inventoryItems = [
-  {
-    id: '1',
-    name: 'Kit Skincare Completo',
-    sku: 'SKU-001',
-    quantity: 45,
-    minQuantity: 20,
-    costPrice: 85.00,
-    salePrice: 289.90,
-    location: 'Prateleira A1',
-    lastRestockAt: '2024-12-01',
-    status: 'normal',
-  },
-  {
-    id: '2',
-    name: 'Sérum Vitamina C',
-    sku: 'SKU-002',
-    quantity: 8,
-    minQuantity: 15,
-    costPrice: 45.00,
-    salePrice: 149.90,
-    location: 'Prateleira A2',
-    lastRestockAt: '2024-11-28',
-    status: 'low',
-  },
-  {
-    id: '3',
-    name: 'Creme Noturno Anti-idade',
-    sku: 'SKU-003',
-    quantity: 3,
-    minQuantity: 10,
-    costPrice: 65.00,
-    salePrice: 199.90,
-    location: 'Prateleira A3',
-    lastRestockAt: '2024-11-20',
-    status: 'critical',
-  },
-  {
-    id: '4',
-    name: 'Protetor Solar FPS 50',
-    sku: 'SKU-004',
-    quantity: 120,
-    minQuantity: 30,
-    costPrice: 35.00,
-    salePrice: 99.90,
-    location: 'Prateleira B1',
-    lastRestockAt: '2024-12-05',
-    status: 'normal',
-  },
-  {
-    id: '5',
-    name: 'Tônico Facial',
-    sku: 'SKU-005',
-    quantity: 15,
-    minQuantity: 15,
-    costPrice: 28.00,
-    salePrice: 79.90,
-    location: 'Prateleira B2',
-    lastRestockAt: '2024-11-25',
-    status: 'low',
-  },
-  {
-    id: '6',
-    name: 'Máscara Hidratante',
-    sku: 'SKU-006',
-    quantity: 0,
-    minQuantity: 10,
-    costPrice: 40.00,
-    salePrice: 129.90,
-    location: 'Prateleira B3',
-    lastRestockAt: '2024-11-15',
-    status: 'out',
-  },
-]
+// Inventory data - starts empty, will be populated from API/database
+const inventoryItems: {
+  id: string
+  name: string
+  sku: string
+  quantity: number
+  minQuantity: number
+  costPrice: number
+  salePrice: number
+  location: string
+  lastRestockAt: string
+  status: string
+}[] = []
 
 const getStatusBadge = (status: string) => {
   switch (status) {

@@ -968,3 +968,95 @@ model IncomingTrackingEvent {
   @@index([orderId])
   @@map("incoming_tracking_events")
 }
+
+// ==================== MEDIA BUYER - GASTOS E MÉTRICAS ====================
+
+model DailyAdSpend {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  date              DateTime @db.Date // Data em BRT (São Paulo)
+  dateOriginal      DateTime // Timestamp original do Facebook (PT)
+  adAccountId       String
+  adAccountName     String?
+  campaignId        String?
+  campaignName      String?
+  adsetId           String?
+  adsetName         String?
+  spendUsd          Float    @default(0)
+  spendBrl          Float    @default(0)
+  impressions       Int      @default(0)
+  clicks            Int      @default(0)
+  cpm               Float?
+  cpc               Float?
+  ctr               Float?
+  results           Int      @default(0)
+  costPerResult     Float?
+  reach             Int      @default(0)
+  frequency         Float?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([workspaceId, date, adAccountId, campaignId, adsetId])
+  @@index([workspaceId, date])
+  @@map("daily_ad_spends")
+}
+
+model DailySales {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  date              DateTime @db.Date // Data em BRT
+  source            String   @default("manual") // manual, utmify, api
+  ordersCount       Int      @default(0)
+  averageTicket     Float    @default(0)
+  grossRevenue      Float    @default(0)
+  netRevenue        Float    @default(0)
+  refunds           Float    @default(0)
+  chargebacks       Float    @default(0)
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([workspaceId, date, source])
+  @@index([workspaceId, date])
+  @@map("daily_sales")
+}
+
+model DailyMetrics {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  date              DateTime @db.Date
+  totalSpendUsd     Float    @default(0)
+  totalSpendBrl     Float    @default(0)
+  totalSales        Int      @default(0)
+  grossRevenue      Float    @default(0)
+  netRevenue        Float    @default(0)
+  grossProfit       Float    @default(0) // revenue - spend
+  netProfit         Float    @default(0) // considering operational costs
+  roi               Float?   // (profit / spend) * 100
+  roas              Float?   // revenue / spend
+  cpa               Float?   // spend / sales
+  usdToBrlRate      Float    @default(5.0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([workspaceId, date])
+  @@index([workspaceId, date])
+  @@map("daily_metrics")
+}
+
+model FacebookAdAccount {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  accountId         String   // act_XXXXXXXXX
+  accountName       String
+  currency          String   @default("USD") // USD, EUR, PLN
+  timezone          String   @default("America/Los_Angeles")
+  accessToken       String?
+  isActive          Boolean  @default(true)
+  lastSyncAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([workspaceId, accountId])
+  @@map("facebook_ad_accounts")
+}

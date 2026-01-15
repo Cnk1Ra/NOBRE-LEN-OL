@@ -13,19 +13,22 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
-import { 
-  User, 
-  Building2, 
-  Bell, 
-  Palette, 
-  Shield, 
+import {
+  User,
+  Building2,
+  Bell,
+  Palette,
+  Shield,
   Upload,
   Check,
   Loader2,
   Camera,
-  Link2
+  Link2,
+  BookOpen
 } from 'lucide-react'
+import { useTutorial } from '@/contexts/tutorial-context'
 import { useSearchParams } from 'next/navigation'
+import { ChangePasswordDialog } from '@/components/settings/change-password-dialog'
 import {
   Select,
   SelectContent,
@@ -47,8 +50,9 @@ const countryCodes = [
 function SettingsContent() {
   const searchParams = useSearchParams()
   const initialTab = searchParams.get('tab') || 'profile'
-  
+
   const { profile, updateProfile, updateAvatar, getInitials, getFullName } = useUser()
+  const { startTutorial, hasCompletedTutorial } = useTutorial()
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   
@@ -450,6 +454,21 @@ function SettingsContent() {
                 <Label>Tema</Label>
                 <p className="text-sm text-muted-foreground">Use o botão de tema no header para alternar entre claro e escuro.</p>
               </div>
+              <Separator />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="flex items-center gap-2">
+                      <BookOpen className="h-4 w-4" />
+                      Tutorial
+                    </Label>
+                    <p className="text-sm text-muted-foreground">Reveja o tutorial de introdução à plataforma</p>
+                  </div>
+                  <Button variant="outline" onClick={startTutorial}>
+                    {hasCompletedTutorial ? 'Ver novamente' : 'Iniciar tutorial'}
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -476,8 +495,8 @@ function SettingsContent() {
               <div className="space-y-4">
                 <div>
                   <Label>Alterar Senha</Label>
-                  <p className="text-sm text-muted-foreground mb-4">Para sua segurança, recomendamos usar uma senha forte e única.</p>
-                  <Button variant="outline">Alterar senha</Button>
+                  <p className="text-sm text-muted-foreground mb-4">Para sua seguranca, recomendamos usar uma senha forte e unica.</p>
+                  <ChangePasswordDialog />
                 </div>
                 <Separator />
                 <div>

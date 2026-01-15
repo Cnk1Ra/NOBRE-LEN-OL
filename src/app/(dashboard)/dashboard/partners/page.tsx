@@ -35,48 +35,8 @@ import {
 import { formatCurrency, getInitials } from '@/lib/utils'
 import type { Partner, PartnerType } from '@/types'
 
-// Mock data
-const mockPartners: Partner[] = [
-  {
-    id: '1',
-    name: 'João Silva',
-    email: 'joao@email.com',
-    phone: '+55 11 99999-1111',
-    type: 'FOUNDER',
-    profitPercentage: 40,
-    isActive: true,
-  },
-  {
-    id: '2',
-    name: 'Maria Santos',
-    email: 'maria@email.com',
-    phone: '+55 11 99999-2222',
-    type: 'PARTNER',
-    profitPercentage: 30,
-    isActive: true,
-  },
-  {
-    id: '3',
-    name: 'Pedro Oliveira',
-    email: 'pedro@email.com',
-    phone: '+55 11 99999-3333',
-    type: 'INVESTOR',
-    profitPercentage: 20,
-    investedAmount: 50000,
-    isActive: true,
-    notes: 'Investidor anjo - rodada seed',
-  },
-  {
-    id: '4',
-    name: 'Ana Costa',
-    email: 'ana@email.com',
-    type: 'SILENT',
-    profitPercentage: 10,
-    investedAmount: 25000,
-    isActive: true,
-    notes: 'Sócia silenciosa - amiga da família',
-  },
-]
+// Partners data - starts empty, will be populated from API
+const mockPartners: Partner[] = []
 
 const partnerTypeLabels: Record<PartnerType, string> = {
   FOUNDER: 'Fundador',
@@ -95,9 +55,9 @@ const partnerTypeColors: Record<PartnerType, string> = {
 export default function PartnersPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-  // Dados financeiros calculados
-  const totalProfit = 43500 // Lucro líquido do período
-  const totalDistributed = 43500 // Total a distribuir
+  // Dados financeiros - começam zerados, serão populados pela API
+  const totalProfit = 0
+  const totalDistributed = 0
   const pendingDistribution = 0
 
   // Calcular distribuição por sócio
@@ -224,7 +184,7 @@ export default function PartnersPage() {
                 <Wallet className="h-6 w-6 text-blue-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{formatCurrency(75000)}</p>
+                <p className="text-2xl font-bold">{formatCurrency(0)}</p>
                 <p className="text-xs text-muted-foreground">Total Investido</p>
               </div>
             </div>

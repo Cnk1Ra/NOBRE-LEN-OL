@@ -143,109 +143,10 @@ interface Campaign {
   startDate: string
 }
 
-// Mock data
-const mockProfiles: MetaProfile[] = [
-  {
-    id: 'profile-1',
-    name: 'Perfil Principal',
-    email: 'usuario@empresa.com',
-    accessToken: 'EAABsbCS...',
-    tokenExpiry: new Date('2025-02-28'),
-    isConnected: true,
-    adAccounts: [
-      { id: 'act_1', accountId: '123456789', name: 'Conta Principal BR', status: 'active', currency: 'BRL', isEnabled: true, spent: 15420.50, dailyBudget: 500 },
-      { id: 'act_2', accountId: '987654321', name: 'Conta Remarketing', status: 'active', currency: 'BRL', isEnabled: true, spent: 8750.00, dailyBudget: 300 },
-      { id: 'act_3', accountId: '456789123', name: 'Conta Teste', status: 'disabled', currency: 'BRL', isEnabled: false, spent: 0, dailyBudget: 0 },
-    ],
-    pixels: [
-      { id: 'px_1', pixelId: '1234567890', name: 'Pixel Loja Principal', isActive: true, lastActivity: new Date(), eventsReceived: 45230 },
-    ],
-    createdAt: new Date('2024-01-15'),
-  },
-]
+// Meta profiles and campaigns - starts empty, will be populated when Meta is connected
+const mockProfiles: MetaProfile[] = []
 
-const mockCampaigns: Campaign[] = [
-  {
-    id: 'meta-1',
-    name: 'Black Friday 2024 - Conversao',
-    status: 'active',
-    objective: 'Conversoes',
-    budget: 5000,
-    budgetType: 'daily',
-    spent: 3245.80,
-    revenue: 18500,
-    impressions: 125000,
-    clicks: 4500,
-    conversions: 180,
-    ctr: 3.6,
-    cpc: 0.72,
-    cpm: 25.97,
-    cpa: 18.03,
-    roas: 5.7,
-    profit: 15254.20,
-    startDate: '2024-11-20',
-  },
-  {
-    id: 'meta-2',
-    name: 'Remarketing - Carrinho Abandonado',
-    status: 'active',
-    objective: 'Conversoes',
-    budget: 2000,
-    budgetType: 'daily',
-    spent: 1580.50,
-    revenue: 9800,
-    impressions: 45000,
-    clicks: 2100,
-    conversions: 95,
-    ctr: 4.7,
-    cpc: 0.75,
-    cpm: 35.12,
-    cpa: 16.64,
-    roas: 6.2,
-    profit: 8219.50,
-    startDate: '2024-11-01',
-  },
-  {
-    id: 'meta-3',
-    name: 'Lookalike - Compradores VIP',
-    status: 'active',
-    objective: 'Conversoes',
-    budget: 3000,
-    budgetType: 'daily',
-    spent: 2100.00,
-    revenue: 12600,
-    impressions: 85000,
-    clicks: 3200,
-    conversions: 126,
-    ctr: 3.76,
-    cpc: 0.66,
-    cpm: 24.71,
-    cpa: 16.67,
-    roas: 6.0,
-    profit: 10500.00,
-    startDate: '2024-11-05',
-  },
-  {
-    id: 'meta-4',
-    name: 'Prospeccao - Interesse Moda',
-    status: 'paused',
-    objective: 'Trafego',
-    budget: 1500,
-    budgetType: 'daily',
-    spent: 980.00,
-    revenue: 2940,
-    impressions: 62000,
-    clicks: 1800,
-    conversions: 29,
-    ctr: 2.9,
-    cpc: 0.54,
-    cpm: 15.81,
-    cpa: 33.79,
-    roas: 3.0,
-    profit: 1960.00,
-    startDate: '2024-10-20',
-  },
-]
+const mockCampaigns: Campaign[] = []
 
 export default function MetaAdsPage() {
   const { formatCurrency } = useCountry()
@@ -967,19 +868,19 @@ fbq('track', 'Purchase', {
             <CardContent>
               <div className="grid gap-4 md:grid-cols-4">
                 <div className="p-4 rounded-lg bg-muted/50 text-center">
-                  <p className="text-2xl font-bold">12,450</p>
+                  <p className="text-2xl font-bold">0</p>
                   <p className="text-sm text-muted-foreground">PageView</p>
                 </div>
                 <div className="p-4 rounded-lg bg-muted/50 text-center">
-                  <p className="text-2xl font-bold">3,280</p>
+                  <p className="text-2xl font-bold">0</p>
                   <p className="text-sm text-muted-foreground">ViewContent</p>
                 </div>
                 <div className="p-4 rounded-lg bg-muted/50 text-center">
-                  <p className="text-2xl font-bold">890</p>
+                  <p className="text-2xl font-bold">0</p>
                   <p className="text-sm text-muted-foreground">AddToCart</p>
                 </div>
                 <div className="p-4 rounded-lg bg-muted/50 text-center">
-                  <p className="text-2xl font-bold">245</p>
+                  <p className="text-2xl font-bold">0</p>
                   <p className="text-sm text-muted-foreground">Purchase</p>
                 </div>
               </div>

@@ -39,44 +39,21 @@ import {
 } from 'recharts'
 import { formatCurrency, formatPercentage } from '@/lib/utils'
 
-// Mock data
-const monthlyData = [
-  { month: 'Jul', revenue: 85000, costs: 52000, profit: 33000 },
-  { month: 'Ago', revenue: 92000, costs: 55000, profit: 37000 },
-  { month: 'Set', revenue: 98000, costs: 58000, profit: 40000 },
-  { month: 'Out', revenue: 105000, costs: 62000, profit: 43000 },
-  { month: 'Nov', revenue: 118000, costs: 68000, profit: 50000 },
-  { month: 'Dez', revenue: 126300, costs: 82800, profit: 43500 },
-]
+// Financial data - starts empty, will be populated from API when data exists
+const monthlyData: { month: string; revenue: number; costs: number; profit: number }[] = []
 
-const expenseBreakdown = [
-  { name: 'Custo de Produtos', value: 38500, color: '#6366f1' },
-  { name: 'Publicidade', value: 34000, color: '#8b5cf6' },
-  { name: 'Frete', value: 6400, color: '#a855f7' },
-  { name: 'Taxas de Plataforma', value: 2500, color: '#d946ef' },
-  { name: 'Outros', value: 1400, color: '#ec4899' },
-]
+const expenseBreakdown: { name: string; value: number; color: string }[] = []
 
-const revenueByCountry = [
-  { country: 'Brasil', revenue: 98500, orders: 342, percentage: 78 },
-  { country: 'Portugal', revenue: 18200, orders: 58, percentage: 14.4 },
-  { country: 'Outros', revenue: 9600, orders: 27, percentage: 7.6 },
-]
+const revenueByCountry: { country: string; revenue: number; orders: number; percentage: number }[] = []
 
-const recentTransactions = [
-  { id: '1', type: 'INCOME', description: 'Venda #ORD-4521', amount: 289.90, date: '07/12/2024' },
-  { id: '2', type: 'EXPENSE', description: 'Facebook Ads', amount: -850.00, date: '07/12/2024' },
-  { id: '3', type: 'INCOME', description: 'Venda #ORD-4520', amount: 459.90, date: '07/12/2024' },
-  { id: '4', type: 'EXPENSE', description: 'Fornecedor - Produtos', amount: -2500.00, date: '06/12/2024' },
-  { id: '5', type: 'INCOME', description: 'Venda #ORD-4519', amount: 189.90, date: '06/12/2024' },
-  { id: '6', type: 'EXPENSE', description: 'Frete Correios', amount: -320.00, date: '06/12/2024' },
-]
+const recentTransactions: { id: string; type: string; description: string; amount: number; date: string }[] = []
 
 export default function FinancialPage() {
-  const totalRevenue = 126300
-  const totalCosts = 82800
-  const totalProfit = 43500
-  const profitMargin = (totalProfit / totalRevenue) * 100
+  // Calculate totals from data (will be 0 when no data)
+  const totalRevenue = monthlyData.reduce((sum, m) => sum + m.revenue, 0)
+  const totalCosts = monthlyData.reduce((sum, m) => sum + m.costs, 0)
+  const totalProfit = monthlyData.reduce((sum, m) => sum + m.profit, 0)
+  const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {

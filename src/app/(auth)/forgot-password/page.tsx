@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,6 +11,17 @@ import { Loader2, ArrowLeft, Mail, CheckCircle2, AlertTriangle, Copy, ExternalLi
 
 export default function ForgotPasswordPage() {
   const { toast } = useToast()
+  const [userLanguage, setUserLanguage] = useState('pt-BR')
+
+  // Detectar idioma do usuário
+  useEffect(() => {
+    const savedLang = localStorage.getItem('dod-language')
+    if (savedLang) {
+      setUserLanguage(savedLang)
+    } else if (navigator.language) {
+      setUserLanguage(navigator.language)
+    }
+  }, [])
   const [isLoading, setIsLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
@@ -29,7 +40,7 @@ export default function ForgotPasswordPage() {
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, language: userLanguage }),
       })
 
       const data = await res.json()

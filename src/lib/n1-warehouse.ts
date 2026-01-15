@@ -251,18 +251,9 @@ export function createN1Client(): N1WarehouseClient | null {
   })
 }
 
-// Mock client for development/demo
+// Mock client for development/demo - starts with empty data
 export class N1WarehouseMockClient extends N1WarehouseClient {
-  private mockOrders: N1Order[] = [
-    { id: 'N1-001', externalRef: 'DOD-001', status: 'EM_SEPARACAO', statusLabel: 'Em Separação', customerName: 'João Silva', trackingCode: 'PT123456789', country: 'PT', total: 289.90, currency: 'EUR', createdAt: '2024-12-07T10:00:00Z', updatedAt: '2024-12-07T14:30:00Z' },
-    { id: 'N1-002', externalRef: 'DOD-002', status: 'ENTREGUE', statusLabel: 'Entregue', customerName: 'María García', trackingCode: 'ES987654321', country: 'ES', total: 459.90, currency: 'EUR', createdAt: '2024-12-06T09:00:00Z', updatedAt: '2024-12-06T18:45:00Z', deliveredAt: '2024-12-06T18:45:00Z' },
-    { id: 'N1-003', externalRef: 'DOD-004', status: 'ENVIADO', statusLabel: 'Enviado', customerName: 'Marco Rossi', trackingCode: 'IT456789123', country: 'IT', total: 599.90, currency: 'EUR', createdAt: '2024-12-05T08:00:00Z', updatedAt: '2024-12-05T09:15:00Z', shippedAt: '2024-12-05T09:15:00Z' },
-    { id: 'N1-004', externalRef: 'DOD-005', status: 'ENTREGUE', statusLabel: 'Entregue', customerName: 'Carlos López', trackingCode: 'ES321654987', country: 'ES', total: 349.90, currency: 'EUR', createdAt: '2024-12-04T11:00:00Z', updatedAt: '2024-12-04T16:20:00Z', deliveredAt: '2024-12-04T16:20:00Z' },
-    { id: 'N1-005', externalRef: 'DOD-006', status: 'EM_SEPARACAO', statusLabel: 'Em Separação', customerName: 'Lucia Ferreira', trackingCode: 'PT147258369', country: 'PT', total: 279.90, currency: 'EUR', createdAt: '2024-12-07T10:30:00Z', updatedAt: '2024-12-07T11:00:00Z' },
-    { id: 'N1-006', externalRef: 'DOD-008', status: 'ENVIADO', statusLabel: 'Enviado', customerName: 'Ana Martínez', trackingCode: 'ES963852741', country: 'ES', total: 199.90, currency: 'EUR', createdAt: '2024-12-06T09:30:00Z', updatedAt: '2024-12-06T10:30:00Z', shippedAt: '2024-12-06T10:30:00Z' },
-    { id: 'N1-007', externalRef: 'DOD-010', status: 'ENTREGUE', statusLabel: 'Entregue', customerName: 'Francesca Romano', trackingCode: 'IT741852963', country: 'IT', total: 319.90, currency: 'EUR', createdAt: '2024-12-05T12:00:00Z', updatedAt: '2024-12-05T15:45:00Z', deliveredAt: '2024-12-05T15:45:00Z' },
-    { id: 'N1-008', externalRef: 'DOD-011', status: 'EM_TRANSITO', statusLabel: 'Em Trânsito', customerName: 'Roberto Santos', trackingCode: 'BR123789456', country: 'BR', total: 389.90, currency: 'BRL', createdAt: '2024-12-07T08:00:00Z', updatedAt: '2024-12-07T12:00:00Z', shippedAt: '2024-12-07T09:00:00Z' },
-  ]
+  private mockOrders: N1Order[] = []
 
   constructor() {
     super({ apiUrl: 'https://mock.n1warehouse.com', apiToken: 'mock-token' })
