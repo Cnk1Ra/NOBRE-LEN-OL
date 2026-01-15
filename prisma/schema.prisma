@@ -1028,13 +1028,21 @@ model DailyMetrics {
   totalSpendUsd     Float    @default(0)
   totalSpendBrl     Float    @default(0)
   totalSales        Int      @default(0)
-  grossRevenue      Float    @default(0)
-  netRevenue        Float    @default(0)
-  grossProfit       Float    @default(0) // revenue - spend
-  netProfit         Float    @default(0) // considering operational costs
+  // Valores em USD (moeda base)
+  grossRevenueUsd   Float    @default(0)
+  netRevenueUsd     Float    @default(0)
+  grossProfitUsd    Float    @default(0)
+  netProfitUsd      Float    @default(0)
+  // Valores em BRL (convertidos)
+  grossRevenue      Float    @default(0) // BRL
+  netRevenue        Float    @default(0) // BRL
+  grossProfit       Float    @default(0) // BRL - revenue - spend
+  netProfit         Float    @default(0) // BRL - considering operational costs
+  // Métricas
   roi               Float?   // (profit / spend) * 100
   roas              Float?   // revenue / spend
-  cpa               Float?   // spend / sales
+  cpa               Float?   // spend / sales (BRL)
+  cpaUsd            Float?   // spend / sales (USD)
   usdToBrlRate      Float    @default(5.0)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

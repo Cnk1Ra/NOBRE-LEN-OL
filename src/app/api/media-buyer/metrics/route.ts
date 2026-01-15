@@ -49,6 +49,12 @@ export async function GET(request: Request) {
         totalSpendUsd: acc.totalSpendUsd + metric.totalSpendUsd,
         totalSpendBrl: acc.totalSpendBrl + metric.totalSpendBrl,
         totalSales: acc.totalSales + metric.totalSales,
+        // USD
+        totalGrossRevenueUsd: acc.totalGrossRevenueUsd + (metric.grossRevenueUsd || 0),
+        totalNetRevenueUsd: acc.totalNetRevenueUsd + (metric.netRevenueUsd || 0),
+        totalGrossProfitUsd: acc.totalGrossProfitUsd + (metric.grossProfitUsd || 0),
+        totalNetProfitUsd: acc.totalNetProfitUsd + (metric.netProfitUsd || 0),
+        // BRL
         totalGrossRevenue: acc.totalGrossRevenue + metric.grossRevenue,
         totalNetRevenue: acc.totalNetRevenue + metric.netRevenue,
         totalGrossProfit: acc.totalGrossProfit + metric.grossProfit,
@@ -58,6 +64,10 @@ export async function GET(request: Request) {
         totalSpendUsd: 0,
         totalSpendBrl: 0,
         totalSales: 0,
+        totalGrossRevenueUsd: 0,
+        totalNetRevenueUsd: 0,
+        totalGrossProfitUsd: 0,
+        totalNetProfitUsd: 0,
         totalGrossRevenue: 0,
         totalNetRevenue: 0,
         totalGrossProfit: 0,
@@ -65,7 +75,7 @@ export async function GET(request: Request) {
       }
     )
 
-    // Calcular ROI, ROAS e CPA agregados
+    // Calcular ROI, ROAS e CPA agregados (em BRL)
     const avgRoi = totals.totalSpendBrl > 0
       ? ((totals.totalGrossProfit / totals.totalSpendBrl) * 100)
       : null
@@ -75,6 +85,9 @@ export async function GET(request: Request) {
     const avgCpa = totals.totalSales > 0
       ? (totals.totalSpendBrl / totals.totalSales)
       : null
+    const avgCpaUsd = totals.totalSales > 0
+      ? (totals.totalSpendUsd / totals.totalSales)
+      : null
 
     return NextResponse.json({
       data: metrics,
@@ -83,6 +96,7 @@ export async function GET(request: Request) {
         avgRoi,
         avgRoas,
         avgCpa,
+        avgCpaUsd,
         daysCount: metrics.length,
       },
     })
@@ -120,21 +134,32 @@ export async function POST(request: Request) {
     const date = new Date(body.date)
     date.setUTCHours(0, 0, 0, 0)
 
-    const usdToBrlRate = body.usdToBrlRate || 5.0
-    const totalSpendUsd = body.totalSpendUsd || 0
-    const totalSpendBrl = body.totalSpendBrl || (totalSpendUsd * usdToBrlRate)
-    const totalSales = body.totalSales || 0
-    const grossRevenue = body.grossRevenue || 0
-    const netRevenue = body.netRevenue || grossRevenue
+    const usdToBrlRate = parseFloat(body.usdToBrlRate) || 5.0
+    const totalSpendUsd = parseFloat(body.totalSpendUsd) || 0
+    const totalSpendBrl = totalSpendUsd * usdToBrlRate
+    const totalSales = parseInt(body.totalSales) || 0
 
-    // Calcular lucro
+    // Valores em USD (moeda base)
+    const grossRevenueUsd = parseFloat(body.grossRevenueUsd) || 0
+    const netRevenueUsd = parseFloat(body.netRevenueUsd) || grossRevenueUsd
+
+    // Converter para BRL
+    const grossRevenue = grossRevenueUsd * usdToBrlRate
+    const netRevenue = netRevenueUsd * usdToBrlRate
+
+    // Calcular lucro em USD
+    const grossProfitUsd = grossRevenueUsd - totalSpendUsd
+    const netProfitUsd = netRevenueUsd - totalSpendUsd
+
+    // Calcular lucro em BRL
     const grossProfit = grossRevenue - totalSpendBrl
     const netProfit = netRevenue - totalSpendBrl
 
-    // Calcular métricas
-    const roi = totalSpendBrl > 0 ? ((grossProfit / totalSpendBrl) * 100) : null
-    const roas = totalSpendBrl > 0 ? (grossRevenue / totalSpendBrl) : null
+    // Calcular métricas (baseadas em USD)
+    const roi = totalSpendUsd > 0 ? ((grossProfitUsd / totalSpendUsd) * 100) : null
+    const roas = totalSpendUsd > 0 ? (grossRevenueUsd / totalSpendUsd) : null
     const cpa = totalSales > 0 ? (totalSpendBrl / totalSales) : null
+    const cpaUsd = totalSales > 0 ? (totalSpendUsd / totalSales) : null
 
     // Upsert - criar ou atualizar
     const metric = await prisma.dailyMetrics.upsert({
@@ -148,6 +173,10 @@ export async function POST(request: Request) {
         totalSpendUsd,
         totalSpendBrl,
         totalSales,
+        grossRevenueUsd,
+        netRevenueUsd,
+        grossProfitUsd,
+        netProfitUsd,
         grossRevenue,
         netRevenue,
         grossProfit,
@@ -155,6 +184,7 @@ export async function POST(request: Request) {
         roi,
         roas,
         cpa,
+        cpaUsd,
         usdToBrlRate,
       },
       create: {
@@ -163,6 +193,10 @@ export async function POST(request: Request) {
         totalSpendUsd,
         totalSpendBrl,
         totalSales,
+        grossRevenueUsd,
+        netRevenueUsd,
+        grossProfitUsd,
+        netProfitUsd,
         grossRevenue,
         netRevenue,
         grossProfit,
@@ -170,6 +204,7 @@ export async function POST(request: Request) {
         roi,
         roas,
         cpa,
+        cpaUsd,
         usdToBrlRate,
       },
     })
@@ -242,14 +277,21 @@ export async function PUT(request: Request) {
 
     const usdToBrlRate = body.usdToBrlRate || (totalSpendUsd > 0 ? totalSpendBrl / totalSpendUsd : 5.0)
 
-    // Calcular lucro
+    // Calcular valores em USD
+    const grossRevenueUsd = grossRevenue / usdToBrlRate
+    const netRevenueUsd = netRevenue / usdToBrlRate
+    const grossProfitUsd = grossRevenueUsd - totalSpendUsd
+    const netProfitUsd = netRevenueUsd - totalSpendUsd
+
+    // Calcular lucro em BRL
     const grossProfit = grossRevenue - totalSpendBrl
     const netProfit = netRevenue - totalSpendBrl
 
     // Calcular métricas
-    const roi = totalSpendBrl > 0 ? ((grossProfit / totalSpendBrl) * 100) : null
-    const roas = totalSpendBrl > 0 ? (grossRevenue / totalSpendBrl) : null
+    const roi = totalSpendUsd > 0 ? ((grossProfitUsd / totalSpendUsd) * 100) : null
+    const roas = totalSpendUsd > 0 ? (grossRevenueUsd / totalSpendUsd) : null
     const cpa = totalSales > 0 ? (totalSpendBrl / totalSales) : null
+    const cpaUsd = totalSales > 0 ? (totalSpendUsd / totalSales) : null
 
     // Upsert - criar ou atualizar
     const metric = await prisma.dailyMetrics.upsert({
@@ -263,6 +305,10 @@ export async function PUT(request: Request) {
         totalSpendUsd,
         totalSpendBrl,
         totalSales,
+        grossRevenueUsd,
+        netRevenueUsd,
+        grossProfitUsd,
+        netProfitUsd,
         grossRevenue,
         netRevenue,
         grossProfit,
@@ -270,6 +316,7 @@ export async function PUT(request: Request) {
         roi,
         roas,
         cpa,
+        cpaUsd,
         usdToBrlRate,
       },
       create: {
@@ -278,6 +325,10 @@ export async function PUT(request: Request) {
         totalSpendUsd,
         totalSpendBrl,
         totalSales,
+        grossRevenueUsd,
+        netRevenueUsd,
+        grossProfitUsd,
+        netProfitUsd,
         grossRevenue,
         netRevenue,
         grossProfit,
@@ -285,6 +336,7 @@ export async function PUT(request: Request) {
         roi,
         roas,
         cpa,
+        cpaUsd,
         usdToBrlRate,
       },
     })

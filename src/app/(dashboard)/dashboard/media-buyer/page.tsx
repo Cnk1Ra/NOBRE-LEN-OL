@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { format, subDays, startOfDay } from 'date-fns'
+import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -48,6 +48,10 @@ interface DailyMetric {
   totalSpendUsd: number
   totalSpendBrl: number
   totalSales: number
+  grossRevenueUsd: number
+  netRevenueUsd: number
+  grossProfitUsd: number
+  netProfitUsd: number
   grossRevenue: number
   netRevenue: number
   grossProfit: number
@@ -55,6 +59,7 @@ interface DailyMetric {
   roi: number | null
   roas: number | null
   cpa: number | null
+  cpaUsd: number | null
   usdToBrlRate: number
 }
 
@@ -63,8 +68,8 @@ interface FormData {
   spendUsd: string
   usdRate: string
   sales: string
-  grossRevenue: string
-  netRevenue: string
+  grossRevenueUsd: string
+  netRevenueUsd: string
 }
 
 const initialFormData: FormData = {
@@ -72,8 +77,8 @@ const initialFormData: FormData = {
   spendUsd: '',
   usdRate: '5.70',
   sales: '',
-  grossRevenue: '',
-  netRevenue: '',
+  grossRevenueUsd: '',
+  netRevenueUsd: '',
 }
 
 export default function MediaBuyerPage() {
@@ -116,38 +121,36 @@ export default function MediaBuyerPage() {
     spendUsd: acc.spendUsd + m.totalSpendUsd,
     spendBrl: acc.spendBrl + m.totalSpendBrl,
     sales: acc.sales + m.totalSales,
-    revenue: acc.revenue + m.grossRevenue,
-    profit: acc.profit + m.grossProfit,
-  }), { spendUsd: 0, spendBrl: 0, sales: 0, revenue: 0, profit: 0 })
+    revenueUsd: acc.revenueUsd + (m.grossRevenueUsd || 0),
+    revenueBrl: acc.revenueBrl + m.grossRevenue,
+    profitUsd: acc.profitUsd + (m.grossProfitUsd || 0),
+    profitBrl: acc.profitBrl + m.grossProfit,
+  }), { spendUsd: 0, spendBrl: 0, sales: 0, revenueUsd: 0, revenueBrl: 0, profitUsd: 0, profitBrl: 0 })
 
-  const avgRoi = totals.spendBrl > 0 ? ((totals.profit / totals.spendBrl) * 100) : 0
-  const avgRoas = totals.spendBrl > 0 ? (totals.revenue / totals.spendBrl) : 0
-  const avgCpa = totals.sales > 0 ? (totals.spendBrl / totals.sales) : 0
+  const avgRoi = totals.spendUsd > 0 ? ((totals.profitUsd / totals.spendUsd) * 100) : 0
+  const avgRoas = totals.spendUsd > 0 ? (totals.revenueUsd / totals.spendUsd) : 0
+  const avgCpaUsd = totals.sales > 0 ? (totals.spendUsd / totals.sales) : 0
+  const avgCpaBrl = totals.sales > 0 ? (totals.spendBrl / totals.sales) : 0
 
   // Salvar dados
   const handleSave = async () => {
-    if (!formData.spendUsd || !formData.sales || !formData.grossRevenue) {
+    if (!formData.spendUsd || !formData.sales || !formData.grossRevenueUsd) {
       toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' })
       return
     }
 
     setIsSaving(true)
     try {
-      const spendUsd = parseFloat(formData.spendUsd)
-      const usdRate = parseFloat(formData.usdRate)
-      const spendBrl = spendUsd * usdRate
-
       const response = await fetch('/api/media-buyer/metrics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           date: formData.date,
-          totalSpendUsd: spendUsd,
-          totalSpendBrl: spendBrl,
+          totalSpendUsd: parseFloat(formData.spendUsd),
           totalSales: parseInt(formData.sales),
-          grossRevenue: parseFloat(formData.grossRevenue),
-          netRevenue: parseFloat(formData.netRevenue) || parseFloat(formData.grossRevenue),
-          usdToBrlRate: usdRate,
+          grossRevenueUsd: parseFloat(formData.grossRevenueUsd),
+          netRevenueUsd: parseFloat(formData.netRevenueUsd) || parseFloat(formData.grossRevenueUsd),
+          usdToBrlRate: parseFloat(formData.usdRate),
         }),
       })
 
@@ -177,26 +180,30 @@ export default function MediaBuyerPage() {
     }
 
     const dateFormatted = format(new Date(m.date), "dd 'de' MMMM", { locale: ptBR })
+    const spendUsd = m.totalSpendUsd.toFixed(2)
     const spendBrl = m.totalSpendBrl.toFixed(2)
-    const revenue = m.grossRevenue.toFixed(2)
-    const profit = m.grossProfit.toFixed(2)
+    const revenueUsd = (m.grossRevenueUsd || 0).toFixed(2)
+    const revenueBrl = m.grossRevenue.toFixed(2)
+    const profitUsd = (m.grossProfitUsd || 0).toFixed(2)
+    const profitBrl = m.grossProfit.toFixed(2)
     const roi = m.roi?.toFixed(1) || '0'
     const roas = m.roas?.toFixed(2) || '0'
-    const cpa = m.cpa?.toFixed(2) || '0'
+    const cpaUsd = m.cpaUsd?.toFixed(2) || '0'
+    const cpaBrl = m.cpa?.toFixed(2) || '0'
 
     const report = `📊 RELATÓRIO DE MÍDIA - ${dateFormatted.toUpperCase()}
 
-💰 Investimento: R$ ${spendBrl}
+💰 Investimento: $${spendUsd} USD (R$ ${spendBrl})
 🛒 Vendas: ${m.totalSales}
-💵 Faturamento: R$ ${revenue}
-📈 Lucro: R$ ${profit}
+💵 Faturamento: $${revenueUsd} USD (R$ ${revenueBrl})
+📈 Lucro: $${profitUsd} USD (R$ ${profitBrl})
 
 📉 MÉTRICAS:
 • ROI: ${roi}%
 • ROAS: ${roas}x
-• CPA: R$ ${cpa}
+• CPA: $${cpaUsd} USD (R$ ${cpaBrl})
 
-${parseFloat(profit) >= 0 ? '✅ Dia positivo!' : '⚠️ Dia negativo - ajustar estratégia'}
+${parseFloat(profitUsd) >= 0 ? '✅ Dia positivo!' : '⚠️ Dia negativo - ajustar estratégia'}
 
 ---
 Gerado por DOD Media Buyer`
@@ -216,12 +223,19 @@ Gerado por DOD Media Buyer`
   }
 
   // Formatar moeda
-  const formatCurrency = (value: number, currency = 'BRL') => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency,
-    }).format(value)
-  }
+  const formatUSD = (value: number) => `$${value.toFixed(2)}`
+  const formatBRL = (value: number) => `R$ ${value.toFixed(2)}`
+
+  // Calcular prévia
+  const previewSpendUsd = parseFloat(formData.spendUsd) || 0
+  const previewRate = parseFloat(formData.usdRate) || 5.70
+  const previewSpendBrl = previewSpendUsd * previewRate
+  const previewRevenueUsd = parseFloat(formData.grossRevenueUsd) || 0
+  const previewRevenueBrl = previewRevenueUsd * previewRate
+  const previewProfitUsd = previewRevenueUsd - previewSpendUsd
+  const previewProfitBrl = previewRevenueBrl - previewSpendBrl
+  const previewRoi = previewSpendUsd > 0 ? ((previewProfitUsd / previewSpendUsd) * 100) : 0
+  const previewRoas = previewSpendUsd > 0 ? (previewRevenueUsd / previewSpendUsd) : 0
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -236,7 +250,7 @@ Gerado por DOD Media Buyer`
             </Badge>
           </div>
           <p className="text-muted-foreground">
-            Controle de gastos, vendas e métricas diárias
+            Controle de gastos, vendas e métricas diárias (valores em USD)
           </p>
         </div>
 
@@ -257,7 +271,7 @@ Gerado por DOD Media Buyer`
               <DialogHeader>
                 <DialogTitle>Registrar Dados do Dia</DialogTitle>
                 <DialogDescription>
-                  Insira os dados de gastos e vendas do dia
+                  Insira os dados de gastos e vendas do dia (valores em USD)
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -294,9 +308,9 @@ Gerado por DOD Media Buyer`
                     value={formData.spendUsd}
                     onChange={(e) => setFormData({ ...formData, spendUsd: e.target.value })}
                   />
-                  {formData.spendUsd && formData.usdRate && (
+                  {formData.spendUsd && (
                     <p className="text-xs text-muted-foreground">
-                      = {formatCurrency(parseFloat(formData.spendUsd) * parseFloat(formData.usdRate))}
+                      = {formatBRL(previewSpendBrl)}
                     </p>
                   )}
                 </div>
@@ -314,56 +328,55 @@ Gerado por DOD Media Buyer`
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="grossRevenue">Faturamento Bruto (BRL)</Label>
+                    <Label htmlFor="grossRevenueUsd">Faturamento Bruto (USD)</Label>
                     <Input
-                      id="grossRevenue"
+                      id="grossRevenueUsd"
                       type="number"
                       step="0.01"
-                      placeholder="1000.00"
-                      value={formData.grossRevenue}
-                      onChange={(e) => setFormData({ ...formData, grossRevenue: e.target.value })}
+                      placeholder="500.00"
+                      value={formData.grossRevenueUsd}
+                      onChange={(e) => setFormData({ ...formData, grossRevenueUsd: e.target.value })}
                     />
+                    {formData.grossRevenueUsd && (
+                      <p className="text-xs text-muted-foreground">
+                        = {formatBRL(previewRevenueBrl)}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="netRevenue">Faturamento Líquido (BRL)</Label>
+                    <Label htmlFor="netRevenueUsd">Faturamento Líquido (USD)</Label>
                     <Input
-                      id="netRevenue"
+                      id="netRevenueUsd"
                       type="number"
                       step="0.01"
-                      placeholder="900.00"
-                      value={formData.netRevenue}
-                      onChange={(e) => setFormData({ ...formData, netRevenue: e.target.value })}
+                      placeholder="450.00"
+                      value={formData.netRevenueUsd}
+                      onChange={(e) => setFormData({ ...formData, netRevenueUsd: e.target.value })}
                     />
                   </div>
                 </div>
 
                 {/* Preview de métricas calculadas */}
-                {formData.spendUsd && formData.grossRevenue && (
+                {formData.spendUsd && formData.grossRevenueUsd && (
                   <div className="p-3 rounded-lg bg-muted/50 space-y-2">
                     <p className="text-sm font-medium">Prévia das Métricas:</p>
                     <div className="grid grid-cols-3 gap-2 text-sm">
                       <div>
                         <span className="text-muted-foreground">Lucro:</span>
-                        <p className="font-medium">
-                          {formatCurrency(
-                            parseFloat(formData.grossRevenue) -
-                            (parseFloat(formData.spendUsd) * parseFloat(formData.usdRate))
-                          )}
+                        <p className="font-medium text-green-500">
+                          {formatUSD(previewProfitUsd)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatBRL(previewProfitBrl)}
                         </p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">ROI:</span>
-                        <p className="font-medium">
-                          {(((parseFloat(formData.grossRevenue) - (parseFloat(formData.spendUsd) * parseFloat(formData.usdRate))) /
-                            (parseFloat(formData.spendUsd) * parseFloat(formData.usdRate))) * 100).toFixed(1)}%
-                        </p>
+                        <p className="font-medium">{previewRoi.toFixed(1)}%</p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">ROAS:</span>
-                        <p className="font-medium">
-                          {(parseFloat(formData.grossRevenue) /
-                            (parseFloat(formData.spendUsd) * parseFloat(formData.usdRate))).toFixed(2)}x
-                        </p>
+                        <p className="font-medium">{previewRoas.toFixed(2)}x</p>
                       </div>
                     </div>
                   </div>
@@ -405,15 +418,15 @@ Gerado por DOD Media Buyer`
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Gasto (USD)</CardTitle>
+                <CardTitle className="text-sm font-medium">Gasto</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  ${todayMetric?.totalSpendUsd.toFixed(2) || '0.00'}
+                  {formatUSD(todayMetric?.totalSpendUsd || 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {formatCurrency(todayMetric?.totalSpendBrl || 0)} em BRL
+                  {formatBRL(todayMetric?.totalSpendBrl || 0)}
                 </p>
               </CardContent>
             </Card>
@@ -440,10 +453,10 @@ Gerado por DOD Media Buyer`
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {formatCurrency(todayMetric?.grossRevenue || 0)}
+                  {formatUSD(todayMetric?.grossRevenueUsd || 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  bruto do dia
+                  {formatBRL(todayMetric?.grossRevenue || 0)}
                 </p>
               </CardContent>
             </Card>
@@ -454,11 +467,11 @@ Gerado por DOD Media Buyer`
                 <Calculator className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${(todayMetric?.grossProfit || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {formatCurrency(todayMetric?.grossProfit || 0)}
+                <div className={`text-2xl font-bold ${(todayMetric?.grossProfitUsd || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {formatUSD(todayMetric?.grossProfitUsd || 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  após custos de ads
+                  {formatBRL(todayMetric?.grossProfit || 0)}
                 </p>
               </CardContent>
             </Card>
@@ -488,7 +501,7 @@ Gerado por DOD Media Buyer`
                   {todayMetric?.roas?.toFixed(2) || '0'}x
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  retorno por real investido
+                  retorno por dólar investido
                 </p>
               </CardContent>
             </Card>
@@ -543,7 +556,7 @@ Gerado por DOD Media Buyer`
             <CardHeader>
               <CardTitle>Histórico dos Últimos 30 Dias</CardTitle>
               <CardDescription>
-                Acompanhe a evolução das suas métricas diárias
+                Acompanhe a evolução das suas métricas diárias (valores em USD e BRL)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -559,8 +572,7 @@ Gerado por DOD Media Buyer`
                     <TableHeader>
                       <TableRow>
                         <TableHead>Data</TableHead>
-                        <TableHead className="text-right">Gasto USD</TableHead>
-                        <TableHead className="text-right">Gasto BRL</TableHead>
+                        <TableHead className="text-right">Gasto</TableHead>
                         <TableHead className="text-right">Vendas</TableHead>
                         <TableHead className="text-right">Faturamento</TableHead>
                         <TableHead className="text-right">Lucro</TableHead>
@@ -577,19 +589,19 @@ Gerado por DOD Media Buyer`
                             {format(new Date(metric.date), 'dd/MM/yyyy')}
                           </TableCell>
                           <TableCell className="text-right">
-                            ${metric.totalSpendUsd.toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {formatCurrency(metric.totalSpendBrl)}
+                            <div>{formatUSD(metric.totalSpendUsd)}</div>
+                            <div className="text-xs text-muted-foreground">{formatBRL(metric.totalSpendBrl)}</div>
                           </TableCell>
                           <TableCell className="text-right">
                             {metric.totalSales}
                           </TableCell>
                           <TableCell className="text-right">
-                            {formatCurrency(metric.grossRevenue)}
+                            <div>{formatUSD(metric.grossRevenueUsd || 0)}</div>
+                            <div className="text-xs text-muted-foreground">{formatBRL(metric.grossRevenue)}</div>
                           </TableCell>
-                          <TableCell className={`text-right font-medium ${metric.grossProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {formatCurrency(metric.grossProfit)}
+                          <TableCell className={`text-right ${(metric.grossProfitUsd || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            <div>{formatUSD(metric.grossProfitUsd || 0)}</div>
+                            <div className="text-xs opacity-70">{formatBRL(metric.grossProfit)}</div>
                           </TableCell>
                           <TableCell className={`text-right ${(metric.roi || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                             {metric.roi?.toFixed(1) || '0'}%
@@ -598,7 +610,8 @@ Gerado por DOD Media Buyer`
                             {metric.roas?.toFixed(2) || '0'}x
                           </TableCell>
                           <TableCell className="text-right">
-                            {formatCurrency(metric.cpa || 0)}
+                            <div>{formatUSD(metric.cpaUsd || 0)}</div>
+                            <div className="text-xs text-muted-foreground">{formatBRL(metric.cpa || 0)}</div>
                           </TableCell>
                           <TableCell className="text-center">
                             <Button
@@ -626,7 +639,8 @@ Gerado por DOD Media Buyer`
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">Total Gasto:</span>
-                      <p className="font-bold">{formatCurrency(totals.spendBrl)}</p>
+                      <p className="font-bold">{formatUSD(totals.spendUsd)}</p>
+                      <p className="text-xs text-muted-foreground">{formatBRL(totals.spendBrl)}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Total Vendas:</span>
@@ -634,7 +648,8 @@ Gerado por DOD Media Buyer`
                     </div>
                     <div>
                       <span className="text-muted-foreground">Total Faturamento:</span>
-                      <p className="font-bold">{formatCurrency(totals.revenue)}</p>
+                      <p className="font-bold">{formatUSD(totals.revenueUsd)}</p>
+                      <p className="text-xs text-muted-foreground">{formatBRL(totals.revenueBrl)}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">ROI Médio:</span>
@@ -644,7 +659,8 @@ Gerado por DOD Media Buyer`
                     </div>
                     <div>
                       <span className="text-muted-foreground">CPA Médio:</span>
-                      <p className="font-bold">{formatCurrency(avgCpa)}</p>
+                      <p className="font-bold">{formatUSD(avgCpaUsd)}</p>
+                      <p className="text-xs text-muted-foreground">{formatBRL(avgCpaBrl)}</p>
                     </div>
                   </div>
                 </div>
