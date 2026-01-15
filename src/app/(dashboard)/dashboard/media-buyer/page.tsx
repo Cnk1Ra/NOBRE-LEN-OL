@@ -26,6 +26,13 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   DollarSign,
   TrendingUp,
   ShoppingCart,
@@ -39,8 +46,23 @@ import {
   RefreshCw,
   FileText,
   Calendar,
+  Facebook,
+  Link2,
+  Settings,
+  CloudDownload,
+  AlertCircle,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+
+interface FacebookAccount {
+  id: string
+  accountId: string
+  accountName: string
+  currency: string
+  timezone: string
+  isActive: boolean
+  lastSyncAt: string | null
+}
 
 interface DailyMetric {
   id: string
@@ -90,6 +112,20 @@ export default function MediaBuyerPage() {
   const [copied, setCopied] = useState(false)
   const [reportText, setReportText] = useState('')
 
+  // Facebook Ads states
+  const [fbAccounts, setFbAccounts] = useState<FacebookAccount[]>([])
+  const [selectedFbAccount, setSelectedFbAccount] = useState<string>('')
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [isFbDialogOpen, setIsFbDialogOpen] = useState(false)
+  const [fbFormData, setFbFormData] = useState({
+    accountId: '',
+    accountName: '',
+    accessToken: '',
+    currency: 'USD',
+    timezone: 'America/Los_Angeles',
+  })
+  const [isAddingAccount, setIsAddingAccount] = useState(false)
+
   // Buscar métricas
   const fetchMetrics = useCallback(async () => {
     setIsLoading(true)
@@ -107,9 +143,102 @@ export default function MediaBuyerPage() {
     }
   }, [])
 
+  // Buscar contas do Facebook
+  const fetchFbAccounts = useCallback(async () => {
+    try {
+      const response = await fetch('/api/media-buyer/accounts')
+      if (response.ok) {
+        const data = await response.json()
+        setFbAccounts(data.data || [])
+        // Selecionar primeira conta ativa automaticamente
+        const activeAccount = (data.data || []).find((a: FacebookAccount) => a.isActive)
+        if (activeAccount && !selectedFbAccount) {
+          setSelectedFbAccount(activeAccount.id)
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao buscar contas Facebook:', error)
+    }
+  }, [selectedFbAccount])
+
+  // Sincronizar dados do Facebook
+  const syncFacebookData = async () => {
+    if (!selectedFbAccount) {
+      toast({ title: 'Selecione uma conta do Facebook', variant: 'destructive' })
+      return
+    }
+
+    setIsSyncing(true)
+    try {
+      const response = await fetch('/api/media-buyer/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accountId: selectedFbAccount,
+          datePreset: 'today',
+          usdToBrlRate: parseFloat(formData.usdRate) || 5.70,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast({ title: data.message || 'Sincronização concluída!' })
+        fetchMetrics()
+        fetchFbAccounts()
+      } else {
+        toast({ title: data.error || 'Erro ao sincronizar', description: data.message, variant: 'destructive' })
+      }
+    } catch (error) {
+      console.error('Erro ao sincronizar:', error)
+      toast({ title: 'Erro ao sincronizar dados', variant: 'destructive' })
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  // Adicionar conta do Facebook
+  const addFbAccount = async () => {
+    if (!fbFormData.accountId || !fbFormData.accountName || !fbFormData.accessToken) {
+      toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' })
+      return
+    }
+
+    setIsAddingAccount(true)
+    try {
+      const response = await fetch('/api/media-buyer/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fbFormData),
+      })
+
+      if (response.ok) {
+        toast({ title: 'Conta adicionada com sucesso!' })
+        setFbFormData({
+          accountId: '',
+          accountName: '',
+          accessToken: '',
+          currency: 'USD',
+          timezone: 'America/Los_Angeles',
+        })
+        setIsFbDialogOpen(false)
+        fetchFbAccounts()
+      } else {
+        const error = await response.json()
+        toast({ title: error.error || 'Erro ao adicionar conta', variant: 'destructive' })
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar conta:', error)
+      toast({ title: 'Erro ao adicionar conta', variant: 'destructive' })
+    } finally {
+      setIsAddingAccount(false)
+    }
+  }
+
   useEffect(() => {
     fetchMetrics()
-  }, [fetchMetrics])
+    fetchFbAccounts()
+  }, [fetchMetrics, fetchFbAccounts])
 
   // Calcular totais do dia atual (hoje)
   const todayMetric = metrics.find(m =>
@@ -404,6 +533,194 @@ Gerado por DOD Media Buyer`
           </Dialog>
         </div>
       </div>
+
+      {/* Facebook Ads Integration */}
+      <Card className="border-blue-500/20 bg-blue-500/5">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Facebook className="h-5 w-5 text-[#1877F2]" />
+              <CardTitle className="text-lg">Integração Facebook Ads</CardTitle>
+              {fbAccounts.length > 0 && (
+                <Badge variant="outline" className="ml-2 text-xs">
+                  {fbAccounts.length} conta(s)
+                </Badge>
+              )}
+            </div>
+            <Dialog open={isFbDialogOpen} onOpenChange={setIsFbDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Conta
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Facebook className="h-5 w-5 text-[#1877F2]" />
+                    Adicionar Conta do Facebook Ads
+                  </DialogTitle>
+                  <DialogDescription>
+                    Configure sua conta do Facebook Ads para sincronização automática de gastos
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fbAccountId">ID da Conta (act_xxxxx)</Label>
+                    <Input
+                      id="fbAccountId"
+                      placeholder="act_123456789"
+                      value={fbFormData.accountId}
+                      onChange={(e) => setFbFormData({ ...fbFormData, accountId: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Encontre no Business Manager &gt; Contas de anúncios
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fbAccountName">Nome da Conta</Label>
+                    <Input
+                      id="fbAccountName"
+                      placeholder="Minha Conta Ads"
+                      value={fbFormData.accountName}
+                      onChange={(e) => setFbFormData({ ...fbFormData, accountName: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fbAccessToken">Access Token</Label>
+                    <Input
+                      id="fbAccessToken"
+                      type="password"
+                      placeholder="EAAxxxxxxxx..."
+                      value={fbFormData.accessToken}
+                      onChange={(e) => setFbFormData({ ...fbFormData, accessToken: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Gere um token em: developers.facebook.com &gt; Graph API Explorer
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Moeda</Label>
+                      <Select
+                        value={fbFormData.currency}
+                        onValueChange={(v) => setFbFormData({ ...fbFormData, currency: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USD">USD - Dólar</SelectItem>
+                          <SelectItem value="BRL">BRL - Real</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Timezone</Label>
+                      <Select
+                        value={fbFormData.timezone}
+                        onValueChange={(v) => setFbFormData({ ...fbFormData, timezone: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="America/Los_Angeles">PT (Los Angeles)</SelectItem>
+                          <SelectItem value="America/Sao_Paulo">BRT (São Paulo)</SelectItem>
+                          <SelectItem value="America/New_York">EST (New York)</SelectItem>
+                          <SelectItem value="UTC">UTC</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsFbDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={addFbAccount} disabled={isAddingAccount}>
+                    {isAddingAccount ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Adicionando...
+                      </>
+                    ) : (
+                      <>
+                        <Link2 className="h-4 w-4 mr-2" />
+                        Conectar
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {fbAccounts.length === 0 ? (
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
+              <AlertCircle className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Nenhuma conta conectada</p>
+                <p className="text-xs text-muted-foreground">
+                  Adicione uma conta do Facebook Ads para sincronizar gastos automaticamente
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex-1 w-full sm:w-auto">
+                <Label className="text-xs text-muted-foreground mb-1 block">Conta Selecionada</Label>
+                <Select value={selectedFbAccount} onValueChange={setSelectedFbAccount}>
+                  <SelectTrigger className="w-full sm:w-[300px]">
+                    <SelectValue placeholder="Selecione uma conta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fbAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{account.accountName}</span>
+                          <span className="text-xs text-muted-foreground">({account.accountId})</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={syncFacebookData}
+                  disabled={isSyncing || !selectedFbAccount}
+                  className="bg-[#1877F2] hover:bg-[#1877F2]/90"
+                >
+                  {isSyncing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Sincronizando...
+                    </>
+                  ) : (
+                    <>
+                      <CloudDownload className="h-4 w-4 mr-2" />
+                      Sincronizar Hoje
+                    </>
+                  )}
+                </Button>
+              </div>
+              {(() => {
+                const selectedAccount = fbAccounts.find(a => a.id === selectedFbAccount)
+                if (selectedAccount?.lastSyncAt) {
+                  return (
+                    <p className="text-xs text-muted-foreground">
+                      Última sync: {format(new Date(selectedAccount.lastSyncAt), 'dd/MM HH:mm')}
+                    </p>
+                  )
+                }
+                return null
+              })()}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Loading */}
       {isLoading && (

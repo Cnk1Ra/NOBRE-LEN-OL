@@ -2,8 +2,14 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import {
+  getAdAccountInsights,
+  getAdAccountInsightsByDateRange,
+  validateAccessToken,
+  convertInsightToSpend,
+} from '@/lib/facebook-ads'
 
-// POST - Sincronizar dados do Facebook (placeholder para integração futura)
+// POST - Sincronizar dados do Facebook
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -24,6 +30,10 @@ export async function POST(request: Request) {
     }
 
     const accountId = body.accountId
+    const datePreset = body.datePreset || 'today'
+    const startDate = body.startDate
+    const endDate = body.endDate
+    const usdToBrlRate = parseFloat(body.usdToBrlRate) || 5.0
 
     if (!accountId) {
       return NextResponse.json({ error: 'ID da conta é obrigatório' }, { status: 400 })
@@ -49,10 +59,103 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    // TODO: Implementar sincronização com API do Facebook
-    // Por enquanto, apenas retornamos um placeholder
+    // Validar o token
+    const tokenValidation = await validateAccessToken(account.accessToken)
+    if (!tokenValidation.valid) {
+      return NextResponse.json({
+        error: 'Token de acesso inválido ou expirado',
+        message: 'Por favor, gere um novo token de acesso no Facebook Business.',
+      }, { status: 401 })
+    }
 
-    // Atualizar lastSyncAt
+    // Buscar insights da API do Facebook
+    let insights
+    if (startDate && endDate) {
+      insights = await getAdAccountInsightsByDateRange(
+        account.accessToken,
+        account.accountId,
+        startDate,
+        endDate,
+        'account'
+      )
+    } else {
+      insights = await getAdAccountInsights(
+        account.accessToken,
+        account.accountId,
+        datePreset as 'today' | 'yesterday' | 'last_7d' | 'last_30d',
+        'account'
+      )
+    }
+
+    if (!insights) {
+      return NextResponse.json({
+        error: 'Erro ao buscar dados do Facebook',
+        message: 'Não foi possível obter os dados da API. Verifique as permissões do token.',
+      }, { status: 500 })
+    }
+
+    // Converter e salvar cada insight
+    const savedSpends = []
+    for (const insight of insights) {
+      const spendData = convertInsightToSpend(insight, usdToBrlRate)
+      const dateObj = new Date(spendData.date)
+      dateObj.setUTCHours(0, 0, 0, 0)
+
+      // Upsert do gasto diário (unique: workspaceId + date + adAccountId + campaignId + adsetId)
+      const dailySpend = await prisma.dailyAdSpend.upsert({
+        where: {
+          workspaceId_date_adAccountId_campaignId_adsetId: {
+            workspaceId: membership.workspaceId,
+            date: dateObj,
+            adAccountId: spendData.adAccountId,
+            campaignId: spendData.campaignId || '',
+            adsetId: spendData.adsetId || '',
+          },
+        },
+        update: {
+          spendUsd: spendData.spendUsd,
+          spendBrl: spendData.spendBrl,
+          impressions: spendData.impressions,
+          clicks: spendData.clicks,
+          reach: spendData.reach,
+          cpm: spendData.cpm,
+          cpc: spendData.cpc,
+          ctr: spendData.ctr,
+          frequency: spendData.frequency,
+          results: spendData.results,
+          costPerResult: spendData.costPerResult,
+          adAccountName: spendData.adAccountName,
+          campaignName: spendData.campaignName,
+          adsetName: spendData.adsetName,
+        },
+        create: {
+          workspaceId: membership.workspaceId,
+          date: dateObj,
+          dateOriginal: new Date(),
+          adAccountId: spendData.adAccountId,
+          adAccountName: spendData.adAccountName,
+          campaignId: spendData.campaignId || '',
+          campaignName: spendData.campaignName,
+          adsetId: spendData.adsetId || '',
+          adsetName: spendData.adsetName,
+          spendUsd: spendData.spendUsd,
+          spendBrl: spendData.spendBrl,
+          impressions: spendData.impressions,
+          clicks: spendData.clicks,
+          reach: spendData.reach,
+          cpm: spendData.cpm,
+          cpc: spendData.cpc,
+          ctr: spendData.ctr,
+          frequency: spendData.frequency,
+          results: spendData.results,
+          costPerResult: spendData.costPerResult,
+        },
+      })
+
+      savedSpends.push(dailySpend)
+    }
+
+    // Atualizar lastSyncAt da conta
     await prisma.facebookAdAccount.update({
       where: { id: accountId },
       data: { lastSyncAt: new Date() },
@@ -60,26 +163,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Sincronização iniciada. Funcionalidade completa será implementada em breve.',
+      message: `Sincronização concluída! ${savedSpends.length} registro(s) atualizado(s).`,
       accountId: account.accountId,
       accountName: account.accountName,
       lastSyncAt: new Date().toISOString(),
-      // Placeholder para dados que serão retornados
-      preview: {
-        status: 'pending_implementation',
-        description: 'A integração com a API do Facebook Ads será implementada para buscar automaticamente:',
-        features: [
-          'Gastos diários por campanha/adset',
-          'Impressões, cliques e CTR',
-          'Conversões e custo por resultado',
-          'Alcance e frequência',
-        ],
-        requirements: [
-          'Access Token válido',
-          'Permissões: ads_read, ads_management',
-          'Configuração do timezone da conta',
-        ],
-      },
+      recordsUpdated: savedSpends.length,
+      data: savedSpends,
     })
   } catch (error) {
     console.error('Erro ao sincronizar:', error)
