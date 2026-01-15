@@ -40,7 +40,7 @@ import {
   FileText,
   Calendar,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/use-toast'
 
 interface DailyMetric {
   id: string
@@ -96,7 +96,7 @@ export default function MediaBuyerPage() {
       }
     } catch (error) {
       console.error('Erro ao buscar métricas:', error)
-      toast.error('Erro ao carregar dados')
+      toast({ title: 'Erro ao carregar dados', variant: 'destructive' })
     } finally {
       setIsLoading(false)
     }
@@ -127,7 +127,7 @@ export default function MediaBuyerPage() {
   // Salvar dados
   const handleSave = async () => {
     if (!formData.spendUsd || !formData.sales || !formData.grossRevenue) {
-      toast.error('Preencha todos os campos obrigatórios')
+      toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' })
       return
     }
 
@@ -152,17 +152,17 @@ export default function MediaBuyerPage() {
       })
 
       if (response.ok) {
-        toast.success('Dados salvos com sucesso!')
+        toast({ title: 'Dados salvos com sucesso!' })
         setFormData(initialFormData)
         setIsDialogOpen(false)
         fetchMetrics()
       } else {
         const error = await response.json()
-        toast.error(error.error || 'Erro ao salvar')
+        toast({ title: error.error || 'Erro ao salvar', variant: 'destructive' })
       }
     } catch (error) {
       console.error('Erro ao salvar:', error)
-      toast.error('Erro ao salvar dados')
+      toast({ title: 'Erro ao salvar dados', variant: 'destructive' })
     } finally {
       setIsSaving(false)
     }
@@ -172,7 +172,7 @@ export default function MediaBuyerPage() {
   const generateReport = (metric?: DailyMetric) => {
     const m = metric || todayMetric
     if (!m) {
-      toast.error('Nenhum dado disponível para gerar relatório')
+      toast({ title: 'Nenhum dado disponível para gerar relatório', variant: 'destructive' })
       return
     }
 
@@ -210,7 +210,7 @@ Gerado por DOD Media Buyer`
     if (reportText) {
       navigator.clipboard.writeText(reportText)
       setCopied(true)
-      toast.success('Relatório copiado!')
+      toast({ title: 'Relatório copiado!' })
       setTimeout(() => setCopied(false), 2000)
     }
   }
@@ -606,7 +606,7 @@ Gerado por DOD Media Buyer`
                               size="sm"
                               onClick={() => {
                                 generateReport(metric)
-                                toast.success('Relatório gerado!')
+                                toast({ title: 'Relatório gerado!' })
                               }}
                             >
                               <FileText className="h-4 w-4" />
