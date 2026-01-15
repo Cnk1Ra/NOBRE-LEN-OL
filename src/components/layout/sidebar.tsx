@@ -165,12 +165,6 @@ const managementNavItems = [
 // FINANCEIRO - Financial
 const financialNavItems = [
   {
-    title: 'Visão Geral',
-    href: '/dashboard/financial',
-    icon: DollarSign,
-    color: 'text-green-500',
-  },
-  {
     title: 'Assinaturas',
     href: '/dashboard/assinaturas',
     icon: CreditCard,
