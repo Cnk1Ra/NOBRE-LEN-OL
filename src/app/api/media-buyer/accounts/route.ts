@@ -143,6 +143,7 @@ export async function PUT(request: Request) {
     const account = await prisma.facebookAdAccount.update({
       where: { id: body.id },
       data: {
+        accountId: body.accountId,
         accountName: body.accountName,
         currency: body.currency,
         timezone: body.timezone,

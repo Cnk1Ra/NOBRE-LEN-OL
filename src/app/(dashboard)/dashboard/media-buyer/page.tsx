@@ -130,8 +130,11 @@ export default function MediaBuyerPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editingAccount, setEditingAccount] = useState<FacebookAccount | null>(null)
   const [editFormData, setEditFormData] = useState({
-    accessToken: '',
+    accountId: '',
     accountName: '',
+    accessToken: '',
+    currency: 'USD',
+    timezone: 'America/Los_Angeles',
   })
 
   // Buscar métricas
@@ -243,10 +246,10 @@ export default function MediaBuyerPage() {
     }
   }
 
-  // Editar conta do Facebook (atualizar token)
+  // Editar conta do Facebook (edição completa)
   const updateFbAccount = async () => {
-    if (!editingAccount || !editFormData.accessToken) {
-      toast({ title: 'Preencha o novo token de acesso', variant: 'destructive' })
+    if (!editingAccount || !editFormData.accountId || !editFormData.accountName) {
+      toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' })
       return
     }
 
@@ -257,14 +260,17 @@ export default function MediaBuyerPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: editingAccount.id,
-          accessToken: editFormData.accessToken,
-          accountName: editFormData.accountName || editingAccount.accountName,
+          accountId: editFormData.accountId,
+          accountName: editFormData.accountName,
+          accessToken: editFormData.accessToken || undefined, // Só envia se preenchido
+          currency: editFormData.currency,
+          timezone: editFormData.timezone,
         }),
       })
 
       if (response.ok) {
-        toast({ title: 'Token atualizado com sucesso!' })
-        setEditFormData({ accessToken: '', accountName: '' })
+        toast({ title: 'Conta atualizada com sucesso!' })
+        setEditFormData({ accountId: '', accountName: '', accessToken: '', currency: 'USD', timezone: 'America/Los_Angeles' })
         setEditingAccount(null)
         setIsEditDialogOpen(false)
         fetchFbAccounts()
@@ -284,8 +290,11 @@ export default function MediaBuyerPage() {
   const openEditDialog = (account: FacebookAccount) => {
     setEditingAccount(account)
     setEditFormData({
-      accessToken: '',
+      accountId: account.accountId,
       accountName: account.accountName,
+      accessToken: '',
+      currency: account.currency,
+      timezone: account.timezone,
     })
     setIsEditDialogOpen(true)
   }
@@ -710,7 +719,7 @@ Gerado por DOD Media Buyer`
               </DialogContent>
             </Dialog>
 
-            {/* Dialog de Edição */}
+            {/* Dialog de Edição Completa */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
               <DialogContent>
                 <DialogHeader>
@@ -719,15 +728,18 @@ Gerado por DOD Media Buyer`
                     Editar Conta do Facebook Ads
                   </DialogTitle>
                   <DialogDescription>
-                    Atualize o token de acesso da conta {editingAccount?.accountName}
+                    Edite os dados da conta de anúncios
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="space-y-2">
-                    <Label>Conta</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {editingAccount?.accountName} ({editingAccount?.accountId})
-                    </p>
+                    <Label htmlFor="editAccountId">ID da Conta (act_xxxxx)</Label>
+                    <Input
+                      id="editAccountId"
+                      placeholder="act_123456789"
+                      value={editFormData.accountId}
+                      onChange={(e) => setEditFormData({ ...editFormData, accountId: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="editAccountName">Nome da Conta</Label>
@@ -739,17 +751,51 @@ Gerado por DOD Media Buyer`
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="editAccessToken">Novo Access Token</Label>
+                    <Label htmlFor="editAccessToken">Access Token</Label>
                     <Input
                       id="editAccessToken"
                       type="password"
-                      placeholder="EAAxxxxxxxx..."
+                      placeholder="Deixe em branco para manter o atual"
                       value={editFormData.accessToken}
                       onChange={(e) => setEditFormData({ ...editFormData, accessToken: e.target.value })}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Cole o novo token de acesso gerado no Graph API Explorer
+                      Deixe em branco para manter o token atual
                     </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Moeda</Label>
+                      <Select
+                        value={editFormData.currency}
+                        onValueChange={(v) => setEditFormData({ ...editFormData, currency: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USD">USD - Dólar</SelectItem>
+                          <SelectItem value="BRL">BRL - Real</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Timezone</Label>
+                      <Select
+                        value={editFormData.timezone}
+                        onValueChange={(v) => setEditFormData({ ...editFormData, timezone: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="America/Los_Angeles">PT (Los Angeles)</SelectItem>
+                          <SelectItem value="America/Sao_Paulo">BRT (São Paulo)</SelectItem>
+                          <SelectItem value="America/New_York">EST (New York)</SelectItem>
+                          <SelectItem value="UTC">UTC</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
@@ -760,12 +806,12 @@ Gerado por DOD Media Buyer`
                     {isAddingAccount ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Atualizando...
+                        Salvando...
                       </>
                     ) : (
                       <>
                         <Check className="h-4 w-4 mr-2" />
-                        Atualizar Token
+                        Salvar Alterações
                       </>
                     )}
                   </Button>
