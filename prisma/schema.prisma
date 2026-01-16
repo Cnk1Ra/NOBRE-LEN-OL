@@ -636,20 +636,74 @@ enum FinancialCategory {
 // ==================== INTEGRAÇÃO SHOPIFY ====================
 
 model ShopifyStore {
-  id           String    @id @default(cuid())
-  workspaceId  String
-  storeDomain  String    // exemplo.myshopify.com
-  accessToken  String    // Token criptografado
-  isActive     Boolean   @default(true)
-  lastSyncAt   DateTime?
-  webhookSecret String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                String   @id @default(cuid())
+  workspaceId       String
+  storeUrl          String   // sua-loja.myshopify.com
+  storeName         String   @default("")
+  accessToken       String?  // shpat_xxxx
+  currency          String   @default("BRL")
+  timezone          String   @default("America/Sao_Paulo")
+  isActive          Boolean  @default(true)
+  lastSyncAt        DateTime?
+  webhookSecret     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  orders            ShopifyOrder[]
 
-  @@unique([workspaceId, storeDomain])
+  @@unique([workspaceId, storeUrl])
   @@map("shopify_stores")
+}
+
+model ShopifyOrder {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  storeId           String
+  store             ShopifyStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  // Dados do pedido
+  shopifyOrderId    BigInt   // ID original do Shopify
+  orderNumber       String   // #1042
+  createdAt         DateTime // Data/hora do pedido
+  dateBrt           DateTime @db.Date // Data em BRT para agrupamento
+  financialStatus   String   // paid, pending, refunded
+  fulfillmentStatus String   // fulfilled, unfulfilled, partial
+
+  // Valores
+  totalPrice        Float    @default(0)
+  subtotalPrice     Float    @default(0)
+  totalDiscounts    Float    @default(0)
+  currency          String   @default("BRL")
+  discountCode      String?
+
+  // UTM Parameters (para cruzar com campanhas)
+  utmSource         String?  // facebook, google, organic
+  utmMedium         String?  // cpc, cpm, email
+  utmCampaign       String?  // nome da campanha
+  utmContent        String?  // ID do anúncio
+  utmTerm           String?  // termo de busca
+  fbclid            String?  // Facebook Click ID
+  gclid             String?  // Google Click ID
+
+  // Origem
+  referringSite     String?
+  sourceName        String   @default("web")
+
+  // Produtos
+  productNames      String?
+  productSkus       String?
+  productQuantity   Int      @default(0)
+
+  // Metadados
+  tags              String?
+  syncedAt          DateTime @default(now())
+
+  @@unique([workspaceId, shopifyOrderId])
+  @@index([workspaceId, dateBrt])
+  @@index([workspaceId, utmCampaign])
+  @@index([storeId, dateBrt])
+  @@map("shopify_orders")
 }
 
 // ==================== LOG DE ATIVIDADES ====================

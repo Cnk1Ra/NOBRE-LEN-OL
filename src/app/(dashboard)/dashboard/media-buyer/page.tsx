@@ -59,6 +59,7 @@ import {
   Clock,
   Globe,
   ArrowRight,
+  Store,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -67,6 +68,16 @@ interface FacebookAccount {
   id: string
   accountId: string
   accountName: string
+  currency: string
+  timezone: string
+  isActive: boolean
+  lastSyncAt: string | null
+}
+
+interface ShopifyStore {
+  id: string
+  storeUrl: string
+  storeName: string
   currency: string
   timezone: string
   isActive: boolean
@@ -157,6 +168,25 @@ export default function MediaBuyerPage() {
     averageTicket: '',
   })
   const [isSavingSales, setIsSavingSales] = useState(false)
+
+  // Shopify states
+  const [shopifyStores, setShopifyStores] = useState<ShopifyStore[]>([])
+  const [selectedShopifyStore, setSelectedShopifyStore] = useState<string>('')
+  const [isSyncingShopify, setIsSyncingShopify] = useState(false)
+  const [isShopifyDialogOpen, setIsShopifyDialogOpen] = useState(false)
+  const [shopifyFormData, setShopifyFormData] = useState({
+    storeUrl: '',
+    storeName: '',
+    accessToken: '',
+    currency: 'BRL',
+    timezone: 'America/Sao_Paulo',
+  })
+  const [isAddingShopify, setIsAddingShopify] = useState(false)
+  const [shopifySyncResult, setShopifySyncResult] = useState<{
+    totalOrders: number
+    totalRevenue: number
+    breakdown: { facebook: number; organic: number; other: number }
+  } | null>(null)
 
   // Get date range based on preset
   const getDateRange = useCallback(() => {
@@ -301,6 +331,111 @@ export default function MediaBuyerPage() {
       console.error('Erro ao buscar contas Facebook:', error)
     }
   }, [selectedFbAccount])
+
+  // Fetch Shopify stores
+  const fetchShopifyStores = useCallback(async () => {
+    try {
+      const response = await fetch('/api/media-buyer/shopify/stores')
+      if (response.ok) {
+        const data = await response.json()
+        setShopifyStores(data.data || [])
+        const activeStore = (data.data || []).find((s: ShopifyStore) => s.isActive)
+        if (activeStore && !selectedShopifyStore) {
+          setSelectedShopifyStore(activeStore.id)
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao buscar lojas Shopify:', error)
+    }
+  }, [selectedShopifyStore])
+
+  // Add Shopify store
+  const addShopifyStore = async () => {
+    if (!shopifyFormData.storeUrl || !shopifyFormData.storeName || !shopifyFormData.accessToken) {
+      toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' })
+      return
+    }
+
+    setIsAddingShopify(true)
+    try {
+      const response = await fetch('/api/media-buyer/shopify/stores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(shopifyFormData),
+      })
+
+      if (response.ok) {
+        toast({ title: 'Loja conectada com sucesso!' })
+        setShopifyFormData({
+          storeUrl: '',
+          storeName: '',
+          accessToken: '',
+          currency: 'BRL',
+          timezone: 'America/Sao_Paulo',
+        })
+        setIsShopifyDialogOpen(false)
+        fetchShopifyStores()
+      } else {
+        const error = await response.json()
+        toast({ title: error.error || 'Erro ao conectar loja', description: error.message, variant: 'destructive' })
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar loja:', error)
+      toast({ title: 'Erro ao conectar loja', variant: 'destructive' })
+    } finally {
+      setIsAddingShopify(false)
+    }
+  }
+
+  // Sync Shopify sales
+  const syncShopifySales = async () => {
+    if (!selectedShopifyStore) {
+      toast({ title: 'Selecione uma loja Shopify', variant: 'destructive' })
+      return
+    }
+
+    setIsSyncingShopify(true)
+    setShopifySyncResult(null)
+    try {
+      const { startDate, endDate } = getDateRange()
+
+      const response = await fetch('/api/media-buyer/shopify/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeId: selectedShopifyStore,
+          startDate,
+          endDate,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast({
+          title: `${data.data?.totalOrders || 0} pedidos sincronizados!`,
+          description: `Faturamento: R$ ${(data.data?.totalRevenue || 0).toFixed(2)}`,
+        })
+
+        setShopifySyncResult({
+          totalOrders: data.data?.totalOrders || 0,
+          totalRevenue: data.data?.totalRevenue || 0,
+          breakdown: data.data?.breakdown || { facebook: 0, organic: 0, other: 0 },
+        })
+
+        // Atualizar dados de vendas
+        fetchSalesData()
+        fetchShopifyStores()
+      } else {
+        toast({ title: data.error || 'Erro ao sincronizar', description: data.message, variant: 'destructive' })
+      }
+    } catch (error) {
+      console.error('Erro ao sincronizar Shopify:', error)
+      toast({ title: 'Erro ao sincronizar vendas', variant: 'destructive' })
+    } finally {
+      setIsSyncingShopify(false)
+    }
+  }
 
   // Sync Facebook data
   const syncFacebookData = async () => {
@@ -459,7 +594,8 @@ export default function MediaBuyerPage() {
 
   useEffect(() => {
     fetchFbAccounts()
-  }, [fetchFbAccounts])
+    fetchShopifyStores()
+  }, [fetchFbAccounts, fetchShopifyStores])
 
   useEffect(() => {
     fetchSpendData()
@@ -890,6 +1026,148 @@ ${dailyData.map(day => {
                     <Pencil className="h-4 w-4" />
                   </Button>
                 )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Shopify Integration */}
+      <Card className="border-green-500/20 bg-green-500/5">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Store className="h-5 w-5 text-green-600" />
+              <CardTitle className="text-lg">Integração Shopify</CardTitle>
+              {shopifyStores.length > 0 && (
+                <Badge variant="outline" className="ml-2 text-xs border-green-500/30">
+                  {shopifyStores.length} loja(s)
+                </Badge>
+              )}
+            </div>
+            <Dialog open={isShopifyDialogOpen} onOpenChange={setIsShopifyDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Conectar Loja
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Store className="h-5 w-5 text-green-600" />
+                    Conectar Loja Shopify
+                  </DialogTitle>
+                  <DialogDescription>
+                    Configure sua loja Shopify para sincronizar vendas automaticamente
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                    <Label>URL da Loja</Label>
+                    <Input
+                      placeholder="sua-loja.myshopify.com"
+                      value={shopifyFormData.storeUrl}
+                      onChange={(e) => setShopifyFormData({ ...shopifyFormData, storeUrl: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nome da Loja</Label>
+                    <Input
+                      placeholder="Minha Loja"
+                      value={shopifyFormData.storeName}
+                      onChange={(e) => setShopifyFormData({ ...shopifyFormData, storeName: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Access Token (Admin API)</Label>
+                    <Input
+                      type="password"
+                      placeholder="shpat_xxxxxxxxxxxxx"
+                      value={shopifyFormData.accessToken}
+                      onChange={(e) => setShopifyFormData({ ...shopifyFormData, accessToken: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Vá em Configurações &gt; Apps &gt; Desenvolver apps &gt; Criar app &gt; Credenciais da API
+                    </p>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsShopifyDialogOpen(false)}>Cancelar</Button>
+                  <Button onClick={addShopifyStore} disabled={isAddingShopify} className="bg-green-600 hover:bg-green-700">
+                    {isAddingShopify ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
+                    Conectar
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {shopifyStores.length === 0 ? (
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
+              <AlertCircle className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Nenhuma loja conectada</p>
+                <p className="text-xs text-muted-foreground">
+                  Conecte sua loja Shopify para sincronizar vendas automaticamente
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex-1 w-full sm:w-auto">
+                <Select value={selectedShopifyStore} onValueChange={setSelectedShopifyStore}>
+                  <SelectTrigger className="w-full sm:w-[300px]">
+                    <SelectValue placeholder="Selecione uma loja" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {shopifyStores.map((store) => (
+                      <SelectItem key={store.id} value={store.id}>
+                        {store.storeName} ({store.storeUrl})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={syncShopifySales}
+                disabled={isSyncingShopify || !selectedShopifyStore}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isSyncingShopify ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sincronizando...</>
+                ) : (
+                  <><CloudDownload className="h-4 w-4 mr-2" />Sincronizar Vendas</>
+                )}
+              </Button>
+            </div>
+          )}
+
+          {/* Shopify Sync Result */}
+          {shopifySyncResult && (
+            <div className="mt-4 p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium text-green-700 dark:text-green-400">Vendas sincronizadas</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Total Pedidos</p>
+                  <p className="font-semibold">{shopifySyncResult.totalOrders}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Faturamento</p>
+                  <p className="font-semibold text-green-600">R$ {shopifySyncResult.totalRevenue.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Via Facebook</p>
+                  <p className="font-semibold text-blue-500">{shopifySyncResult.breakdown.facebook}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Orgânico/Direto</p>
+                  <p className="font-semibold">{shopifySyncResult.breakdown.organic}</p>
+                </div>
               </div>
             </div>
           )}
