@@ -993,12 +993,47 @@ model DailyAdSpend {
   costPerResult     Float?
   reach             Int      @default(0)
   frequency         Float?
+  // Campos de timezone
+  timezoneOffset    Int      @default(5)     // Offset usado (4 ou 5 horas)
+  isDstActive       Boolean  @default(false) // Horário de verão EUA ativo
+  syncedAt          DateTime @default(now()) // Quando foi sincronizado
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   @@unique([workspaceId, date, adAccountId, campaignId, adsetId])
   @@index([workspaceId, date])
   @@map("daily_ad_spends")
+}
+
+// Tabela para dados horários (auditoria e conversão de timezone)
+model HourlyAdSpend {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  dateTimePt        DateTime // Timestamp original em PT (Los Angeles)
+  dateTimeBrt       DateTime // Timestamp convertido para BRT (São Paulo)
+  dateBrt           DateTime @db.Date // Data em BRT para agrupamento
+  hourPt            Int      // Hora em PT (0-23)
+  hourBrt           Int      // Hora em BRT (0-23)
+  adAccountId       String
+  adAccountName     String?
+  campaignId        String   @default("")
+  campaignName      String?
+  adsetId           String   @default("")
+  adsetName         String?
+  spendUsd          Float    @default(0)
+  spendBrl          Float    @default(0)
+  impressions       Int      @default(0)
+  clicks            Int      @default(0)
+  reach             Int      @default(0)
+  results           Int      @default(0)
+  timezoneOffset    Int      @default(5) // Offset usado na conversão
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([workspaceId, dateTimePt, adAccountId, campaignId, adsetId])
+  @@index([workspaceId, dateBrt])
+  @@index([workspaceId, dateTimePt])
+  @@map("hourly_ad_spends")
 }
 
 model DailySales {

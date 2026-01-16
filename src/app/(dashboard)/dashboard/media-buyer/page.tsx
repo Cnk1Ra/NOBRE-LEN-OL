@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Table,
   TableBody,
@@ -51,6 +52,13 @@ import {
   Eye,
   MousePointer,
   Users,
+  FileText,
+  Copy,
+  Database,
+  CheckCircle2,
+  Clock,
+  Globe,
+  ArrowRight,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -119,6 +127,21 @@ export default function MediaBuyerPage() {
   const [customStartDate, setCustomStartDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
   const [customEndDate, setCustomEndDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
   const [usdRate, setUsdRate] = useState('5.70')
+
+  // Report states
+  const [reportText, setReportText] = useState('')
+  const [copied, setCopied] = useState(false)
+  const [lastSyncInfo, setLastSyncInfo] = useState<{ date: string; records: number } | null>(null)
+
+  // Timezone states
+  const [timezoneInfo, setTimezoneInfo] = useState<{
+    accountTimezone: string
+    targetTimezone: string
+    offset: number
+    isDst: boolean
+    converted: boolean
+    hourlyRecords?: number
+  } | null>(null)
 
   // Get date range based on preset
   const getDateRange = useCallback(() => {
@@ -210,7 +233,32 @@ export default function MediaBuyerPage() {
       const data = await response.json()
 
       if (response.ok) {
-        toast({ title: data.message || 'Sincronização concluída!' })
+        const tzInfo = data.timezone
+        const isConverted = tzInfo?.converted || false
+
+        toast({
+          title: isConverted ? 'Dados convertidos para fuso de SP!' : 'Dados salvos com sucesso!',
+          description: isConverted
+            ? `${data.recordsUpdated || 0} dia(s) convertidos de PT para BRT (${tzInfo?.offset}h de diferença)`
+            : `${data.recordsUpdated || 0} registro(s) salvos no banco de dados.`
+        })
+
+        setLastSyncInfo({
+          date: new Date().toISOString(),
+          records: data.recordsUpdated || 0
+        })
+
+        if (tzInfo) {
+          setTimezoneInfo({
+            accountTimezone: tzInfo.accountTimezone,
+            targetTimezone: tzInfo.targetTimezone,
+            offset: tzInfo.offset,
+            isDst: tzInfo.isDst,
+            converted: tzInfo.converted,
+            hourlyRecords: data.hourlyRecords,
+          })
+        }
+
         fetchSpendData()
         fetchFbAccounts()
       } else {
@@ -376,6 +424,74 @@ export default function MediaBuyerPage() {
       case 'last_7d': return 'Últimos 7 dias'
       case 'last_30d': return 'Últimos 30 dias'
       case 'custom': return 'Personalizado'
+    }
+  }
+
+  // Generate report
+  const generateReport = () => {
+    const { startDate, endDate } = getDateRange()
+    const periodLabel = datePreset === 'custom'
+      ? `${format(new Date(startDate), 'dd/MM/yyyy')} a ${format(new Date(endDate), 'dd/MM/yyyy')}`
+      : getPresetLabel(datePreset)
+
+    const report = `📊 RELATÓRIO DE MÍDIA - FACEBOOK ADS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📅 Período: ${periodLabel}
+💰 Cotação USD/BRL: R$ ${usdRate}
+
+═══════════════════════════════════
+💵 INVESTIMENTO
+═══════════════════════════════════
+Total Gasto: ${formatUSD(totals.spendUsd)}
+Em Reais: ${formatBRL(totals.spendBrl)}
+
+═══════════════════════════════════
+📈 MÉTRICAS DE ALCANCE
+═══════════════════════════════════
+Impressões: ${formatNumber(totals.impressions)}
+Alcance: ${formatNumber(totals.reach)} pessoas
+Frequência: ${totals.reach > 0 ? (totals.impressions / totals.reach).toFixed(2) : '0'}x
+
+═══════════════════════════════════
+🖱️ MÉTRICAS DE ENGAJAMENTO
+═══════════════════════════════════
+Cliques: ${formatNumber(totals.clicks)}
+CTR: ${avgCtr.toFixed(2)}%
+CPC: ${formatUSD(avgCpc)}
+CPM: ${formatUSD(avgCpm)}
+
+═══════════════════════════════════
+🎯 RESULTADOS
+═══════════════════════════════════
+Conversões: ${formatNumber(totals.results)}
+Custo por Resultado: ${totals.results > 0 ? formatUSD(avgCostPerResult) : 'N/A'}
+
+═══════════════════════════════════
+📋 DETALHAMENTO DIÁRIO
+═══════════════════════════════════
+${dailyData.map(day => {
+  const dayCtr = day.impressions > 0 ? (day.clicks / day.impressions) * 100 : 0
+  return `${format(new Date(day.date + 'T12:00:00'), 'dd/MM')} | ${formatUSD(day.spendUsd)} | ${formatNumber(day.impressions)} imp | ${formatNumber(day.clicks)} cliques | ${dayCtr.toFixed(1)}% CTR`
+}).join('\n')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Dados salvos no banco de dados
+📊 Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+🔗 DOD Media Buyer - Dashboard
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+
+    setReportText(report)
+    toast({ title: 'Relatório gerado!' })
+  }
+
+  // Copy report
+  const copyReport = () => {
+    if (reportText) {
+      navigator.clipboard.writeText(reportText)
+      setCopied(true)
+      toast({ title: 'Relatório copiado para a área de transferência!' })
+      setTimeout(() => setCopied(false), 2000)
     }
   }
 
@@ -671,6 +787,40 @@ export default function MediaBuyerPage() {
         </CardContent>
       </Card>
 
+      {/* Timezone Indicator */}
+      {timezoneInfo && timezoneInfo.converted && (
+        <Card className="border-amber-500/20 bg-amber-500/5">
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-amber-600" />
+              <Globe className="h-5 w-5 text-amber-600" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-400">
+                <span>Los Angeles (PT)</span>
+                <ArrowRight className="h-4 w-4" />
+                <span>São Paulo (BRT)</span>
+                <Badge variant="outline" className="ml-2 border-amber-500/30 bg-amber-500/10 text-amber-600 text-xs">
+                  {timezoneInfo.offset}h de diferença
+                </Badge>
+                {timezoneInfo.isDst && (
+                  <Badge variant="outline" className="border-orange-500/30 bg-orange-500/10 text-orange-600 text-xs">
+                    Horário de Verão EUA
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Dados convertidos automaticamente para o fuso horário de São Paulo.
+                {timezoneInfo.hourlyRecords && timezoneInfo.hourlyRecords > 0 && (
+                  <span className="ml-1">({timezoneInfo.hourlyRecords} registros horários processados)</span>
+                )}
+              </p>
+            </div>
+            <CheckCircle2 className="h-5 w-5 text-green-500" />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
@@ -751,6 +901,24 @@ export default function MediaBuyerPage() {
             </Card>
           </div>
 
+          {/* Database Status */}
+          {lastSyncInfo && (
+            <Card className="border-green-500/20 bg-green-500/5">
+              <CardContent className="flex items-center gap-3 py-4">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                    Dados salvos no banco de dados
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {lastSyncInfo.records} registro(s) sincronizados em {format(new Date(lastSyncInfo.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  </p>
+                </div>
+                <Database className="h-5 w-5 text-green-500" />
+              </CardContent>
+            </Card>
+          )}
+
           {/* Daily Data Table */}
           <Card>
             <CardHeader>
@@ -814,6 +982,63 @@ export default function MediaBuyerPage() {
                   </Table>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Report Generator */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Relatório do Período
+                  </CardTitle>
+                  <CardDescription>
+                    Gere um relatório completo para compartilhar ou arquivar
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={generateReport} disabled={dailyData.length === 0}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Gerar Relatório
+                  </Button>
+                  {reportText && (
+                    <Button variant="outline" onClick={copyReport}>
+                      {copied ? (
+                        <><Check className="h-4 w-4 mr-2" />Copiado!</>
+                      ) : (
+                        <><Copy className="h-4 w-4 mr-2" />Copiar</>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            {reportText && (
+              <CardContent>
+                <Textarea
+                  value={reportText}
+                  readOnly
+                  className="min-h-[400px] font-mono text-xs bg-muted/50"
+                />
+              </CardContent>
+            )}
+          </Card>
+
+          {/* Data Persistence Info */}
+          <Card className="border-blue-500/20">
+            <CardContent className="flex items-start gap-4 py-4">
+              <Database className="h-6 w-6 text-blue-500 mt-1" />
+              <div className="flex-1">
+                <h4 className="font-semibold mb-1">Persistência de Dados</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Todos os dados são salvos automaticamente no banco de dados ao sincronizar</li>
+                  <li>• Os dados são vinculados ao seu workspace e conta</li>
+                  <li>• Histórico completo disponível para consulta a qualquer momento</li>
+                  <li>• Dados duplicados são atualizados, não duplicados</li>
+                </ul>
+              </div>
             </CardContent>
           </Card>
         </>
