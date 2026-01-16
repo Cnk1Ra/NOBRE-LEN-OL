@@ -51,6 +51,8 @@ import {
   Settings,
   CloudDownload,
   AlertCircle,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
@@ -125,6 +127,12 @@ export default function MediaBuyerPage() {
     timezone: 'America/Los_Angeles',
   })
   const [isAddingAccount, setIsAddingAccount] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editingAccount, setEditingAccount] = useState<FacebookAccount | null>(null)
+  const [editFormData, setEditFormData] = useState({
+    accessToken: '',
+    accountName: '',
+  })
 
   // Buscar métricas
   const fetchMetrics = useCallback(async () => {
@@ -233,6 +241,53 @@ export default function MediaBuyerPage() {
     } finally {
       setIsAddingAccount(false)
     }
+  }
+
+  // Editar conta do Facebook (atualizar token)
+  const updateFbAccount = async () => {
+    if (!editingAccount || !editFormData.accessToken) {
+      toast({ title: 'Preencha o novo token de acesso', variant: 'destructive' })
+      return
+    }
+
+    setIsAddingAccount(true)
+    try {
+      const response = await fetch('/api/media-buyer/accounts', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingAccount.id,
+          accessToken: editFormData.accessToken,
+          accountName: editFormData.accountName || editingAccount.accountName,
+        }),
+      })
+
+      if (response.ok) {
+        toast({ title: 'Token atualizado com sucesso!' })
+        setEditFormData({ accessToken: '', accountName: '' })
+        setEditingAccount(null)
+        setIsEditDialogOpen(false)
+        fetchFbAccounts()
+      } else {
+        const error = await response.json()
+        toast({ title: error.error || 'Erro ao atualizar conta', variant: 'destructive' })
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar conta:', error)
+      toast({ title: 'Erro ao atualizar conta', variant: 'destructive' })
+    } finally {
+      setIsAddingAccount(false)
+    }
+  }
+
+  // Abrir modal de edição
+  const openEditDialog = (account: FacebookAccount) => {
+    setEditingAccount(account)
+    setEditFormData({
+      accessToken: '',
+      accountName: account.accountName,
+    })
+    setIsEditDialogOpen(true)
   }
 
   useEffect(() => {
@@ -654,6 +709,69 @@ Gerado por DOD Media Buyer`
                 </div>
               </DialogContent>
             </Dialog>
+
+            {/* Dialog de Edição */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Pencil className="h-5 w-5 text-[#1877F2]" />
+                    Editar Conta do Facebook Ads
+                  </DialogTitle>
+                  <DialogDescription>
+                    Atualize o token de acesso da conta {editingAccount?.accountName}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Conta</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {editingAccount?.accountName} ({editingAccount?.accountId})
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editAccountName">Nome da Conta</Label>
+                    <Input
+                      id="editAccountName"
+                      placeholder="Nome da conta"
+                      value={editFormData.accountName}
+                      onChange={(e) => setEditFormData({ ...editFormData, accountName: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editAccessToken">Novo Access Token</Label>
+                    <Input
+                      id="editAccessToken"
+                      type="password"
+                      placeholder="EAAxxxxxxxx..."
+                      value={editFormData.accessToken}
+                      onChange={(e) => setEditFormData({ ...editFormData, accessToken: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Cole o novo token de acesso gerado no Graph API Explorer
+                    </p>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={updateFbAccount} disabled={isAddingAccount}>
+                    {isAddingAccount ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Atualizando...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Atualizar Token
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardHeader>
         <CardContent>
@@ -705,6 +823,19 @@ Gerado por DOD Media Buyer`
                     </>
                   )}
                 </Button>
+                {selectedFbAccount && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      const account = fbAccounts.find(a => a.id === selectedFbAccount)
+                      if (account) openEditDialog(account)
+                    }}
+                    title="Editar conta / Atualizar token"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
               {(() => {
                 const selectedAccount = fbAccounts.find(a => a.id === selectedFbAccount)
