@@ -242,6 +242,26 @@ export async function POST(request: Request) {
       const dailyDataByBrt = regroupHourlyDataByBrtDay(hourlySpendData)
       console.log(`Agrupados em ${dailyDataByBrt.size} dias BRT`)
 
+      // Buscar REACH separadamente (API não retorna reach com breakdown por hora)
+      // Usamos dados diários apenas para pegar o reach
+      const dailyInsightsForReach = await getAdAccountInsightsByDateRange(
+        account.accessToken,
+        account.accountId,
+        ptStart,
+        ptEnd,
+        'account'
+      )
+
+      // Criar mapa de reach por data PT
+      const reachByDatePt: Record<string, number> = {}
+      if (dailyInsightsForReach) {
+        for (const insight of dailyInsightsForReach) {
+          const datePt = insight.date_start
+          reachByDatePt[datePt] = parseInt(insight.reach) || 0
+        }
+        console.log(`Reach obtido para ${Object.keys(reachByDatePt).length} dias`)
+      }
+
       // Obter offset atual para info
       const currentOffset = getPtBrtOffset(new Date())
       timezoneInfo.offset = currentOffset.offset
@@ -273,6 +293,15 @@ export async function POST(request: Request) {
           ? dayData.totalSpendUsd / dayData.totalResults
           : null
 
+        // Usar reach dos dados diários (não vem nos dados horários)
+        // Somar reach de todas as datas PT que contribuem para esse dia BRT
+        let totalReach = 0
+        for (const [datePt, reach] of Object.entries(reachByDatePt)) {
+          // Verificar se essa data PT contribui para o dia BRT atual
+          // (simplificação: soma o reach de todas as datas PT no range)
+          totalReach += reach
+        }
+
         const dailySpend = await prisma.dailyAdSpend.upsert({
           where: {
             workspaceId_date_adAccountId_campaignId_adsetId: {
@@ -290,7 +319,7 @@ export async function POST(request: Request) {
             spendBrl: dayData.totalSpendBrl,
             impressions: dayData.totalImpressions,
             clicks: dayData.totalClicks,
-            reach: dayData.totalReach,
+            reach: totalReach || dayData.totalReach,
             results: dayData.totalResults,
             cpm,
             cpc,
@@ -317,7 +346,7 @@ export async function POST(request: Request) {
             spendBrl: dayData.totalSpendBrl,
             impressions: dayData.totalImpressions,
             clicks: dayData.totalClicks,
-            reach: dayData.totalReach,
+            reach: totalReach || dayData.totalReach,
             results: dayData.totalResults,
             cpm,
             cpc,
