@@ -143,6 +143,21 @@ export default function MediaBuyerPage() {
     hourlyRecords?: number
   } | null>(null)
 
+  // Financial metrics states
+  const [salesData, setSalesData] = useState<{
+    totalSales: number
+    grossRevenue: number
+    averageTicket: number
+  }>({ totalSales: 0, grossRevenue: 0, averageTicket: 0 })
+  const [dailySales, setDailySales] = useState<Record<string, { ordersCount: number; grossRevenue: number }>>({}) // Sales by date
+  const [isSalesDialogOpen, setIsSalesDialogOpen] = useState(false)
+  const [salesFormData, setSalesFormData] = useState({
+    ordersCount: '',
+    grossRevenue: '',
+    averageTicket: '',
+  })
+  const [isSavingSales, setIsSavingSales] = useState(false)
+
   // Get date range based on preset
   const getDateRange = useCallback(() => {
     const today = new Date()
@@ -190,6 +205,85 @@ export default function MediaBuyerPage() {
       setIsLoading(false)
     }
   }, [getDateRange])
+
+  // Fetch sales data
+  const fetchSalesData = useCallback(async () => {
+    try {
+      const { startDate, endDate } = getDateRange()
+      const response = await fetch(`/api/media-buyer/sales?startDate=${startDate}&endDate=${endDate}`)
+      if (response.ok) {
+        const data = await response.json()
+        const sales = data.data || []
+
+        // Create a map of sales by date
+        const salesByDate: Record<string, { ordersCount: number; grossRevenue: number }> = {}
+        sales.forEach((sale: any) => {
+          const dateKey = new Date(sale.date).toISOString().split('T')[0]
+          if (!salesByDate[dateKey]) {
+            salesByDate[dateKey] = { ordersCount: 0, grossRevenue: 0 }
+          }
+          salesByDate[dateKey].ordersCount += sale.ordersCount || 0
+          salesByDate[dateKey].grossRevenue += sale.grossRevenue || 0
+        })
+        setDailySales(salesByDate)
+
+        // Aggregate totals
+        const totals = sales.reduce((acc: any, sale: any) => ({
+          totalSales: acc.totalSales + (sale.ordersCount || 0),
+          grossRevenue: acc.grossRevenue + (sale.grossRevenue || 0),
+        }), { totalSales: 0, grossRevenue: 0 })
+        totals.averageTicket = totals.totalSales > 0 ? totals.grossRevenue / totals.totalSales : 0
+        setSalesData(totals)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar vendas:', error)
+    }
+  }, [getDateRange])
+
+  // Save sales data
+  const saveSalesData = async () => {
+    const orders = parseInt(salesFormData.ordersCount) || 0
+    const revenue = parseFloat(salesFormData.grossRevenue) || 0
+
+    if (orders <= 0 || revenue <= 0) {
+      toast({ title: 'Preencha a quantidade de vendas e faturamento', variant: 'destructive' })
+      return
+    }
+
+    setIsSavingSales(true)
+    try {
+      const { startDate, endDate } = getDateRange()
+      // Para simplificar, salvamos para a data de hoje se for "today", senão para startDate
+      const targetDate = datePreset === 'today' ? format(new Date(), 'yyyy-MM-dd') : startDate
+
+      const response = await fetch('/api/media-buyer/sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: targetDate,
+          ordersCount: orders,
+          grossRevenue: revenue,
+          averageTicket: revenue / orders,
+          source: 'manual',
+        }),
+      })
+
+      if (response.ok) {
+        toast({ title: 'Vendas registradas com sucesso!' })
+        setSalesFormData({ ordersCount: '', grossRevenue: '', averageTicket: '' })
+        setIsSalesDialogOpen(false)
+        fetchSalesData()
+      } else {
+        const error = await response.json()
+        toast({ title: error.error || 'Erro ao salvar vendas', variant: 'destructive' })
+      }
+    } catch (error) {
+      console.error('Erro ao salvar vendas:', error)
+      toast({ title: 'Erro ao salvar vendas', variant: 'destructive' })
+    } finally {
+      setIsSavingSales(false)
+    }
+  }
 
   // Fetch Facebook accounts
   const fetchFbAccounts = useCallback(async () => {
@@ -369,7 +463,8 @@ export default function MediaBuyerPage() {
 
   useEffect(() => {
     fetchSpendData()
-  }, [fetchSpendData])
+    fetchSalesData()
+  }, [fetchSpendData, fetchSalesData])
 
   // Calculate totals for the period
   const totals = dailySpends.reduce((acc, spend) => ({
@@ -386,6 +481,12 @@ export default function MediaBuyerPage() {
   const avgCpc = totals.clicks > 0 ? totals.spendUsd / totals.clicks : 0
   const avgCtr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0
   const avgCostPerResult = totals.results > 0 ? totals.spendUsd / totals.results : 0
+
+  // Calculate financial metrics
+  const grossProfit = salesData.grossRevenue - totals.spendBrl
+  const roi = totals.spendBrl > 0 ? (grossProfit / totals.spendBrl) * 100 : 0
+  const roas = totals.spendBrl > 0 ? salesData.grossRevenue / totals.spendBrl : 0
+  const cpaReal = salesData.totalSales > 0 ? totals.spendBrl / salesData.totalSales : 0
 
   // Group by date for table
   const spendsByDate = dailySpends.reduce((acc, spend) => {
@@ -441,10 +542,15 @@ export default function MediaBuyerPage() {
 💰 Cotação USD/BRL: R$ ${usdRate}
 
 ═══════════════════════════════════
-💵 INVESTIMENTO
+💵 INVESTIMENTO & RETORNO
 ═══════════════════════════════════
-Total Gasto: ${formatUSD(totals.spendUsd)}
-Em Reais: ${formatBRL(totals.spendBrl)}
+Gasto: ${formatUSD(totals.spendUsd)} (${formatBRL(totals.spendBrl)})
+Vendas: ${salesData.totalSales > 0 ? salesData.totalSales : 'Não registrado'}
+Faturamento: ${salesData.grossRevenue > 0 ? formatBRL(salesData.grossRevenue) : 'Não registrado'}
+Lucro: ${salesData.grossRevenue > 0 ? formatBRL(grossProfit) : 'N/A'}
+ROI: ${salesData.grossRevenue > 0 ? roi.toFixed(0) + '%' : 'N/A'}
+ROAS: ${salesData.grossRevenue > 0 ? roas.toFixed(2) + 'x' : 'N/A'}
+CPA Real: ${salesData.totalSales > 0 ? formatBRL(cpaReal) : 'N/A'}
 
 ═══════════════════════════════════
 📈 MÉTRICAS DE ALCANCE
@@ -462,7 +568,7 @@ CPC: ${formatUSD(avgCpc)}
 CPM: ${formatUSD(avgCpm)}
 
 ═══════════════════════════════════
-🎯 RESULTADOS
+🎯 RESULTADOS FACEBOOK
 ═══════════════════════════════════
 Conversões: ${formatNumber(totals.results)}
 Custo por Resultado: ${totals.results > 0 ? formatUSD(avgCostPerResult) : 'N/A'}
@@ -471,8 +577,11 @@ Custo por Resultado: ${totals.results > 0 ? formatUSD(avgCostPerResult) : 'N/A'}
 📋 DETALHAMENTO DIÁRIO
 ═══════════════════════════════════
 ${dailyData.map(day => {
-  const dayCtr = day.impressions > 0 ? (day.clicks / day.impressions) * 100 : 0
-  return `${format(new Date(day.date + 'T12:00:00'), 'dd/MM')} | ${formatUSD(day.spendUsd)} | ${formatNumber(day.impressions)} imp | ${formatNumber(day.clicks)} cliques | ${dayCtr.toFixed(1)}% CTR`
+  const daySales = dailySales[day.date] || { ordersCount: 0, grossRevenue: 0 }
+  const dayProfit = daySales.grossRevenue - day.spendBrl
+  const dayRoi = day.spendBrl > 0 ? (dayProfit / day.spendBrl) * 100 : 0
+  const hasFinancial = daySales.grossRevenue > 0
+  return `${format(new Date(day.date + 'T12:00:00'), 'dd/MM')} | ${formatBRL(day.spendBrl)} | ${hasFinancial ? daySales.ordersCount + ' vendas' : '-'} | ${hasFinancial ? formatBRL(daySales.grossRevenue) + ' fat.' : '-'} | ${hasFinancial ? dayRoi.toFixed(0) + '% ROI' : '-'}`
 }).join('\n')}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -830,75 +939,213 @@ ${dailyData.map(day => {
 
       {!isLoading && (
         <>
-          {/* Summary Cards */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Gasto Total</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatUSD(totals.spendUsd)}</div>
-                <p className="text-xs text-muted-foreground">{formatBRL(totals.spendBrl)}</p>
-              </CardContent>
-            </Card>
+          {/* Financial Summary Cards */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Resumo Financeiro</h3>
+              <Dialog open={isSalesDialogOpen} onOpenChange={setIsSalesDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Registrar Vendas
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <ShoppingCart className="h-5 w-5 text-green-500" />
+                      Registrar Vendas do Dia
+                    </DialogTitle>
+                    <DialogDescription>
+                      Informe as vendas e faturamento para calcular ROI e ROAS
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Quantidade de Vendas</Label>
+                      <Input
+                        type="number"
+                        placeholder="Ex: 40"
+                        value={salesFormData.ordersCount}
+                        onChange={(e) => setSalesFormData({ ...salesFormData, ordersCount: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Faturamento Bruto (R$)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="Ex: 5200.00"
+                        value={salesFormData.grossRevenue}
+                        onChange={(e) => setSalesFormData({ ...salesFormData, grossRevenue: e.target.value })}
+                      />
+                    </div>
+                    {salesFormData.ordersCount && salesFormData.grossRevenue && (
+                      <div className="p-3 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          Ticket Médio: {formatBRL(parseFloat(salesFormData.grossRevenue) / parseInt(salesFormData.ordersCount) || 0)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setIsSalesDialogOpen(false)}>Cancelar</Button>
+                    <Button onClick={saveSalesData} disabled={isSavingSales}>
+                      {isSavingSales ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+                      Salvar
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Impressões</CardTitle>
-                <Eye className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatNumber(totals.impressions)}</div>
-                <p className="text-xs text-muted-foreground">CPM: {formatUSD(avgCpm)}</p>
-              </CardContent>
-            </Card>
+            {/* Row 1: Financial Metrics */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Gasto</CardTitle>
+                  <DollarSign className="h-4 w-4 text-red-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-500">{formatUSD(totals.spendUsd)}</div>
+                  <p className="text-xs text-muted-foreground">{formatBRL(totals.spendBrl)}</p>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Cliques</CardTitle>
-                <MousePointer className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatNumber(totals.clicks)}</div>
-                <p className="text-xs text-muted-foreground">CPC: {formatUSD(avgCpc)}</p>
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Vendas</CardTitle>
+                  <ShoppingCart className="h-4 w-4 text-blue-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-500">{salesData.totalSales}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {salesData.totalSales > 0 ? `Ticket: ${formatBRL(salesData.averageTicket)}` : 'registre vendas'}
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">CTR</CardTitle>
-                <Percent className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{avgCtr.toFixed(2)}%</div>
-                <p className="text-xs text-muted-foreground">taxa de cliques</p>
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Faturamento</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-500">{formatBRL(salesData.grossRevenue)}</div>
+                  <p className="text-xs text-muted-foreground">receita bruta</p>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Alcance</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatNumber(totals.reach)}</div>
-                <p className="text-xs text-muted-foreground">pessoas alcançadas</p>
-              </CardContent>
-            </Card>
+              <Card className={cn(grossProfit >= 0 ? "border-green-500/20" : "border-red-500/20")}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Lucro</CardTitle>
+                  <Calculator className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className={cn("text-2xl font-bold", grossProfit >= 0 ? "text-green-500" : "text-red-500")}>
+                    {formatBRL(grossProfit)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">faturamento - gasto</p>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Resultados</CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatNumber(totals.results)}</div>
-                <p className="text-xs text-muted-foreground">
-                  {totals.results > 0 ? `CPR: ${formatUSD(avgCostPerResult)}` : 'sem conversões'}
-                </p>
-              </CardContent>
-            </Card>
+              <Card className={cn(roi >= 0 ? "border-green-500/20" : "border-red-500/20")}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">ROI</CardTitle>
+                  <Percent className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className={cn("text-2xl font-bold", roi >= 0 ? "text-green-500" : "text-red-500")}>
+                    {roi.toFixed(0)}%
+                  </div>
+                  <p className="text-xs text-muted-foreground">retorno sobre investimento</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">ROAS</CardTitle>
+                  <Target className="h-4 w-4 text-purple-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-500">{roas.toFixed(2)}x</div>
+                  <p className="text-xs text-muted-foreground">retorno por R$ investido</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Row 2: Performance Metrics */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Impressões</CardTitle>
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatNumber(totals.impressions)}</div>
+                  <p className="text-xs text-muted-foreground">CPM: {formatUSD(avgCpm)}</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Cliques</CardTitle>
+                  <MousePointer className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatNumber(totals.clicks)}</div>
+                  <p className="text-xs text-muted-foreground">CPC: {formatUSD(avgCpc)}</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">CTR</CardTitle>
+                  <Percent className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{avgCtr.toFixed(2)}%</div>
+                  <p className="text-xs text-muted-foreground">taxa de cliques</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Alcance</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatNumber(totals.reach)}</div>
+                  <p className="text-xs text-muted-foreground">pessoas</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Resultados</CardTitle>
+                  <Target className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatNumber(totals.results)}</div>
+                  <p className="text-xs text-muted-foreground">
+                    CPR: {totals.results > 0 ? formatUSD(avgCostPerResult) : 'N/A'}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">CPA Real</CardTitle>
+                  <Calculator className="h-4 w-4 text-orange-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-500">
+                    {salesData.totalSales > 0 ? formatBRL(cpaReal) : 'N/A'}
+                  </div>
+                  <p className="text-xs text-muted-foreground">custo por aquisição</p>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           {/* Database Status */}
@@ -940,43 +1187,69 @@ ${dailyData.map(day => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Data</TableHead>
-                        <TableHead className="text-right">Gasto (USD)</TableHead>
-                        <TableHead className="text-right">Gasto (BRL)</TableHead>
-                        <TableHead className="text-right">Impressões</TableHead>
+                        <TableHead className="text-right">Gasto</TableHead>
+                        <TableHead className="text-right">Vendas</TableHead>
+                        <TableHead className="text-right">Fat.</TableHead>
+                        <TableHead className="text-right">Lucro</TableHead>
+                        <TableHead className="text-right">ROI</TableHead>
+                        <TableHead className="text-right">ROAS</TableHead>
+                        <TableHead className="text-right">Imp.</TableHead>
                         <TableHead className="text-right">Cliques</TableHead>
                         <TableHead className="text-right">CTR</TableHead>
-                        <TableHead className="text-right">Alcance</TableHead>
-                        <TableHead className="text-right">Resultados</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {dailyData.map((day) => {
                         const ctr = day.impressions > 0 ? (day.clicks / day.impressions) * 100 : 0
+                        const daySales = dailySales[day.date] || { ordersCount: 0, grossRevenue: 0 }
+                        const dayProfit = daySales.grossRevenue - day.spendBrl
+                        const dayRoi = day.spendBrl > 0 ? (dayProfit / day.spendBrl) * 100 : 0
+                        const dayRoas = day.spendBrl > 0 ? daySales.grossRevenue / day.spendBrl : 0
                         return (
                           <TableRow key={day.date}>
                             <TableCell className="font-medium">
-                              {format(new Date(day.date + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
+                              {format(new Date(day.date + 'T12:00:00'), 'dd/MM', { locale: ptBR })}
                             </TableCell>
-                            <TableCell className="text-right">{formatUSD(day.spendUsd)}</TableCell>
-                            <TableCell className="text-right text-muted-foreground">{formatBRL(day.spendBrl)}</TableCell>
-                            <TableCell className="text-right">{formatNumber(day.impressions)}</TableCell>
+                            <TableCell className="text-right text-red-500">{formatBRL(day.spendBrl)}</TableCell>
+                            <TableCell className="text-right text-blue-500">
+                              {daySales.ordersCount > 0 ? daySales.ordersCount : '-'}
+                            </TableCell>
+                            <TableCell className="text-right text-green-500">
+                              {daySales.grossRevenue > 0 ? formatBRL(daySales.grossRevenue) : '-'}
+                            </TableCell>
+                            <TableCell className={cn("text-right", dayProfit >= 0 ? "text-green-500" : "text-red-500")}>
+                              {daySales.grossRevenue > 0 ? formatBRL(dayProfit) : '-'}
+                            </TableCell>
+                            <TableCell className={cn("text-right", dayRoi >= 0 ? "text-green-500" : "text-red-500")}>
+                              {daySales.grossRevenue > 0 ? `${dayRoi.toFixed(0)}%` : '-'}
+                            </TableCell>
+                            <TableCell className="text-right text-purple-500">
+                              {daySales.grossRevenue > 0 ? `${dayRoas.toFixed(2)}x` : '-'}
+                            </TableCell>
+                            <TableCell className="text-right text-muted-foreground">{formatNumber(day.impressions)}</TableCell>
                             <TableCell className="text-right">{formatNumber(day.clicks)}</TableCell>
                             <TableCell className="text-right">{ctr.toFixed(2)}%</TableCell>
-                            <TableCell className="text-right">{formatNumber(day.reach)}</TableCell>
-                            <TableCell className="text-right">{formatNumber(day.results)}</TableCell>
                           </TableRow>
                         )
                       })}
                       {/* Total Row */}
                       <TableRow className="bg-muted/50 font-semibold">
                         <TableCell>TOTAL</TableCell>
-                        <TableCell className="text-right">{formatUSD(totals.spendUsd)}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">{formatBRL(totals.spendBrl)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(totals.impressions)}</TableCell>
+                        <TableCell className="text-right text-red-500">{formatBRL(totals.spendBrl)}</TableCell>
+                        <TableCell className="text-right text-blue-500">{salesData.totalSales > 0 ? salesData.totalSales : '-'}</TableCell>
+                        <TableCell className="text-right text-green-500">{salesData.grossRevenue > 0 ? formatBRL(salesData.grossRevenue) : '-'}</TableCell>
+                        <TableCell className={cn("text-right", grossProfit >= 0 ? "text-green-500" : "text-red-500")}>
+                          {salesData.grossRevenue > 0 ? formatBRL(grossProfit) : '-'}
+                        </TableCell>
+                        <TableCell className={cn("text-right", roi >= 0 ? "text-green-500" : "text-red-500")}>
+                          {salesData.grossRevenue > 0 ? `${roi.toFixed(0)}%` : '-'}
+                        </TableCell>
+                        <TableCell className="text-right text-purple-500">
+                          {salesData.grossRevenue > 0 ? `${roas.toFixed(2)}x` : '-'}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">{formatNumber(totals.impressions)}</TableCell>
                         <TableCell className="text-right">{formatNumber(totals.clicks)}</TableCell>
                         <TableCell className="text-right">{avgCtr.toFixed(2)}%</TableCell>
-                        <TableCell className="text-right">{formatNumber(totals.reach)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(totals.results)}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
