@@ -1,14 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { format } from 'date-fns'
+import { format, subDays, startOfDay, endOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Table,
   TableBody,
@@ -40,21 +39,21 @@ import {
   Percent,
   Calculator,
   Plus,
-  Copy,
   Check,
   Loader2,
   RefreshCw,
-  FileText,
-  Calendar,
+  Calendar as CalendarIcon,
   Facebook,
   Link2,
-  Settings,
   CloudDownload,
   AlertCircle,
   Pencil,
-  Trash2,
+  Eye,
+  MousePointer,
+  Users,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 
 interface FacebookAccount {
   id: string
@@ -66,53 +65,31 @@ interface FacebookAccount {
   lastSyncAt: string | null
 }
 
-interface DailyMetric {
+interface DailySpend {
   id: string
   date: string
-  totalSpendUsd: number
-  totalSpendBrl: number
-  totalSales: number
-  grossRevenueUsd: number
-  netRevenueUsd: number
-  grossProfitUsd: number
-  netProfitUsd: number
-  grossRevenue: number
-  netRevenue: number
-  grossProfit: number
-  netProfit: number
-  roi: number | null
-  roas: number | null
-  cpa: number | null
-  cpaUsd: number | null
-  usdToBrlRate: number
+  adAccountId: string
+  adAccountName: string | null
+  campaignId: string | null
+  campaignName: string | null
+  spendUsd: number
+  spendBrl: number
+  impressions: number
+  clicks: number
+  reach: number
+  cpm: number | null
+  cpc: number | null
+  ctr: number | null
+  results: number
+  costPerResult: number | null
 }
 
-interface FormData {
-  date: string
-  spendUsd: string
-  usdRate: string
-  sales: string
-  grossRevenueUsd: string
-  netRevenueUsd: string
-}
-
-const initialFormData: FormData = {
-  date: format(new Date(), 'yyyy-MM-dd'),
-  spendUsd: '',
-  usdRate: '5.70',
-  sales: '',
-  grossRevenueUsd: '',
-  netRevenueUsd: '',
-}
+type DatePreset = 'today' | 'yesterday' | 'last_7d' | 'last_30d' | 'custom'
 
 export default function MediaBuyerPage() {
-  const [metrics, setMetrics] = useState<DailyMetric[]>([])
+  // Data states
+  const [dailySpends, setDailySpends] = useState<DailySpend[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [formData, setFormData] = useState<FormData>(initialFormData)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [reportText, setReportText] = useState('')
 
   // Facebook Ads states
   const [fbAccounts, setFbAccounts] = useState<FacebookAccount[]>([])
@@ -137,31 +114,67 @@ export default function MediaBuyerPage() {
     timezone: 'America/Los_Angeles',
   })
 
-  // Buscar métricas
-  const fetchMetrics = useCallback(async () => {
+  // Date filter states
+  const [datePreset, setDatePreset] = useState<DatePreset>('today')
+  const [customStartDate, setCustomStartDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
+  const [customEndDate, setCustomEndDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
+  const [usdRate, setUsdRate] = useState('5.70')
+
+  // Get date range based on preset
+  const getDateRange = useCallback(() => {
+    const today = new Date()
+    let startDate: string
+    let endDate: string = format(today, 'yyyy-MM-dd')
+
+    switch (datePreset) {
+      case 'today':
+        startDate = format(today, 'yyyy-MM-dd')
+        break
+      case 'yesterday':
+        startDate = format(subDays(today, 1), 'yyyy-MM-dd')
+        endDate = format(subDays(today, 1), 'yyyy-MM-dd')
+        break
+      case 'last_7d':
+        startDate = format(subDays(today, 6), 'yyyy-MM-dd')
+        break
+      case 'last_30d':
+        startDate = format(subDays(today, 29), 'yyyy-MM-dd')
+        break
+      case 'custom':
+        startDate = customStartDate
+        endDate = customEndDate
+        break
+      default:
+        startDate = format(today, 'yyyy-MM-dd')
+    }
+
+    return { startDate, endDate }
+  }, [datePreset, customStartDate, customEndDate])
+
+  // Fetch spend data
+  const fetchSpendData = useCallback(async () => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/media-buyer/metrics?limit=30')
+      const { startDate, endDate } = getDateRange()
+      const response = await fetch(`/api/media-buyer/spend?startDate=${startDate}&endDate=${endDate}`)
       if (response.ok) {
         const data = await response.json()
-        setMetrics(data.data || [])
+        setDailySpends(data.data || [])
       }
     } catch (error) {
-      console.error('Erro ao buscar métricas:', error)
-      toast({ title: 'Erro ao carregar dados', variant: 'destructive' })
+      console.error('Erro ao buscar dados:', error)
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [getDateRange])
 
-  // Buscar contas do Facebook
+  // Fetch Facebook accounts
   const fetchFbAccounts = useCallback(async () => {
     try {
       const response = await fetch('/api/media-buyer/accounts')
       if (response.ok) {
         const data = await response.json()
         setFbAccounts(data.data || [])
-        // Selecionar primeira conta ativa automaticamente
         const activeAccount = (data.data || []).find((a: FacebookAccount) => a.isActive)
         if (activeAccount && !selectedFbAccount) {
           setSelectedFbAccount(activeAccount.id)
@@ -172,7 +185,7 @@ export default function MediaBuyerPage() {
     }
   }, [selectedFbAccount])
 
-  // Sincronizar dados do Facebook
+  // Sync Facebook data
   const syncFacebookData = async () => {
     if (!selectedFbAccount) {
       toast({ title: 'Selecione uma conta do Facebook', variant: 'destructive' })
@@ -181,13 +194,16 @@ export default function MediaBuyerPage() {
 
     setIsSyncing(true)
     try {
+      const { startDate, endDate } = getDateRange()
+
       const response = await fetch('/api/media-buyer/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           accountId: selectedFbAccount,
-          datePreset: 'today',
-          usdToBrlRate: parseFloat(formData.usdRate) || 5.70,
+          startDate,
+          endDate,
+          usdToBrlRate: parseFloat(usdRate) || 5.70,
         }),
       })
 
@@ -195,7 +211,7 @@ export default function MediaBuyerPage() {
 
       if (response.ok) {
         toast({ title: data.message || 'Sincronização concluída!' })
-        fetchMetrics()
+        fetchSpendData()
         fetchFbAccounts()
       } else {
         toast({ title: data.error || 'Erro ao sincronizar', description: data.message, variant: 'destructive' })
@@ -208,7 +224,7 @@ export default function MediaBuyerPage() {
     }
   }
 
-  // Adicionar conta do Facebook
+  // Add Facebook account
   const addFbAccount = async () => {
     if (!fbFormData.accountId || !fbFormData.accountName || !fbFormData.accessToken) {
       toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' })
@@ -246,7 +262,7 @@ export default function MediaBuyerPage() {
     }
   }
 
-  // Editar conta do Facebook (edição completa)
+  // Update Facebook account
   const updateFbAccount = async () => {
     if (!editingAccount || !editFormData.accountId || !editFormData.accountName) {
       toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' })
@@ -262,7 +278,7 @@ export default function MediaBuyerPage() {
           id: editingAccount.id,
           accountId: editFormData.accountId,
           accountName: editFormData.accountName,
-          accessToken: editFormData.accessToken || undefined, // Só envia se preenchido
+          accessToken: editFormData.accessToken || undefined,
           currency: editFormData.currency,
           timezone: editFormData.timezone,
         }),
@@ -286,7 +302,7 @@ export default function MediaBuyerPage() {
     }
   }
 
-  // Abrir modal de edição
+  // Open edit dialog
   const openEditDialog = (account: FacebookAccount) => {
     setEditingAccount(account)
     setEditFormData({
@@ -300,135 +316,68 @@ export default function MediaBuyerPage() {
   }
 
   useEffect(() => {
-    fetchMetrics()
     fetchFbAccounts()
-  }, [fetchMetrics, fetchFbAccounts])
+  }, [fetchFbAccounts])
 
-  // Calcular totais do dia atual (hoje)
-  const todayMetric = metrics.find(m =>
-    format(new Date(m.date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
-  )
+  useEffect(() => {
+    fetchSpendData()
+  }, [fetchSpendData])
 
-  // Calcular totais gerais
-  const totals = metrics.reduce((acc, m) => ({
-    spendUsd: acc.spendUsd + m.totalSpendUsd,
-    spendBrl: acc.spendBrl + m.totalSpendBrl,
-    sales: acc.sales + m.totalSales,
-    revenueUsd: acc.revenueUsd + (m.grossRevenueUsd || 0),
-    revenueBrl: acc.revenueBrl + m.grossRevenue,
-    profitUsd: acc.profitUsd + (m.grossProfitUsd || 0),
-    profitBrl: acc.profitBrl + m.grossProfit,
-  }), { spendUsd: 0, spendBrl: 0, sales: 0, revenueUsd: 0, revenueBrl: 0, profitUsd: 0, profitBrl: 0 })
+  // Calculate totals for the period
+  const totals = dailySpends.reduce((acc, spend) => ({
+    spendUsd: acc.spendUsd + spend.spendUsd,
+    spendBrl: acc.spendBrl + spend.spendBrl,
+    impressions: acc.impressions + spend.impressions,
+    clicks: acc.clicks + spend.clicks,
+    reach: acc.reach + spend.reach,
+    results: acc.results + spend.results,
+  }), { spendUsd: 0, spendBrl: 0, impressions: 0, clicks: 0, reach: 0, results: 0 })
 
-  const avgRoi = totals.spendUsd > 0 ? ((totals.profitUsd / totals.spendUsd) * 100) : 0
-  const avgRoas = totals.spendUsd > 0 ? (totals.revenueUsd / totals.spendUsd) : 0
-  const avgCpaUsd = totals.sales > 0 ? (totals.spendUsd / totals.sales) : 0
-  const avgCpaBrl = totals.sales > 0 ? (totals.spendBrl / totals.sales) : 0
+  // Calculate averages
+  const avgCpm = totals.impressions > 0 ? (totals.spendUsd / totals.impressions) * 1000 : 0
+  const avgCpc = totals.clicks > 0 ? totals.spendUsd / totals.clicks : 0
+  const avgCtr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0
+  const avgCostPerResult = totals.results > 0 ? totals.spendUsd / totals.results : 0
 
-  // Salvar dados
-  const handleSave = async () => {
-    if (!formData.spendUsd || !formData.sales || !formData.grossRevenueUsd) {
-      toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' })
-      return
-    }
-
-    setIsSaving(true)
-    try {
-      const response = await fetch('/api/media-buyer/metrics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: formData.date,
-          totalSpendUsd: parseFloat(formData.spendUsd),
-          totalSales: parseInt(formData.sales),
-          grossRevenueUsd: parseFloat(formData.grossRevenueUsd),
-          netRevenueUsd: parseFloat(formData.netRevenueUsd) || parseFloat(formData.grossRevenueUsd),
-          usdToBrlRate: parseFloat(formData.usdRate),
-        }),
-      })
-
-      if (response.ok) {
-        toast({ title: 'Dados salvos com sucesso!' })
-        setFormData(initialFormData)
-        setIsDialogOpen(false)
-        fetchMetrics()
-      } else {
-        const error = await response.json()
-        toast({ title: error.error || 'Erro ao salvar', variant: 'destructive' })
+  // Group by date for table
+  const spendsByDate = dailySpends.reduce((acc, spend) => {
+    const dateKey = spend.date.split('T')[0]
+    if (!acc[dateKey]) {
+      acc[dateKey] = {
+        date: dateKey,
+        spendUsd: 0,
+        spendBrl: 0,
+        impressions: 0,
+        clicks: 0,
+        reach: 0,
+        results: 0,
       }
-    } catch (error) {
-      console.error('Erro ao salvar:', error)
-      toast({ title: 'Erro ao salvar dados', variant: 'destructive' })
-    } finally {
-      setIsSaving(false)
     }
-  }
+    acc[dateKey].spendUsd += spend.spendUsd
+    acc[dateKey].spendBrl += spend.spendBrl
+    acc[dateKey].impressions += spend.impressions
+    acc[dateKey].clicks += spend.clicks
+    acc[dateKey].reach += spend.reach
+    acc[dateKey].results += spend.results
+    return acc
+  }, {} as Record<string, { date: string; spendUsd: number; spendBrl: number; impressions: number; clicks: number; reach: number; results: number }>)
 
-  // Gerar relatório
-  const generateReport = (metric?: DailyMetric) => {
-    const m = metric || todayMetric
-    if (!m) {
-      toast({ title: 'Nenhum dado disponível para gerar relatório', variant: 'destructive' })
-      return
-    }
+  const dailyData = Object.values(spendsByDate).sort((a, b) => b.date.localeCompare(a.date))
 
-    const dateFormatted = format(new Date(m.date), "dd 'de' MMMM", { locale: ptBR })
-    const spendUsd = m.totalSpendUsd.toFixed(2)
-    const spendBrl = m.totalSpendBrl.toFixed(2)
-    const revenueUsd = (m.grossRevenueUsd || 0).toFixed(2)
-    const revenueBrl = m.grossRevenue.toFixed(2)
-    const profitUsd = (m.grossProfitUsd || 0).toFixed(2)
-    const profitBrl = m.grossProfit.toFixed(2)
-    const roi = m.roi?.toFixed(1) || '0'
-    const roas = m.roas?.toFixed(2) || '0'
-    const cpaUsd = m.cpaUsd?.toFixed(2) || '0'
-    const cpaBrl = m.cpa?.toFixed(2) || '0'
-
-    const report = `📊 RELATÓRIO DE MÍDIA - ${dateFormatted.toUpperCase()}
-
-💰 Investimento: $${spendUsd} USD (R$ ${spendBrl})
-🛒 Vendas: ${m.totalSales}
-💵 Faturamento: $${revenueUsd} USD (R$ ${revenueBrl})
-📈 Lucro: $${profitUsd} USD (R$ ${profitBrl})
-
-📉 MÉTRICAS:
-• ROI: ${roi}%
-• ROAS: ${roas}x
-• CPA: $${cpaUsd} USD (R$ ${cpaBrl})
-
-${parseFloat(profitUsd) >= 0 ? '✅ Dia positivo!' : '⚠️ Dia negativo - ajustar estratégia'}
-
----
-Gerado por DOD Media Buyer`
-
-    setReportText(report)
-    return report
-  }
-
-  // Copiar relatório
-  const copyReport = () => {
-    if (reportText) {
-      navigator.clipboard.writeText(reportText)
-      setCopied(true)
-      toast({ title: 'Relatório copiado!' })
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
-
-  // Formatar moeda
+  // Format helpers
   const formatUSD = (value: number) => `$${value.toFixed(2)}`
   const formatBRL = (value: number) => `R$ ${value.toFixed(2)}`
+  const formatNumber = (value: number) => value.toLocaleString('pt-BR')
 
-  // Calcular prévia
-  const previewSpendUsd = parseFloat(formData.spendUsd) || 0
-  const previewRate = parseFloat(formData.usdRate) || 5.70
-  const previewSpendBrl = previewSpendUsd * previewRate
-  const previewRevenueUsd = parseFloat(formData.grossRevenueUsd) || 0
-  const previewRevenueBrl = previewRevenueUsd * previewRate
-  const previewProfitUsd = previewRevenueUsd - previewSpendUsd
-  const previewProfitBrl = previewRevenueBrl - previewSpendBrl
-  const previewRoi = previewSpendUsd > 0 ? ((previewProfitUsd / previewSpendUsd) * 100) : 0
-  const previewRoas = previewSpendUsd > 0 ? (previewRevenueUsd / previewSpendUsd) : 0
+  const getPresetLabel = (preset: DatePreset) => {
+    switch (preset) {
+      case 'today': return 'Hoje'
+      case 'yesterday': return 'Ontem'
+      case 'last_7d': return 'Últimos 7 dias'
+      case 'last_30d': return 'Últimos 30 dias'
+      case 'custom': return 'Personalizado'
+    }
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -437,164 +386,54 @@ Gerado por DOD Media Buyer`
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight">Media Buyer</h1>
-            <Badge variant="outline" className="gap-1 border-green-500/30 bg-green-500/10 text-green-500">
-              <TrendingUp className="h-3 w-3" />
+            <Badge variant="outline" className="gap-1 border-blue-500/30 bg-blue-500/10 text-blue-500">
+              <Facebook className="h-3 w-3" />
               Facebook Ads
             </Badge>
           </div>
           <p className="text-muted-foreground">
-            Controle de gastos, vendas e métricas diárias (valores em USD)
+            Dados sincronizados automaticamente do Facebook Ads
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={fetchMetrics} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+        {/* Date Filter */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={datePreset} onValueChange={(v) => setDatePreset(v as DatePreset)}>
+            <SelectTrigger className="w-[160px]">
+              <CalendarIcon className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Hoje</SelectItem>
+              <SelectItem value="yesterday">Ontem</SelectItem>
+              <SelectItem value="last_7d">Últimos 7 dias</SelectItem>
+              <SelectItem value="last_30d">Últimos 30 dias</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {datePreset === 'custom' && (
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                className="w-[140px] h-9"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+              />
+              <span className="text-muted-foreground">até</span>
+              <Input
+                type="date"
+                className="w-[140px] h-9"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+              />
+            </div>
+          )}
+
+          <Button variant="outline" size="sm" onClick={fetchSpendData} disabled={isLoading}>
+            <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
             Atualizar
           </Button>
-
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Registro
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Registrar Dados do Dia</DialogTitle>
-                <DialogDescription>
-                  Insira os dados de gastos e vendas do dia (valores em USD)
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Data</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="usdRate">Cotação USD/BRL</Label>
-                    <Input
-                      id="usdRate"
-                      type="number"
-                      step="0.01"
-                      placeholder="5.70"
-                      value={formData.usdRate}
-                      onChange={(e) => setFormData({ ...formData, usdRate: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="spendUsd">Gasto do Dia (USD)</Label>
-                  <Input
-                    id="spendUsd"
-                    type="number"
-                    step="0.01"
-                    placeholder="100.00"
-                    value={formData.spendUsd}
-                    onChange={(e) => setFormData({ ...formData, spendUsd: e.target.value })}
-                  />
-                  {formData.spendUsd && (
-                    <p className="text-xs text-muted-foreground">
-                      = {formatBRL(previewSpendBrl)}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="sales">Quantidade de Vendas</Label>
-                  <Input
-                    id="sales"
-                    type="number"
-                    placeholder="10"
-                    value={formData.sales}
-                    onChange={(e) => setFormData({ ...formData, sales: e.target.value })}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="grossRevenueUsd">Faturamento Bruto (USD)</Label>
-                    <Input
-                      id="grossRevenueUsd"
-                      type="number"
-                      step="0.01"
-                      placeholder="500.00"
-                      value={formData.grossRevenueUsd}
-                      onChange={(e) => setFormData({ ...formData, grossRevenueUsd: e.target.value })}
-                    />
-                    {formData.grossRevenueUsd && (
-                      <p className="text-xs text-muted-foreground">
-                        = {formatBRL(previewRevenueBrl)}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="netRevenueUsd">Faturamento Líquido (USD)</Label>
-                    <Input
-                      id="netRevenueUsd"
-                      type="number"
-                      step="0.01"
-                      placeholder="450.00"
-                      value={formData.netRevenueUsd}
-                      onChange={(e) => setFormData({ ...formData, netRevenueUsd: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                {/* Preview de métricas calculadas */}
-                {formData.spendUsd && formData.grossRevenueUsd && (
-                  <div className="p-3 rounded-lg bg-muted/50 space-y-2">
-                    <p className="text-sm font-medium">Prévia das Métricas:</p>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Lucro:</span>
-                        <p className="font-medium text-green-500">
-                          {formatUSD(previewProfitUsd)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatBRL(previewProfitBrl)}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">ROI:</span>
-                        <p className="font-medium">{previewRoi.toFixed(1)}%</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">ROAS:</span>
-                        <p className="font-medium">{previewRoas.toFixed(2)}x</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Salvando...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4 mr-2" />
-                      Salvar
-                    </>
-                  )}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
 
@@ -625,7 +464,7 @@ Gerado por DOD Media Buyer`
                     Adicionar Conta do Facebook Ads
                   </DialogTitle>
                   <DialogDescription>
-                    Configure sua conta do Facebook Ads para sincronização automática de gastos
+                    Configure sua conta do Facebook Ads para sincronização automática
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -637,9 +476,6 @@ Gerado por DOD Media Buyer`
                       value={fbFormData.accountId}
                       onChange={(e) => setFbFormData({ ...fbFormData, accountId: e.target.value })}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Encontre no Business Manager &gt; Contas de anúncios
-                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="fbAccountName">Nome da Conta</Label>
@@ -659,9 +495,6 @@ Gerado por DOD Media Buyer`
                       value={fbFormData.accessToken}
                       onChange={(e) => setFbFormData({ ...fbFormData, accessToken: e.target.value })}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Gere um token em: developers.facebook.com &gt; Graph API Explorer
-                    </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -670,12 +503,10 @@ Gerado por DOD Media Buyer`
                         value={fbFormData.currency}
                         onValueChange={(v) => setFbFormData({ ...fbFormData, currency: v })}
                       >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="USD">USD - Dólar</SelectItem>
-                          <SelectItem value="BRL">BRL - Real</SelectItem>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="BRL">BRL</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -685,135 +516,88 @@ Gerado por DOD Media Buyer`
                         value={fbFormData.timezone}
                         onValueChange={(v) => setFbFormData({ ...fbFormData, timezone: v })}
                       >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="America/Los_Angeles">PT (Los Angeles)</SelectItem>
                           <SelectItem value="America/Sao_Paulo">BRT (São Paulo)</SelectItem>
                           <SelectItem value="America/New_York">EST (New York)</SelectItem>
-                          <SelectItem value="UTC">UTC</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsFbDialogOpen(false)}>
-                    Cancelar
-                  </Button>
+                  <Button variant="outline" onClick={() => setIsFbDialogOpen(false)}>Cancelar</Button>
                   <Button onClick={addFbAccount} disabled={isAddingAccount}>
-                    {isAddingAccount ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Adicionando...
-                      </>
-                    ) : (
-                      <>
-                        <Link2 className="h-4 w-4 mr-2" />
-                        Conectar
-                      </>
-                    )}
+                    {isAddingAccount ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
+                    Conectar
                   </Button>
                 </div>
               </DialogContent>
             </Dialog>
 
-            {/* Dialog de Edição Completa */}
+            {/* Edit Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     <Pencil className="h-5 w-5 text-[#1877F2]" />
-                    Editar Conta do Facebook Ads
+                    Editar Conta
                   </DialogTitle>
-                  <DialogDescription>
-                    Edite os dados da conta de anúncios
-                  </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="editAccountId">ID da Conta (act_xxxxx)</Label>
+                    <Label>ID da Conta</Label>
                     <Input
-                      id="editAccountId"
-                      placeholder="act_123456789"
                       value={editFormData.accountId}
                       onChange={(e) => setEditFormData({ ...editFormData, accountId: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="editAccountName">Nome da Conta</Label>
+                    <Label>Nome</Label>
                     <Input
-                      id="editAccountName"
-                      placeholder="Nome da conta"
                       value={editFormData.accountName}
                       onChange={(e) => setEditFormData({ ...editFormData, accountName: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="editAccessToken">Access Token</Label>
+                    <Label>Novo Token (deixe vazio para manter)</Label>
                     <Input
-                      id="editAccessToken"
                       type="password"
-                      placeholder="Deixe em branco para manter o atual"
+                      placeholder="EAAxxxxxxxx..."
                       value={editFormData.accessToken}
                       onChange={(e) => setEditFormData({ ...editFormData, accessToken: e.target.value })}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Deixe em branco para manter o token atual
-                    </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Moeda</Label>
-                      <Select
-                        value={editFormData.currency}
-                        onValueChange={(v) => setEditFormData({ ...editFormData, currency: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                      <Select value={editFormData.currency} onValueChange={(v) => setEditFormData({ ...editFormData, currency: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="USD">USD - Dólar</SelectItem>
-                          <SelectItem value="BRL">BRL - Real</SelectItem>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="BRL">BRL</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
                       <Label>Timezone</Label>
-                      <Select
-                        value={editFormData.timezone}
-                        onValueChange={(v) => setEditFormData({ ...editFormData, timezone: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                      <Select value={editFormData.timezone} onValueChange={(v) => setEditFormData({ ...editFormData, timezone: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="America/Los_Angeles">PT (Los Angeles)</SelectItem>
-                          <SelectItem value="America/Sao_Paulo">BRT (São Paulo)</SelectItem>
-                          <SelectItem value="America/New_York">EST (New York)</SelectItem>
-                          <SelectItem value="UTC">UTC</SelectItem>
+                          <SelectItem value="America/Los_Angeles">PT</SelectItem>
+                          <SelectItem value="America/Sao_Paulo">BRT</SelectItem>
+                          <SelectItem value="America/New_York">EST</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                    Cancelar
-                  </Button>
+                  <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
                   <Button onClick={updateFbAccount} disabled={isAddingAccount}>
-                    {isAddingAccount ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Salvando...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        Salvar Alterações
-                      </>
-                    )}
+                    {isAddingAccount ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+                    Salvar
                   </Button>
                 </div>
               </DialogContent>
@@ -827,14 +611,13 @@ Gerado por DOD Media Buyer`
               <div>
                 <p className="text-sm font-medium">Nenhuma conta conectada</p>
                 <p className="text-xs text-muted-foreground">
-                  Adicione uma conta do Facebook Ads para sincronizar gastos automaticamente
+                  Adicione uma conta do Facebook Ads para sincronizar
                 </p>
               </div>
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <div className="flex-1 w-full sm:w-auto">
-                <Label className="text-xs text-muted-foreground mb-1 block">Conta Selecionada</Label>
                 <Select value={selectedFbAccount} onValueChange={setSelectedFbAccount}>
                   <SelectTrigger className="w-full sm:w-[300px]">
                     <SelectValue placeholder="Selecione uma conta" />
@@ -842,31 +625,32 @@ Gerado por DOD Media Buyer`
                   <SelectContent>
                     {fbAccounts.map((account) => (
                       <SelectItem key={account.id} value={account.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{account.accountName}</span>
-                          <span className="text-xs text-muted-foreground">({account.accountId})</span>
-                        </div>
+                        {account.accountName} ({account.accountId})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground">USD/BRL:</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    className="w-20 h-9"
+                    value={usdRate}
+                    onChange={(e) => setUsdRate(e.target.value)}
+                  />
+                </div>
                 <Button
                   onClick={syncFacebookData}
                   disabled={isSyncing || !selectedFbAccount}
                   className="bg-[#1877F2] hover:bg-[#1877F2]/90"
                 >
                   {isSyncing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Sincronizando...
-                    </>
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sincronizando...</>
                   ) : (
-                    <>
-                      <CloudDownload className="h-4 w-4 mr-2" />
-                      Sincronizar Hoje
-                    </>
+                    <><CloudDownload className="h-4 w-4 mr-2" />Sincronizar {getPresetLabel(datePreset)}</>
                   )}
                 </Button>
                 {selectedFbAccount && (
@@ -877,23 +661,11 @@ Gerado por DOD Media Buyer`
                       const account = fbAccounts.find(a => a.id === selectedFbAccount)
                       if (account) openEditDialog(account)
                     }}
-                    title="Editar conta / Atualizar token"
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
                 )}
               </div>
-              {(() => {
-                const selectedAccount = fbAccounts.find(a => a.id === selectedFbAccount)
-                if (selectedAccount?.lastSyncAt) {
-                  return (
-                    <p className="text-xs text-muted-foreground">
-                      Última sync: {format(new Date(selectedAccount.lastSyncAt), 'dd/MM HH:mm')}
-                    </p>
-                  )
-                }
-                return null
-              })()}
             </div>
           )}
         </CardContent>
@@ -908,157 +680,91 @@ Gerado por DOD Media Buyer`
 
       {!isLoading && (
         <>
-          {/* Cards de Resumo - Dados do Dia */}
+          {/* Summary Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Gasto</CardTitle>
+                <CardTitle className="text-sm font-medium">Gasto Total</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatUSD(todayMetric?.totalSpendUsd || 0)}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {formatBRL(todayMetric?.totalSpendBrl || 0)}
-                </p>
+                <div className="text-2xl font-bold">{formatUSD(totals.spendUsd)}</div>
+                <p className="text-xs text-muted-foreground">{formatBRL(totals.spendBrl)}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Vendas</CardTitle>
-                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Impressões</CardTitle>
+                <Eye className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {todayMetric?.totalSales || 0}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  pedidos hoje
-                </p>
+                <div className="text-2xl font-bold">{formatNumber(totals.impressions)}</div>
+                <p className="text-xs text-muted-foreground">CPM: {formatUSD(avgCpm)}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Faturamento</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Cliques</CardTitle>
+                <MousePointer className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatUSD(todayMetric?.grossRevenueUsd || 0)}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {formatBRL(todayMetric?.grossRevenue || 0)}
-                </p>
+                <div className="text-2xl font-bold">{formatNumber(totals.clicks)}</div>
+                <p className="text-xs text-muted-foreground">CPC: {formatUSD(avgCpc)}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Lucro</CardTitle>
-                <Calculator className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className={`text-2xl font-bold ${(todayMetric?.grossProfitUsd || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {formatUSD(todayMetric?.grossProfitUsd || 0)}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {formatBRL(todayMetric?.grossProfit || 0)}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">ROI</CardTitle>
+                <CardTitle className="text-sm font-medium">CTR</CardTitle>
                 <Percent className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${(todayMetric?.roi || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {todayMetric?.roi?.toFixed(1) || '0'}%
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  retorno sobre investimento
-                </p>
+                <div className="text-2xl font-bold">{avgCtr.toFixed(2)}%</div>
+                <p className="text-xs text-muted-foreground">taxa de cliques</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">ROAS</CardTitle>
+                <CardTitle className="text-sm font-medium">Alcance</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatNumber(totals.reach)}</div>
+                <p className="text-xs text-muted-foreground">pessoas alcançadas</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Resultados</CardTitle>
                 <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {todayMetric?.roas?.toFixed(2) || '0'}x
-                </div>
+                <div className="text-2xl font-bold">{formatNumber(totals.results)}</div>
                 <p className="text-xs text-muted-foreground">
-                  retorno por dólar investido
+                  {totals.results > 0 ? `CPR: ${formatUSD(avgCostPerResult)}` : 'sem conversões'}
                 </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Seção de Relatório */}
+          {/* Daily Data Table */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Relatório para Patrocinador
-              </CardTitle>
+              <CardTitle>Dados Diários - {getPresetLabel(datePreset)}</CardTitle>
               <CardDescription>
-                Gere um relatório formatado para enviar ao seu patrocinador/investidor
+                Detalhamento por dia do período selecionado
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <Textarea
-                    value={reportText}
-                    onChange={(e) => setReportText(e.target.value)}
-                    placeholder="Clique em 'Gerar Relatório' para criar o texto..."
-                    className="min-h-[200px] font-mono text-sm"
-                  />
-                </div>
-                <div className="flex flex-col gap-2 md:w-48">
-                  <Button onClick={() => generateReport()} variant="outline">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Relatório de Hoje
-                  </Button>
-                  <Button onClick={copyReport} disabled={!reportText}>
-                    {copied ? (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copiar Texto
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Tabela de Histórico */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Histórico dos Últimos 30 Dias</CardTitle>
-              <CardDescription>
-                Acompanhe a evolução das suas métricas diárias (valores em USD e BRL)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {metrics.length === 0 ? (
+              {dailyData.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  <Calculator className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhum registro encontrado</p>
-                  <p className="text-sm">Clique em "Novo Registro" para começar</p>
+                  <CloudDownload className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Nenhum dado encontrado para o período</p>
+                  <p className="text-sm">Clique em "Sincronizar" para buscar dados do Facebook</p>
                 </div>
               ) : (
                 <div className="rounded-md border overflow-x-auto">
@@ -1066,97 +772,46 @@ Gerado por DOD Media Buyer`
                     <TableHeader>
                       <TableRow>
                         <TableHead>Data</TableHead>
-                        <TableHead className="text-right">Gasto</TableHead>
-                        <TableHead className="text-right">Vendas</TableHead>
-                        <TableHead className="text-right">Faturamento</TableHead>
-                        <TableHead className="text-right">Lucro</TableHead>
-                        <TableHead className="text-right">ROI</TableHead>
-                        <TableHead className="text-right">ROAS</TableHead>
-                        <TableHead className="text-right">CPA</TableHead>
-                        <TableHead className="text-center">Ações</TableHead>
+                        <TableHead className="text-right">Gasto (USD)</TableHead>
+                        <TableHead className="text-right">Gasto (BRL)</TableHead>
+                        <TableHead className="text-right">Impressões</TableHead>
+                        <TableHead className="text-right">Cliques</TableHead>
+                        <TableHead className="text-right">CTR</TableHead>
+                        <TableHead className="text-right">Alcance</TableHead>
+                        <TableHead className="text-right">Resultados</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {metrics.map((metric) => (
-                        <TableRow key={metric.id}>
-                          <TableCell className="font-medium">
-                            {format(new Date(metric.date), 'dd/MM/yyyy')}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div>{formatUSD(metric.totalSpendUsd)}</div>
-                            <div className="text-xs text-muted-foreground">{formatBRL(metric.totalSpendBrl)}</div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {metric.totalSales}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div>{formatUSD(metric.grossRevenueUsd || 0)}</div>
-                            <div className="text-xs text-muted-foreground">{formatBRL(metric.grossRevenue)}</div>
-                          </TableCell>
-                          <TableCell className={`text-right ${(metric.grossProfitUsd || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            <div>{formatUSD(metric.grossProfitUsd || 0)}</div>
-                            <div className="text-xs opacity-70">{formatBRL(metric.grossProfit)}</div>
-                          </TableCell>
-                          <TableCell className={`text-right ${(metric.roi || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {metric.roi?.toFixed(1) || '0'}%
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {metric.roas?.toFixed(2) || '0'}x
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div>{formatUSD(metric.cpaUsd || 0)}</div>
-                            <div className="text-xs text-muted-foreground">{formatBRL(metric.cpa || 0)}</div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                generateReport(metric)
-                                toast({ title: 'Relatório gerado!' })
-                              }}
-                            >
-                              <FileText className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {dailyData.map((day) => {
+                        const ctr = day.impressions > 0 ? (day.clicks / day.impressions) * 100 : 0
+                        return (
+                          <TableRow key={day.date}>
+                            <TableCell className="font-medium">
+                              {format(new Date(day.date + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
+                            </TableCell>
+                            <TableCell className="text-right">{formatUSD(day.spendUsd)}</TableCell>
+                            <TableCell className="text-right text-muted-foreground">{formatBRL(day.spendBrl)}</TableCell>
+                            <TableCell className="text-right">{formatNumber(day.impressions)}</TableCell>
+                            <TableCell className="text-right">{formatNumber(day.clicks)}</TableCell>
+                            <TableCell className="text-right">{ctr.toFixed(2)}%</TableCell>
+                            <TableCell className="text-right">{formatNumber(day.reach)}</TableCell>
+                            <TableCell className="text-right">{formatNumber(day.results)}</TableCell>
+                          </TableRow>
+                        )
+                      })}
+                      {/* Total Row */}
+                      <TableRow className="bg-muted/50 font-semibold">
+                        <TableCell>TOTAL</TableCell>
+                        <TableCell className="text-right">{formatUSD(totals.spendUsd)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{formatBRL(totals.spendBrl)}</TableCell>
+                        <TableCell className="text-right">{formatNumber(totals.impressions)}</TableCell>
+                        <TableCell className="text-right">{formatNumber(totals.clicks)}</TableCell>
+                        <TableCell className="text-right">{avgCtr.toFixed(2)}%</TableCell>
+                        <TableCell className="text-right">{formatNumber(totals.reach)}</TableCell>
+                        <TableCell className="text-right">{formatNumber(totals.results)}</TableCell>
+                      </TableRow>
                     </TableBody>
                   </Table>
-                </div>
-              )}
-
-              {/* Resumo Geral */}
-              {metrics.length > 0 && (
-                <div className="mt-6 p-4 rounded-lg bg-muted/50">
-                  <h4 className="font-semibold mb-3">Resumo do Período ({metrics.length} dias)</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Total Gasto:</span>
-                      <p className="font-bold">{formatUSD(totals.spendUsd)}</p>
-                      <p className="text-xs text-muted-foreground">{formatBRL(totals.spendBrl)}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Total Vendas:</span>
-                      <p className="font-bold">{totals.sales}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Total Faturamento:</span>
-                      <p className="font-bold">{formatUSD(totals.revenueUsd)}</p>
-                      <p className="text-xs text-muted-foreground">{formatBRL(totals.revenueBrl)}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">ROI Médio:</span>
-                      <p className={`font-bold ${avgRoi >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {avgRoi.toFixed(1)}%
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">CPA Médio:</span>
-                      <p className="font-bold">{formatUSD(avgCpaUsd)}</p>
-                      <p className="text-xs text-muted-foreground">{formatBRL(avgCpaBrl)}</p>
-                    </div>
-                  </div>
                 </div>
               )}
             </CardContent>

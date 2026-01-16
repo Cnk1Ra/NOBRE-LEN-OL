@@ -35,8 +35,16 @@ export async function GET(request: Request) {
 
     if (startDate || endDate) {
       where.date = {}
-      if (startDate) where.date.gte = new Date(startDate)
-      if (endDate) where.date.lte = new Date(endDate)
+      if (startDate) {
+        const start = new Date(startDate)
+        start.setUTCHours(0, 0, 0, 0)
+        where.date.gte = start
+      }
+      if (endDate) {
+        const end = new Date(endDate)
+        end.setUTCHours(23, 59, 59, 999)
+        where.date.lte = end
+      }
     }
 
     if (adAccountId) where.adAccountId = adAccountId
