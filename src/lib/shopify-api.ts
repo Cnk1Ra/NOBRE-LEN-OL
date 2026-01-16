@@ -198,7 +198,7 @@ export async function getOrdersByDate(
   ].join(',')
 
   const baseUrl = `https://${storeUrl}/admin/api/${SHOPIFY_API_VERSION}/orders.json`
-  let url: string | null = `${baseUrl}?status=any&financial_status=paid&created_at_min=${encodeURIComponent(createdAtMin)}&created_at_max=${encodeURIComponent(createdAtMax)}&limit=250&fields=${fields}`
+  let url: string | null = `${baseUrl}?status=any&created_at_min=${encodeURIComponent(createdAtMin)}&created_at_max=${encodeURIComponent(createdAtMax)}&limit=250&fields=${fields}`
 
   const headers = {
     'X-Shopify-Access-Token': accessToken,
@@ -258,7 +258,7 @@ export async function getOrdersByDateRange(
   ].join(',')
 
   const baseUrl = `https://${storeUrl}/admin/api/${SHOPIFY_API_VERSION}/orders.json`
-  const initialUrl = `${baseUrl}?status=any&financial_status=paid&created_at_min=${encodeURIComponent(createdAtMin)}&created_at_max=${encodeURIComponent(createdAtMax)}&limit=250&fields=${fields}`
+  const initialUrl = `${baseUrl}?status=any&created_at_min=${encodeURIComponent(createdAtMin)}&created_at_max=${encodeURIComponent(createdAtMax)}&limit=250&fields=${fields}`
 
   const headers = {
     'X-Shopify-Access-Token': accessToken,
