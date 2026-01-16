@@ -155,6 +155,94 @@ export async function POST(request: Request) {
       savedSpends.push(dailySpend)
     }
 
+    // Agrupar gastos por data para atualizar DailyMetrics
+    const spendsByDate = new Map<string, number>()
+    const spendsBrlByDate = new Map<string, number>()
+
+    for (const insight of insights) {
+      const spendData = convertInsightToSpend(insight, usdToBrlRate)
+      const dateKey = spendData.date
+      spendsByDate.set(dateKey, (spendsByDate.get(dateKey) || 0) + spendData.spendUsd)
+      spendsBrlByDate.set(dateKey, (spendsBrlByDate.get(dateKey) || 0) + spendData.spendBrl)
+    }
+
+    // Atualizar DailyMetrics com os gastos sincronizados
+    const dateEntries = Array.from(spendsByDate.entries())
+    for (const [dateStr, totalSpendUsd] of dateEntries) {
+      const dateObj = new Date(dateStr)
+      dateObj.setUTCHours(0, 0, 0, 0)
+      const totalSpendBrl = spendsBrlByDate.get(dateStr) || 0
+
+      // Buscar métricas existentes para manter vendas/receita se já existirem
+      const existingMetric = await prisma.dailyMetrics.findUnique({
+        where: {
+          workspaceId_date: {
+            workspaceId: membership.workspaceId,
+            date: dateObj,
+          },
+        },
+      })
+
+      // Calcular métricas baseadas nos dados existentes ou novos
+      const grossRevenueUsd = existingMetric?.grossRevenueUsd || 0
+      const netRevenueUsd = existingMetric?.netRevenueUsd || 0
+      const totalSales = existingMetric?.totalSales || 0
+
+      const grossRevenue = grossRevenueUsd * usdToBrlRate
+      const netRevenue = netRevenueUsd * usdToBrlRate
+      const grossProfitUsd = grossRevenueUsd - totalSpendUsd
+      const netProfitUsd = netRevenueUsd - totalSpendUsd
+      const grossProfit = grossRevenue - totalSpendBrl
+      const netProfit = netRevenue - totalSpendBrl
+
+      const roi = totalSpendUsd > 0 ? ((grossProfitUsd / totalSpendUsd) * 100) : null
+      const roas = totalSpendUsd > 0 ? (grossRevenueUsd / totalSpendUsd) : null
+      const cpa = totalSales > 0 ? (totalSpendBrl / totalSales) : null
+      const cpaUsd = totalSales > 0 ? (totalSpendUsd / totalSales) : null
+
+      await prisma.dailyMetrics.upsert({
+        where: {
+          workspaceId_date: {
+            workspaceId: membership.workspaceId,
+            date: dateObj,
+          },
+        },
+        update: {
+          totalSpendUsd,
+          totalSpendBrl,
+          grossProfitUsd,
+          netProfitUsd,
+          grossProfit,
+          netProfit,
+          roi,
+          roas,
+          cpa,
+          cpaUsd,
+          usdToBrlRate,
+        },
+        create: {
+          workspaceId: membership.workspaceId,
+          date: dateObj,
+          totalSpendUsd,
+          totalSpendBrl,
+          totalSales: 0,
+          grossRevenueUsd: 0,
+          netRevenueUsd: 0,
+          grossProfitUsd: -totalSpendUsd,
+          netProfitUsd: -totalSpendUsd,
+          grossRevenue: 0,
+          netRevenue: 0,
+          grossProfit: -totalSpendBrl,
+          netProfit: -totalSpendBrl,
+          roi: null,
+          roas: null,
+          cpa: null,
+          cpaUsd: null,
+          usdToBrlRate,
+        },
+      })
+    }
+
     // Atualizar lastSyncAt da conta
     await prisma.facebookAdAccount.update({
       where: { id: accountId },
@@ -163,11 +251,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Sincronização concluída! ${savedSpends.length} registro(s) atualizado(s).`,
+      message: `Sincronização concluída! ${savedSpends.length} registro(s) de gasto + métricas atualizadas.`,
       accountId: account.accountId,
       accountName: account.accountName,
       lastSyncAt: new Date().toISOString(),
       recordsUpdated: savedSpends.length,
+      datesUpdated: Array.from(spendsByDate.keys()),
       data: savedSpends,
     })
   } catch (error) {
